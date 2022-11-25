@@ -261,9 +261,14 @@ uint8_t use_brake = 0, brake_on = 0; // brake when stopped
 #define voltage_sense_pin 12
 #define VOLTAGE_MODE_12V 0
 #define VOLTAGE_MODE_24V 1
+#define VOLTS_9 900
+#define VOLTS_12 1200
+#define VOLTS_16 1600
+#define VOLTS_18 1800
+#define VOLTS_32 3200
 uint8_t voltage_sense = HIGH;
 uint8_t voltage_mode = VOLTAGE_MODE_12V;
-uint16_t max_voltage = 1600; // 16 volts max in 12 volt mode
+uint16_t max_voltage = VOLTS_16; // 16 volts max in 12 volt mode
 
 #define led_pin 13 // led is on when engaged
 
@@ -398,6 +403,7 @@ uint16_t serial_data_timeout;
 
 void setup()
 {
+    Serial.println("Entered setup");
     PCICR = 0;
     PCMSK2 = 0;
         
@@ -519,23 +525,6 @@ void setup()
     uint8_t sig[3], c = 0;
     for (uint8_t i = 0; i < 5; i += 2)
         sig[c++] = Serial.print(boot_signature_byte_get(i));
-//    if (0/*disable for now*/   &&   sig[0] == 0x1e && sig[1] == 0x95 && sig[2] == 0x16) {
-//        // detected atmega328pb processor, we have timers 3 and 4 with hardware pwm possible
-//        if (pwm_style == PWM_STYLE_HBRIDGE) {
-//            // upgrade to use hardware pwm (style 3)
-//            pwm_style = PWM_STYLE_HBRIDGE_ATMEGA328PB;
-//            // use timers 1, 2, 3 for pwm (with deadtime)
-//            // use timer 4 in place of timer 2 for count
-//            // stop all timers
-//            GTCCR = (1<<TSM)|(1<<PSRASY)|(1<<PSRSYNC); // halt all timers
-//            ICR1 = 0x255; // use timer1 as 8 bit timer
-//            ICR4 = 0x255; // use timer2 also as 8 bit timer
-//            TCNT1 = 0;
-//            TCNT2 = 10; // deadtime
-//            TCNT3 = 10;
-//            GTCCR = 0; // restart timers
-//        }
-//    }
 #endif    
     
     // test shunt type, if pin wired to ground, we have 0.01 ohm, otherwise 0.05 ohm
@@ -578,6 +567,7 @@ void setup()
         TCCR0B = _BV(CS02) | _BV(CS00); // divide 1024
     }
     serial_data_timeout = 250;
+    Serial.println("Setup exit");
 }
 
 uint8_t in_bytes[3];
@@ -666,6 +656,18 @@ void adjust_rudder_position(uint16_t value)
     }
 }
 
+uint16_t commanded_rudder_value = NEUTRAL_RUDDER; // 0-999 is starboard, 1001 to 2000 is port.  1000 is neutral.
+// Sets global vars:
+// * actual_rudder_value
+// * commanded_rudder_value
+// * brake_on
+void stop_rudder_command()
+{
+    brake_on = 0;
+    adjust_rudder_position(NEUTRAL_RUDDER); // NEUTRAL_RUDDER is stopped
+    commanded_rudder_value = NEUTRAL_RUDDER;
+}
+
 
 // Update the "actual_rudder_value", based on the commanded rudder value.
 // Uses global vars commanded_rudder_value and actual_rudder_value.
@@ -692,18 +694,6 @@ void update_command()
             if (rudder_delta < -speed_rate) rudder_delta = -speed_rate;
     }
     adjust_rudder_position(actual_rudder_value + rudder_delta);
-}
-
-uint16_t commanded_rudder_value = NEUTRAL_RUDDER; // 0-999 is starboard, 1001 to 2000 is port.  1000 is neutral.
-// Sets global vars:
-// * actual_rudder_value
-// * commanded_rudder_value
-// * brake_on
-void stop_rudder_command()
-{
-    brake_on = 0;
-    adjust_rudder_position(NEUTRAL_RUDDER); // NEUTRAL_RUDDER is stopped
-    commanded_rudder_value = NEUTRAL_RUDDER;
 }
 
 // Sets global vars:
@@ -846,20 +836,29 @@ void engage()
 
 // set hardware pwm to period of "(1500 + 1.5*value)/2" or "750 + .75*value" microseconds
 
-enum {CURRENT, VOLTAGE, CONTROLLER_TEMP, MOTOR_TEMP, RUDDER, NUM_CHANNELS}; // adc_channel values
-const uint8_t muxes[] = {
-	_BV(MUX0), 
-	0, 
-	_BV(MUX1), 
-	_BV(MUX0) | _BV(MUX1), 
-	_BV(MUX2)
-};
-
+// adc_isr cycles through these enums.  These are the "ADC channels".
+// Each channel has a total and a count.  
+// There are two complete sets of channel results.
+enum {
+   CURRENT, 
+   VOLTAGE, 
+   CONTROLLER_TEMP, 
+   MOTOR_TEMP, 
+   RUDDER, 
+   NUM_CHANNELS}; // adc_channels
 // adc_results_t is where the analog IO happens.
 volatile struct adc_results_t {
     uint32_t total;
     uint16_t count;
 } adc_results[NUM_CHANNELS][2];
+
+const uint8_t muxes[] = {
+        _BV(MUX0), 
+        0, 
+        _BV(MUX1), 
+        _BV(MUX0) | _BV(MUX1), 
+        _BV(MUX2)
+};
 
 // Analog register interface.
 // This is where the adc IO happens.  It could be handled on an interrupt thread (USE_ADC_ISR is 1)
@@ -894,28 +893,20 @@ void adc_isr()
         }
     }
 
+    // Cycle to the next ADC channel given the current one.
     switch(adc_channel) {
     case CURRENT:
         if (adc_cycles_until_stable < 50) return;
-        adc_channel = VOLTAGE;
-        break;
     case VOLTAGE:
         if (adc_cycles_until_stable < 8) return;
-        adc_channel = CONTROLLER_TEMP;
-        break;
-    case CONTROLLER_TEMP:
-        adc_channel = MOTOR_TEMP;
-        break;
-    case MOTOR_TEMP:
-        adc_channel = RUDDER;
-        break;
     case RUDDER:
         if (rudder_sense && adc_cycles_until_stable < 16) return;
-        adc_channel = CURRENT;
-        break;
     default:
-        adc_channel = CURRENT;
+        break;
     }
+    ++adc_channel;
+    if (adc_channel >= NUM_CHANNELS) adc_channel = CURRENT;
+
     adc_cycles_until_stable = 0; // advance to next channel
 
     // Skip disabled channels.
@@ -1017,6 +1008,7 @@ uint16_t TakeVolts(uint8_t p)
     return v;
 }
 
+// adc_channel should be one of MOTOR_TEMP or CONTROLLER_TEMP
 uint16_t TakeTemp(uint8_t adc_channel, uint8_t p)
 {
     uint32_t v = TakeADC(adc_channel, p), R;
@@ -1292,7 +1284,7 @@ void handle_timeouts() {
                     OCR2A = clutch_pwm;
                     TCCR2A = _BV(WGM20) | _BV(COM2A1); // phase correct pwm
                 }
-	    }
+            }
             timeout_d = 0;
             timeout++;
             serial_data_timeout++;
@@ -1344,7 +1336,7 @@ void loop()
       serial_data_timeout = 0;
       service_adc();
       if (sync_b < 3) {
-      	  // Load 3 bytes at a time into in_bytes
+                // Load 3 bytes at a time into in_bytes
           in_bytes[sync_b] = c;
           sync_b++;
       } else {
@@ -1354,7 +1346,7 @@ void loop()
 
               } else {
                   in_sync_count++;
-	          }
+                  }
               sync_b = 0;
               flags &= ~INVALID;
           } else {
@@ -1362,7 +1354,7 @@ void loop()
               flags &= ~SYNC;
               stop_rudder_command();
               in_sync_count = 0;
-	      for (int i = 0; i < 2; i++) in_bytes[i] = in_bytes[i+1]; // Shift bytes to the left, append last byte.
+              for (int i = 0; i < 2; i++) in_bytes[i] = in_bytes[i+1]; // Shift bytes to the left, append last byte.
               in_bytes[2] = c;
               flags |= INVALID;
           }
@@ -1402,17 +1394,17 @@ void loop()
     const int voltage_react_count = 400/DIV_CLOCK; // 200sps @ 8mhz 1s reaction
     if (CountADC(VOLTAGE, 1) > voltage_react_count) { // 1 second
         uint16_t volts = TakeVolts(1);
-        if (volts >= 1800 && voltage_mode == VOLTAGE_MODE_12V && voltage_sense == LOW) {
+        if (volts >= VOLTS_18 && voltage_mode == VOLTAGE_MODE_12V && voltage_sense == LOW) {
             voltage_mode = VOLTAGE_MODE_24V; // switch from 12v mode to 24v mode
             digitalWrite(voltage_sense_pin, LOW); // changes voltage divider
             pinMode(voltage_sense_pin, OUTPUT);
-            max_voltage = 3200; // increase max voltage to 32v
+            max_voltage = VOLTS_32; // increase max voltage to 32v
             _delay_ms(2);
             TakeVolts(0); // clear readings
             TakeVolts(1);
         } else
-            /* voltage must be between 900 and max voltage, exclusive */
-            if (volts <= 900 || volts >= max_voltage) {
+            /* voltage must be between VOLTS_9 and max voltage, exclusive */
+            if (volts <= VOLTS_9 || volts >= max_voltage) {
                 disengage(); // Sets ENGAGED flag to false
                 flags |= BADVOLTAGE_FAULT;
         } else
@@ -1484,23 +1476,38 @@ void loop()
         uint16_t v;
         uint8_t code;
 
+        // METAPROGRAM:
         //  flags C R V C R ct C R mt flags  C  R  V  C  R EE  C  R mct flags  C  R  V  C  R  EE  C  R rr flags  C  R  V  C  R EE  C  R cc  C  R vc
         //  0     1 2 3 4 5  6 7 8  9    10 11 12 13 14 15 16 17 18  19    20 21 22 23 24 25  26 27 28 29    30 31 32 33 34 35 36 37 38 39 40 41 42
+        // C - CURRENT_CODE
+        // R - RUDDER_SENSE_CODE
+        // V - VOLTAGE_CODE
+        // ct - CONTROLLER_TEMP_CODE
+        // mt - MOTOR_TEMP_CODE
+        // flags - FLAGS_CODE
+        // EE - EEPROM_VALUE_CODE
+        // mct - UNUSED
+        // rr - UNUSED
+        // cc - UNUSED
+        // vc - UNUSED
         // Note that all but a few of the switch cases below have two exits: return, and break.
         // returns bypass the CRC output.  breaks allow them.
         switch(serial_command_to_output_idx++) {
+        // flags
         case 0: case 10: case 20: case 30:
             if (!low_current) flags |= CURRENT_RANGE;
             v = flags;
-            flags &= ~REBOOTED;
+            flags &= ~REBOOTED; // Clear the rebooted flag
             code = FLAGS_CODE;
             break;
+        // C - Current 
         case 1: case 4: case 7: case 11: case 14: case 17: case 21: case 24: case 27: case 31: case 34: case 37: case 40:
             if (CountADC(CURRENT, 0) < 50) return;
             v = TakeAmps(0);
             code = CURRENT_CODE;
             serialin-=4; // fix current output rate to input rate
             break;
+        // R - Rudder sense
         case 2: case 5: case 8: case 12: case 15: case 18: case 22: case 25: case 28: case 32: case 35: case 38: case 41:
             if (CountADC(RUDDER, 0) < 10 || (!rudder_sense && serial_command_to_output_idx > 3)) return;
             if (rudder_sense == 0)
@@ -1509,21 +1516,25 @@ void loop()
                 v = TakeRudder(0);
             code = RUDDER_SENSE_CODE;
             break;
+        // V - Voltage
         case 3: case 13: case 23: case 33:
             if (CountADC(VOLTAGE, 0) < 2) return;
             v = TakeVolts(0);
             code = VOLTAGE_CODE;
             break;
+        // ct - Controller Temp
         case 6:
             if (CountADC(CONTROLLER_TEMP, 0) == 0) return;
             v = TakeTemp(CONTROLLER_TEMP, 0);
             code = CONTROLLER_TEMP_CODE;
             break;
+        // mt - Motor Temp
         case 9:
             if (CountADC(MOTOR_TEMP, 0) == 0)  return;
             v = TakeTemp(MOTOR_TEMP, 0);
             if (v > 1200) code = MOTOR_TEMP_CODE; // below 12C means no sensor connected, or too cold to care
             break;
+        // EE - EEPROM_VALUE_CODE
         case 16: case 26: case 36: /* eeprom reads */
             if (eeprom_read_addr == eeprom_read_end) return;
             uint8_t value;
@@ -1536,6 +1547,7 @@ void loop()
                 eeprom_read_addr++; // skip for now
             }
             break;
+        // mct, rr, cc, vc
         default:
             return;
         }
@@ -1553,3 +1565,4 @@ void loop()
         byte_to_write_idx = 0;
     }
 }
+
