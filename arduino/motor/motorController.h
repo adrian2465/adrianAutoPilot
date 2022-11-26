@@ -54,12 +54,6 @@ void setMotorDirection(MotorDirection direction) {
   motorStateChanged = true;
 }
 
-void debug(char *msg) {
-  #ifdef DEBUG
-  Serial.println(msg);
-  #endif
-}
-
 void setLimits(int left, int center, int right) {}
 
 void executeMotor() {
@@ -67,10 +61,8 @@ void executeMotor() {
   motorStateChanged = false;
   if (clutchEnabled) {
     digitalWrite(CLUTCHPIN, HIGH);
-    debug("Clutch ON");
   } else { 
     digitalWrite(CLUTCHPIN, LOW);
-    debug("Clutch OFF");
   }
   if (motorSpeed == 0 || motorDirection == Stopped) {
     analogWrite(LPWM, PWM_OFF);
@@ -80,17 +72,14 @@ void executeMotor() {
       case Clockwise: 
         analogWrite(LPWM, PWM_OFF);
         analogWrite(RPWM, motorSpeed);
-        debug("CW");
         break;
       case Counterclockwise: 
         analogWrite(RPWM, PWM_OFF);
         analogWrite(LPWM, motorSpeed);
-        debug("CCW");
         break;
       default: 
         analogWrite(RPWM, PWM_OFF);
         analogWrite(LPWM, PWM_OFF);
-        debug("STOPPED");
         break;
     }
   }

@@ -7,8 +7,8 @@ Commands are terminated by newlines ('\n').
 Carriage returns ('\r') are ignored.
 
 Commands:
-* c - clutch.  c+ is clutch on. c- is clutch off.
-* d - direction. d+ is CW, d- is CCW
+* c - clutch.  c1 is clutch on. c0 is clutch off.
+* d - direction. dr is CW, dl is CCW, dx is STOPPED
 * s - Speed.  s0 is stop.  s9 is MAX
 * l - motor limits. 3 digit decimal. E.g. l050127205 = Limits 50, 127, 205.  Min is 0. MAX is 255. 
 
@@ -35,14 +35,13 @@ IBT-2 pin 8 (GND) to Arduino GND
 IBT-2 pins 5 (R_IS) and 6 (L_IS) not connected
 */
  
-// #define DEBUG // DEFINE TO ENABLE DEBUG STATEMENTS
 #include "commandbuffer.h"
 #include "motorController.h"
 
 void setup() {
   Serial.begin(9600);
   initMotor();
-  Serial.println("REBOOTED"); // Signal to client that reinitialization may need to take place
+  Serial.println("INI:REBOOTED"); // Signal to client that reinitialization may need to take place
 }
 
 void execute() {
@@ -53,27 +52,28 @@ void loop() {
   if (Serial.available() > 0) {
     char *command = getCommandOrNULL(Serial.read()); 
     if (command != NULL) {
-      Serial.print("RECD:"); Serial.println(command);
+      Serial.print("RCV:"); Serial.println(command);
       
       switch (command[0]) {
       case 'c': // Clutch
         if (strlen(command)<2) {
-          Serial.println("ERR:MISSINGPARAM");
+          Serial.println("ERR:NOPARM");
           break;
         } else switch(command[1]) {
-          case '+': setClutch(true); break;
-          case '-': setClutch(false); break;
-          default: Serial.println("ERR:BADPARAM");
+          case '1': setClutch(true); break;
+          case '0': setClutch(false); break;
+          default: Serial.println("ERR:BADPARM");
         } 
         break;
       case 'd': // Set direction
         if (strlen(command)<2) {
-          Serial.println("ERR:MISSINGPARAM");
+          Serial.println("ERR:NOPARM");
           break;
         } else switch(command[1]) {
-          case '+': setMotorDirection(Clockwise); break;
-          case '-': setMotorDirection(Counterclockwise); break;
-          default: Serial.println("ERR:BADPARAM");
+          case 'r': setMotorDirection(Clockwise); break;
+          case 'l': setMotorDirection(Counterclockwise); break;
+          case 'x': setMotorDirection(Stopped); break;
+          default: Serial.println("ERR:BADPARM");
         } 
         break;
       case 'l': // Set limits
@@ -81,9 +81,9 @@ void loop() {
         break;
       case 's': // Set motor speed.
         if (strlen(command)<2) {
-          Serial.println("ERR:MISSINGPARAM");
+          Serial.println("ERR:NOPARM");
         } else if (command[1] > '9' || command[1] < '0') {
-          Serial.println("ERR:BADPARAM");
+          Serial.println("ERR:BADPARM");
         } else {
           setMotorSpeed((command[1] - '0') * MOTOR_MAX / 9);
         }
