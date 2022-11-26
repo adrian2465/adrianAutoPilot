@@ -34,7 +34,6 @@ void initMotor() {
   pinMode(L_EN, OUTPUT);
   digitalWrite(R_EN, HIGH);
   digitalWrite(L_EN, HIGH);
-  setMotorSpeed(MOTOR_MAX / 10);
 }
 
 void setClutch(boolean enabled) {
