@@ -31,7 +31,10 @@ IBT-2 pins 5 (R_IS) and 6 (L_IS) not connected
 #define MOTOR_MAX (255)
 #define PWM_OFF (0)
 
-enum MotorDirection {Clockwise, Counterclockwise};
+enum MotorDirection {Stopped, Clockwise, Counterclockwise};
+uint8_t motorSpeed = 0;
+MotorDirection motorDirection = Stopped;
+boolean motorStateChanged = true;
 
 void debug(char *msg) {
   #ifdef DEBUG
@@ -39,27 +42,9 @@ void debug(char *msg) {
   #endif
 }
 
-void enableClutch() {
-  digitalWrite(CLUTCHPIN, HIGH);
-  debug("Clutch ON");
-}
-
-void disableClutch() {
-  digitalWrite(CLUTCHPIN, LOW);
-  debug("Clutch OFF");
-}
-
-
-// Stop motor.
-void stopMotor() {
-  analogWrite(LPWM, PWM_OFF);
-  analogWrite(RPWM, PWM_OFF);
-  debug("Motor stopped");
-}
-
-
 enum MotorDirection currentMotorDirection = Clockwise;
 int currentMotorSpeed = 0;
+boolean clutchEnabled = false;
 
 void initMotor() {
   pinMode(RPWM, OUTPUT);
@@ -76,32 +61,60 @@ void initClutch() {
   debug("Clutch initialized");
 }
 
+void setClutch(boolean enabled) {
+  if (enabled == clutchEnabled) return;
+  clutchEnabled = enabled;
+  motorStateChanged = true;
+}
 
-// Turn motor. 
-// speed: 0 .. MOTOR_MAX. 
-// motorDirection: Clockwise or Counterclockwise
-void setMotor(int speed, MotorDirection motorDirection) {
-  if (speed == 0) {
-    stopMotor();
+boolean isClutchEnabled() {
+  return clutchEnabled;
+}
+
+void setMotorSpeed(int speed) {
+  uint8_t localMotorSpeed = constrain(speed, 0, MOTOR_MAX);
+  if (localMotorSpeed == motorSpeed) return;
+  motorSpeed = localMotorSpeed;
+  motorStateChanged = true;
+}
+
+void setMotorDirection(MotorDirection direction) {
+  if (direction == motorDirection) return;
+  motorDirection = direction;
+  motorStateChanged = true;
+}
+
+void execute() {
+  if (!motorStateChanged) return;
+  motorStateChanged = false;
+  if (clutchEnabled) {
+    digitalWrite(CLUTCHPIN, HIGH);
+    debug("Clutch ON");
+  } else { 
+    digitalWrite(CLUTCHPIN, LOW);
+    debug("Clutch OFF");
+  }
+  if (motorSpeed == 0 || motorDirection == Stopped) {
+    analogWrite(LPWM, PWM_OFF);
+    analogWrite(RPWM, PWM_OFF);
   } else {
-    uint8_t speed8 = 
-      (speed > MOTOR_MAX) ? MOTOR_MAX 
-      : (speed < 0) ? 0 
-      : speed;
     switch (motorDirection) {
       case Clockwise: 
-        debug("CW");
         analogWrite(LPWM, PWM_OFF);
-        analogWrite(RPWM, speed8);
+        analogWrite(RPWM, motorSpeed);
+        debug("CW");
         break;
-      default: // Counterclockwise
-        debug("CCW");
+      case Counterclockwise: 
         analogWrite(RPWM, PWM_OFF);
-        analogWrite(LPWM, speed8);
+        analogWrite(LPWM, motorSpeed);
+        debug("CCW");
+        break;
+      default: 
+        analogWrite(RPWM, PWM_OFF);
+        analogWrite(LPWM, PWM_OFF);
+        debug("STOPPED");
         break;
     }
-    currentMotorSpeed = speed;
-    currentMotorDirection = motorDirection;
   }
 }
 
@@ -109,24 +122,30 @@ void setup() {
   Serial.begin(9600);
   initClutch();
   initMotor();
-  debug("Setup complete");
+  setMotorSpeed(MOTOR_MAX / 10);
+  debug("setup");
 }
 
 void loop() {
-  // Enable and disable clutch.
-  enableClutch();
 
-  // Clockwise test
-  setMotor(MOTOR_MAX / 10, Clockwise);
-  delay(1000); // Run for 1 second
-  stopMotor();
-
-  delay(500);
-  // Counterclockwise test
-  setMotor(MOTOR_MAX / 10, Counterclockwise);
-  delay(1000); // Run for 1 second
-  stopMotor();
-
-  disableClutch();
-  delay(2000);
+  if (Serial.available() > 0) {
+    int incomingByte = Serial.read();
+    switch (incomingByte) {
+    case 'e': // Enable clutch
+      setClutch(true);
+      break;
+    case 'd': // Enable clutch
+      setClutch(false);
+      break;
+    case 'r': // Turn right (CW)
+      setMotorDirection(Clockwise);
+      break;
+    case 'l': // Turn left (CCW)
+      setMotorDirection(Counterclockwise);
+      break;
+    default: 
+      setMotorSpeed((incomingByte - '0') * MOTOR_MAX / 9);
+    }
+    execute();
+  }
 }
