@@ -1,0 +1,11 @@
+* Separate threads for
+  - Web App
+  - Brain Process
+  - MPU monitor
+  - Arduino serial monitor
+* Create settings page.
+  - Set extreme rudder angles
+  - Set go-straight angle
+  - JSON?
+* Create heartbeat to detect when brain is offline. JS polls brain.
+* 
