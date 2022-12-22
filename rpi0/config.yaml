@@ -1,0 +1,12 @@
+boat_characteristics:
+  # Degrees
+  max_rudder_deflection: 45.0
+  # Degress per second
+  rudder_speed: 10.0
+  # Degrees per second
+  boat_turn_rate: 10.0
+gains:
+  default:
+    P: 0.07
+    I: 0.0
+    D: 0.0
