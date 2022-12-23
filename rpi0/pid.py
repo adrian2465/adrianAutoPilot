@@ -96,10 +96,10 @@ if __name__ == "__main__":
     start_time = time.time()
 
     pid.set_course(course) # Desired heading
-    boat.sensor.set_heading(initial_heading) # For testing - normally, the sensor provides the heading asynchronously
+    boat.sensor.heading = initial_heading # For testing - normally, the sensor provides the heading asynchronously
     while abs(pid.err) > 1:
-        boat.set_rudder_angle(pid.compute_rudder_deflection(boat.get_heading()))
-        heading = boat.tick() # Normally, heading would be adjusted by nature - just read the GPS.
-        print(f"DEBUG time={time.time()-start_time:6.0f}, course={pid.course:6.2f}, heading={heading:6.2f}, err={pid.err:6.2f}, deflection={pid.output:6.4f}")
+        boat.set_rudder_angle(pid.compute_rudder_deflection(boat.sensor.get_heading()))
+        boat.tick() 
+        print(f"DEBUG time={time.time()-start_time:6.0f}, course={pid.course:6.2f}, heading={boat.sensor.heading:6.2f}, err={pid.err:6.2f}, deflection={pid.output:6.4f}")
         pid.wait()
     print(f"INFO  Correction from {initial_heading:6.2f} to {course:6.2f} took {time.time()-start_time:6.0f} seconds.")
