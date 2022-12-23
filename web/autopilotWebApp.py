@@ -40,3 +40,9 @@ def get_messages():
   global brain
   return brain.getMessages()
 
+
+if __name__ == "__main__":
+  print("This is not meant to run as an application.")
+  print("Use Flask: flask --app autopilotWebApp run")
+
+
