@@ -7,7 +7,7 @@ This is a marine autopilot, with a web interface.
 ## Details
 
 ### Software
-Uses python3 for the brain and the web interface.  Run the web server using the `runit` script -- that starts everything.
+Uses python3 for the brain and the web interface.  Run the web server using the `run_webserver.sh` script -- that starts everything.
 The motor controller 
 
 The autopilot brain is contained entirely within the Python code which runs on the RPi0.  The Python code writes to

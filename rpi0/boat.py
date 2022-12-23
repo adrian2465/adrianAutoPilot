@@ -1,4 +1,6 @@
+# Author: Adrian Vrouwenvelder
 import time
+import sys
 from config import Config as BoatConfig
 from anglemath import calculate_angle_difference
 from sensor import Sensor
@@ -58,7 +60,8 @@ class Boat:
 
 # The following demonstrates rudder action's effect on boat heading
 if __name__ == "__main__":
-    boat_config = BoatConfig("config.yaml")
+    args = sys.argv[1:]
+    boat_config = BoatConfig("config.yaml" if len(args) == 0 else args[0])
     boat = Boat(boat_config)
 
     print("***** Simulating course change from 0 to 90 with rudder angle of 45")
