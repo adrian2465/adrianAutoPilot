@@ -1,9 +1,11 @@
 import sys
-import time
+import logging
 import math
 from anglemath import calculate_angle_difference
 from boat import Boat
 from config import Config as BoatConfig
+# import time
+from island_time import time # Make things simulate faster
 
 # P = Proportional
 # I = Integral -- Sum of errors
@@ -13,8 +15,6 @@ from config import Config as BoatConfig
 #
 # This controller takes PV and SP as degrees (0-360).  
 # The error is the smallest angle between those.
-# The rudder control that's returned is a value between -1 <= output <= 1, with 0 being no action, -1 being move left, 
-# and 1 being move rudder right.
 #
 # HINTS:
 # - If the controller overshoots and/or oscillates, try increating the I gain, or decrease ALL the gains (P, I, and D gains)
@@ -35,71 +35,78 @@ from config import Config as BoatConfig
 # - i_gain = 0.5*Pc
 # - d_gain = Pc/8
 
+logging.basicConfig(
+    format='%(asctime)s %(levelname)-8s [%(filename)s] -  %(message)s',
+    level=logging.DEBUG,
+    datefmt='%Y-%m-%d %H:%M:%S')
+
 class PID:
   
-    def __init__(self, boat_config):
-        self.boat_config = boat_config
+    def __init__(self, p_gain, i_gain, d_gain):
         self.err = 0 # error (e.g. smallest angle between actual heading and desired heading)
         self.prev_err = 0 # Previous error
-        self.dt = 100 # Time in MS to wait between samples/commands
-        self.output = 0 # Output signal to send to correction actuator (e.g. the rudder) 0 = no action. -1 and 1 are maxes
-        self.p_gain = boat_config.get_P_gain() # Tunable Proportional gain
-        print(f"p_gain is {self.p_gain}")
-        self.i_gain = boat_config.get_I_gain() # Tunable Integral gain
-        self.d_gain = boat_config.get_D_gain() # Tunable Derivative gain
+        self.dt = 1000 # Sample rate, in ms
+        self.output = 0 # Output signal from PID algorithm
+        self.p_gain = p_gain # Tunable Proportional gain
+        self.i_gain = i_gain # Tunable Integral gain
+        self.d_gain = d_gain # Tunable Derivative gain
         self.p_val = 0 # P
         self.i_val = 0 # I
         self.d_val = 0 # D
         self.process_value = 0
    
-    def set_course(self, course): # Desired value
-        self.course = course
+    def set_target_value(self, target_value): # Desired value
+        self.target_value = target_value
         self.err = 360
 
     def get_output(self): # Get actuator control value
         return self.output
 
-    def compute_rudder_deflection(self, process_value): # Process using PID algorithm
-        self.err = calculate_angle_difference(self.course, process_value) 
+    def compute_output(self, process_value): # Process using PID algorithm
+        self.err = -calculate_angle_difference(self.target_value, process_value) 
         self.p_val = self.p_gain * self.err
         self.i_val = self.i_val + self.err * self.i_gain * self.dt
         self.d_val = self.d_gain * (self.prev_err - self.err) / self.dt
         self.prev_err = self.err
-        output = -self.p_val + self.i_val + self.d_val
-        # Normalize output to -1 <= output <= 1. Output will be 
-        if output > 1: 
-            print(f"WARNING: Correcting deflection from {output} to 1 - Adjust gains if this is common")
-            print(f"p_val={self.p_val:6.2f} err={self.err:6.2f} i_val={self.i_val:6.2f} d_val={self.d_val:6.2f}")
-            output = 1 # Don't go past max deflection
-        if output < -1:
-            print(f"WARNING: Correcting deflection from {output} to -1 - Adjust gains if this is common ")
-            print(f"p_val={self.p_val:6.2f} err={self.err:6.2f} i_val={self.i_val:6.2f} d_val={self.d_val:6.2f}")
-            output = -1 # Don't go past max deflction
+        output = self.p_val + self.i_val + self.d_val
         self.output = output
         return output
 
     def wait(self):
-        time.sleep(self.dt / 1000) # Convert dt (in ms) to seconds.
+        time.sleep(self.dt / 1000)  # Convert dt (in ms) to seconds.
+
 
 if __name__ == "__main__":
+    import csv
+    from datetime import datetime
+    produce_csv = True
     args = sys.argv[1:]
+    current_time = datetime.now()
     boat_config = BoatConfig("config.yaml" if len(args) == 0 else args[0])
-    print(f"boat_config.p_gain is {boat_config.get_P_gain()}")
-    print(f"INFO Using configuration {boat_config.filename}")
-    boat = Boat(boat_config)
-
-    course = 100.0
-    initial_heading = 200.0
-    print(f"boat_config.p_gain is {boat_config.get_P_gain()}")
-    pid = PID(boat_config)
-    print(f"time, process_value, heading, err, output")
-    start_time = time.time()
-
-    pid.set_course(course) # Desired heading
-    boat.sensor.heading = initial_heading # For testing - normally, the sensor provides the heading asynchronously
-    while abs(pid.err) > 1:
-        boat.set_rudder_angle(pid.compute_rudder_deflection(boat.sensor.get_heading()))
-        boat.tick() 
-        print(f"DEBUG time={time.time()-start_time:6.0f}, course={pid.course:6.2f}, heading={boat.sensor.heading:6.2f}, err={pid.err:6.2f}, deflection={pid.output:6.4f}")
-        pid.wait()
-    print(f"INFO  Correction from {initial_heading:6.2f} to {course:6.2f} took {time.time()-start_time:6.0f} seconds.")
+    filename = f"{current_time.strftime('pid_%Y%m%d-%H%M%S.csv')}"
+    with open(filename, 'w', newline='') as csvfile:
+        logging.debug(f"Using configuration {boat_config.filename}")
+        logging.debug(f"Gains: P = {boat_config.get_P_gain()} I = {boat_config.get_I_gain()} D = {boat_config.get_D_gain()}")
+        boat = Boat(boat_config)
+        target_value = 100.0
+        initial_heading = 200.0
+        logging.debug(f"target = {target_value} heading = {initial_heading}")
+        pid = PID(boat_config.get_P_gain(), boat_config.get_I_gain(), boat_config.get_D_gain())
+        start_time = time.time()
+        if produce_csv: 
+            csvwriter = csv.writer(csvfile, delimiter=',')
+            csvwriter.writerow([f"{target_value:6.2f}",f"{initial_heading:6.2f}",f"{boat_config.get_P_gain():6.4f}",f"{boat_config.get_I_gain():6.4f}",f"{boat_config.get_D_gain():6.4f}",f"{boat.max_rudder_deflection_deg:6.2f}",f"{boat.rudder_speed_dps:6.2f}",f"{boat.max_boat_turn_rate_dps:6.2f}"])
+            csvwriter.writerow(["time","pv","err","output","rudder","heading","course","p_gain","i_gain","d_gain","max_rudder_deflection","rudder_speed","max_boat_turn_rate"])
+        pid.set_target_value(target_value) # Desired heading
+        boat.sensor.heading = initial_heading # For testing - normally, the sensor provides the heading asynchronously
+        logging.debug(f"info,timestamp, target_value, heading, err, pid_output, rudder_angle")
+        while abs(pid.err) > 1:
+            boat.request_rudder_angle(pid.compute_output(process_value=boat.sensor.get_heading()))
+            timestamp = time.time() - start_time
+            if produce_csv: 
+                csvwriter.writerow([f"{timestamp:6.2f}",f"{boat.sensor.heading:6.2f}",f"{pid.err:6.2f}",f"{pid.output:6.4f}",f"{boat.current_rudder_deflection_deg:6.2f}",f"{target_value:6.2f}",f"{initial_heading:6.2f}",f"{boat_config.get_P_gain():6.4f}",f"{boat_config.get_I_gain():6.4f}",f"{boat_config.get_D_gain():6.4f}",f"{boat.max_rudder_deflection_deg:6.2f}",f"{boat.rudder_speed_dps:6.2f}",f"{boat.max_boat_turn_rate_dps:6.2f}"])
+            boat.tick() 
+            logging.debug(f"time={timestamp:6.2f}, target={pid.target_value:6.2f}, pv={boat.sensor.heading:6.2f}, err={pid.err:6.2f}, output={pid.output:6.4f}, rudder={boat.current_rudder_deflection_deg:6.2f}")
+            pid.wait()
+        logging.debug(f"Correction from {initial_heading:6.2f} to {target_value:6.2f} took {time.time()-start_time:6.0f} seconds.")
+        if produce_csv: logging.info(f"Output of run in file {csvfile}")
