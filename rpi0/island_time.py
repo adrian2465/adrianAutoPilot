@@ -2,11 +2,14 @@ import time as real_time
 
 class time: 
 
+    _timetick = 0
+
     def time():
-        return real_time.time()*1000
+        return time._timetick
 
     def sleep(secs):
-        real_time.sleep(secs/1000)
+        time._timetick = time._timetick + secs
+
 #    def time():
 #        return real_time.time()
 #

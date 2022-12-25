@@ -7,11 +7,6 @@ from config import Config as BoatConfig
 from anglemath import calculate_angle_difference
 from sensor import Sensor
 
-logging.basicConfig(
-    format='%(asctime)s %(levelname)-8s %(filename)s %(message)s',
-    level=logging.DEBUG,
-    datefmt='%Y-%m-%d %H:%M:%S')
-
 def send_to_arduino(x):
     if (x > 45 or x < -45): raise Exception("YOU BROKE THE RUDDER WITH ANGLE {x}")
     logging.debug(f"ARDUINO SIMULATOR: setting rudder deflection = {x:6.2f}")
@@ -22,6 +17,7 @@ class Boat:
         self.max_boat_turn_rate_dps = float(boat_config.get_boat_turn_rate_dps()) # Angular velocity of boat with rudder hard over. Determine empirically.
         self.rudder_speed_dps = float(boat_config.get_rudder_speed_dps()) # Speed at which actuator moves rudder rudder. Determine empirically.
         self.max_rudder_deflection_deg = float(boat_config.get_max_rudder_deflection_deg()) # Maximum rudder angle. Determine empirically.
+        self.sampling_interval_ms = float(boat_config.get_sampling_interval_ms()) # Maximum rudder angle. Determine empirically.
         self.commanded_rudder_deflection_deg = float(0.0)
         self.current_rudder_deflection_deg = float(0.0)
         self.sensor = Sensor()
@@ -70,21 +66,29 @@ class Boat:
 
 # The following demonstrates rudder action's effect on boat heading
 if __name__ == "__main__":
+    logging.basicConfig(
+        format='%(asctime)s %(levelname)-8s %(filename)s %(message)s',
+        level=logging.INFO,
+        datefmt='%Y-%m-%d %H:%M:%S')
+
+    logger = logging.getLogger(__name__)
+    # logger.setLevel(level=logging.DEBUG)
+
     args = sys.argv[1:]
     boat_config = BoatConfig("config.yaml" if len(args) == 0 else args[0])
     boat = Boat(boat_config)
 
-    logging.debug("***** Simulating course change from 0 to 90 with rudder angle of 45")
+    logger.debug("***** Simulating course change from 0 to 90 with rudder angle of 45")
     boat.request_rudder_angle(45)
     while boat.sensor.heading < 90:
         boat.tick()
-        logging.debug(f"rudder_angle={boat.current_rudder_deflection_deg:6.2f}, heading={boat.sensor.heading:6.2f}")
+        logger.debug(f"rudder_angle={boat.current_rudder_deflection_deg:6.2f}, heading={boat.sensor.heading:6.2f}")
         time.sleep(1)
 
     boat.sensor.heading = 90
-    logging.debug("***** Simulating course change from 90 to 80 with rudder angle of 5")
+    logger.debug("***** Simulating course change from 90 to 80 with rudder angle of 5")
     boat.request_rudder_angle(-5)
     while boat.sensor.heading > 80:
         boat.tick()
-        logging.debug(f"rudder_angle={boat.current_rudder_deflection_deg:6.2f}, heading={boat.sensor.heading:6.2f}")
+        logger.debug(f"rudder_angle={boat.current_rudder_deflection_deg:6.2f}, heading={boat.sensor.heading:6.2f}")
         time.sleep(1)

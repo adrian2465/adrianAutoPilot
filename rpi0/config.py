@@ -19,6 +19,10 @@ class Config:
         self.load_if_necessary()
         return float(self.boat_characteristics["max_rudder_deflection"])
 
+    def get_sampling_interval_ms(self):
+        self.load_if_necessary()
+        return float(self.boat_characteristics["sampling_interval"])
+   
     def get_rudder_speed_dps(self):
         self.load_if_necessary()
         return float(self.boat_characteristics["rudder_speed"])
