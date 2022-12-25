@@ -1,5 +1,4 @@
 # Author: Adrian Vrouwenvelder
-# import time
 from island_time import time # Make things simulate faster
 import logging
 import sys
@@ -64,6 +63,7 @@ class Boat:
         boat_turn_rate_dps = rudder_percent * self.max_boat_turn_rate_dps
         self.sensor.heading = boat_turn_rate_dps * dt_s + self.sensor.heading
 
+# For testing only
 # The following demonstrates rudder action's effect on boat heading
 if __name__ == "__main__":
     logging.basicConfig(

@@ -1,3 +1,4 @@
+# Author: Adrian Vrouwenvelder
 import time as real_time
 
 class time: 

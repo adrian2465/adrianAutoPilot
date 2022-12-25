@@ -1,3 +1,4 @@
+# Author: Adrian Vrouwenvelder
 
 class Sensor:
     def __init__(self):
