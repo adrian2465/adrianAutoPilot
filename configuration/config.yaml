@@ -1,16 +1,20 @@
 gains:
   default:
-    P: 2.0  # Settles in on a course within 18 seconds. No oscillation. Beautiful
+    P: 3.0
     I: 0.0
     D: 0.0
+    #
+    # P: 2.0  # Settles in on a course within 18 seconds. No oscillation. Beautiful
+    # I: 0.0
+    # D: 0.0
     #
     # P: 1.0  # Settles in on a course within 30 seconds. No oscillation.
     # I: 0.0
     # D: 0.0
     #
-     # P: 0.5 # Nice aggressive rudder action - 40d rudder after 4 sec, then quickly backs off, but takes too long to settle down to new course
-     # I: 0.0
-     # D: 0.0
+    # P: 0.5 # Nice aggressive rudder action - 40d rudder after 4 sec, then quickly backs off, but takes too long to settle down to new course
+    # I: 0.0
+    # D: 0.0
     #
     # P: 0.065 No oscillation. Too slow
     # I: 0.0

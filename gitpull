@@ -1,0 +1,4 @@
+#!/bin/bash
+# To regenerate token, see this link: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token
+# SUMMARY: Click on your avatar --> settings --> developer options --> generate token. Copy that token into $NOTES/adrian2465.github.token
+git pull https://$(cat $NOTES/adrian2465.github.token)@github.com/adrian2465/adrianAutoPilot.git
