@@ -1,12 +1,46 @@
+gains:
+  default:
+    P: 2.0  # Settles in on a course within 18 seconds. No oscillation. Beautiful
+    I: 0.0
+    D: 0.0
+    #
+    # P: 1.0  # Settles in on a course within 30 seconds. No oscillation.
+    # I: 0.0
+    # D: 0.0
+    #
+     # P: 0.5 # Nice aggressive rudder action - 40d rudder after 4 sec, then quickly backs off, but takes too long to settle down to new course
+     # I: 0.0
+     # D: 0.0
+    #
+    # P: 0.065 No oscillation. Too slow
+    # I: 0.0
+    # D: 0.0
+    #
+    # P: 0.067 No oscillation. Too slow
+    # I: 0.0
+    # D: 0.0
+    #
+    # P: 0.0678 # Oscillates, but then oscillation stops after 10s
+    # I: 0.0
+    # D: 0.0
+    #
+    # P: 0.0674 # Oscillates, but then oscillation stops after 5
+    # I: 0.0
+    # D: 0.0
+    #
+    # P: 0.0685 Oscillates
+    # I: 0.0
+    # D: 0.0
+    #
+    # P: 0.07 Oscillates
+    # I: 0.0
+    # D: 0.0
 boat_characteristics:
   # Degrees
   max_rudder_deflection: 45.0
-  # Degress per second
+  # Degrees per second
   rudder_speed: 10.0
   # Degrees per second
   boat_turn_rate: 10.0
-gains:
-  default:
-    P: 0.07
-    I: 0.0
-    D: 0.0
+  # Sampling interval in ms
+  sampling_interval: 100

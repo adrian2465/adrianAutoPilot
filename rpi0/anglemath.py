@@ -1,3 +1,4 @@
+# Author: Adrian Vrouwenvelder
 def normalize_angle(angle):
     return angle % 360
 
@@ -18,8 +19,8 @@ if __name__ == "__main__":
    test_equals(-101, calculate_angle_difference(200,99)) 
    test_equals(-102, calculate_angle_difference(0,258)) 
    test_equals(110, calculate_angle_difference(260,10)) 
-   test_equals(179, calculate_angle_difference(90,269)) 
-   test_equals(-179, calculate_angle_difference(90,271)) 
+   test_equals(179, calculate_angle_difference(90,269)) # Interior angle includes bottom of circle
+   test_equals(-179, calculate_angle_difference(90,271)) # Interior angle includes top of circle
    test_equals(179, calculate_angle_difference(271,90)) 
    test_equals(-179, calculate_angle_difference(269,90)) 
    print("All good!")
