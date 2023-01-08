@@ -35,34 +35,48 @@ from island_time import time # Make things simulate faster
 class PID:
   
     def __init__(self, p_gain, i_gain, d_gain, sampling_interval_ms):
-        self.err = 0 # error (e.g. smallest angle between actual heading and desired heading)
-        self.prev_err = 0 # Previous error
-        self.dt = sampling_interval_ms # Sample interval, in ms
-        self.output = 0 # Output signal from PID algorithm
         self.p_gain = p_gain # Tunable Proportional gain
         self.i_gain = i_gain # Tunable Integral gain
         self.d_gain = d_gain # Tunable Derivative gain
+        self.dt = sampling_interval_ms # Sample interval, in ms
+
+        self.err = 0 # error (e.g. smallest angle between actual heading and desired heading)
+        self.prev_err = 0 # Previous error
         self.p_val = 0 # P
         self.i_val = 0 # I
         self.d_val = 0 # D
-        self.process_value = 0
    
+    def calc_error(self, process_value): # Negative means PV lies to left of target. Positive means to the right.
+        self.err = calculate_angle_difference(self.target_value, process_value) 
+    
     def set_target_value(self, target_value): # Desired value
         self.target_value = target_value
-        self.err = 360
+        self.calc_error(0)
 
-    def get_output(self): # Get actuator control value
-        return self.output
-
+    # Negative output means turn left. Positive output means turn right.
     def compute_output(self, process_value): # Process using PID algorithm
-        self.err = -calculate_angle_difference(self.target_value, process_value) 
+        self.calc_error(process_value)
         self.p_val = self.p_gain * self.err
-        self.i_val = self.i_val + self.err * self.i_gain * self.dt
+        self.i_val = self.err * self.i_gain * self.dt + self.i_val
         self.d_val = self.d_gain * (self.prev_err - self.err) / self.dt
         self.prev_err = self.err
-        output = self.p_val + self.i_val + self.d_val
-        self.output = output
-        return output
+        return -(self.p_val + self.i_val + self.d_val)
 
     def wait(self):
         time.sleep(self.dt / 1000)  # Convert dt (in ms) to seconds.
+
+def test_pv(target, p_gain, i_gain, d_gain, pv):
+    pid = PID(p_gain, i_gain, d_gain, 10)
+    pid.set_target_value(target)
+    output = pid.compute_output(pv)
+    print(f"Output for Gains = (p_gain={pid.p_gain:6.2} i_gain={pid.i_gain:6.2} d_gain={pid.d_gain:6.2}) Target={pid.target_value:6.2f} to PV={pv:6.2f}. Error is {pid.err:10.8f}. Correction is {output:6.2f}")
+
+# For testing only
+if __name__ == "__main__":
+    test_pv(100, 2.0, 0.0, 0.0, 1)
+    test_pv(100, 2.0, 0.0, 0.0, 100)
+    test_pv(100, 2.0, 0.0, 0.0, 150)
+
+    test_pv(110, 1.5, 0.01, 0.01, 9)
+    test_pv(110, 1.5, 0.01, 0.01, 110)
+    test_pv(110, 1.5, 0.01, 0.01, 149)
