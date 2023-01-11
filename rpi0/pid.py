@@ -46,21 +46,20 @@ class PID:
         self.i_val = 0 # I
         self.d_val = 0 # D
    
-    def calc_error(self, process_value): # Negative means PV lies to left of target. Positive means to the right.
+    def calc_error(self, process_value):
         self.err = calculate_angle_difference(self.target_value, process_value) 
     
     def set_target_value(self, target_value): # Desired value
         self.target_value = target_value
         self.calc_error(0)
 
-    # Negative output means turn left. Positive output means turn right.
     def compute_output(self, process_value): # Process using PID algorithm
         self.calc_error(process_value)
         self.p_val = self.p_gain * self.err
         self.i_val = self.err * self.i_gain * self.dt + self.i_val
         self.d_val = self.d_gain * (self.prev_err - self.err) / self.dt
         self.prev_err = self.err
-        return -(self.p_val + self.i_val + self.d_val)
+        return self.p_val + self.i_val + self.d_val
 
     def wait(self):
         time.sleep(self.dt / 1000)  # Convert dt (in ms) to seconds.

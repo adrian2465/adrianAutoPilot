@@ -14,10 +14,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 # logger.setLevel(level=logging.DEBUG)
 
-def send_to_arduino(x):
-    if (x > 45 or x < -45): raise Exception("YOU BROKE THE RUDDER WITH ANGLE {x}")
-    direction = " to the right" if x > 0 else " to the left"
-    logging.debug(f"ARDUINO SIMULATOR: setting rudder deflection = {x:6.2f} {direction}")
 
 class Boat:
     def __init__(self, boat_config):
@@ -40,17 +36,13 @@ class Boat:
     # Request positive to turn to right. Negative to turn to left.
     # Rudder action does not happen immediately because the rudder needs time to move into position.
     def request_rudder_angle(self, commanded_rudder_deflection_deg):
-        self.commanded_rudder_deflection_deg = commanded_rudder_deflection_deg
         if commanded_rudder_deflection_deg > self.max_rudder_deflection_deg: 
-            msg = f" NOTE: corrected to {self.max_rudder_deflection_deg:3.0f}"
+            logger.debug(f" NOTE: corrected {commanded_rudder_deflection_deg:6.0f} to {self.max_rudder_deflection_deg:4.0f}")
             commanded_rudder_deflection_deg = self.max_rudder_deflection_deg
         elif commanded_rudder_deflection_deg < -self.max_rudder_deflection_deg: 
-            msg = f" NOTE: corrected to {-self.max_rudder_deflection_deg:3.0f}"
+            logger.debug(f" NOTE: corrected {commanded_rudder_deflection_deg:6.0f} to {-self.max_rudder_deflection_deg:4.0f}")
             commanded_rudder_deflection_deg = -self.max_rudder_deflection_deg
-        else:
-            msg = ""
-        logging.debug(f"request_rudder_angle({commanded_rudder_deflection_deg:3.0f} deg){msg}")
-        send_to_arduino(commanded_rudder_deflection_deg) # This is where we'd interface with the actual rudder
+        self.commanded_rudder_deflection_deg = commanded_rudder_deflection_deg
          
     # In a real world, heading "adjustment" would be unnecessary - heading is a result of rudder adjustment, and is obtained from the sensor.
     # Also, rudder angle would be determined empirically from the sensor.
@@ -75,7 +67,7 @@ class Boat:
         boat_turn_rate_dps = rudder_percent * self.max_boat_turn_rate_dps 
         # Update the heading sensor artificially - since this is just a simulator, it won't update itself.
         self.sensor.heading = normalize_angle(self.sensor.heading + boat_turn_rate_dps * dt_s)
-        logger.debug(f"TICK@{time.time()} - rudder_angle={self.current_rudder_deflection_deg:6.2f}, heading={self.sensor.heading:6.2f}")
+        logger.debug(f"TICK: t={time.time():4.1f}, commanded rudder = {self.commanded_rudder_deflection_deg:6.0f} current rudder={self.current_rudder_deflection_deg:4.0f}, heading={self.sensor.heading:4.0f}")
 
 # For testing only
 # The following demonstrates rudder action's effect on boat heading
