@@ -1,0 +1,8 @@
+TODOs
+o 2023-03-04 - Get PI talking to Arduino via serial interface
+o 2023-03-04 - Migrate Python code for simulator to micropython
+
+DONEs
+x 2023-03-04 - Archive working configuration in $HOME. "home_date.tar"
+
+ 
