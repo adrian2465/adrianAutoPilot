@@ -1,0 +1,8 @@
+[    0.000000] Booting Linux on physical CPU 0x0    5.001094] hub 1-1.2:1.0: USB hub found
+[    5.001846] hub 1-1.2:1.0: 3 ports detected
+[    5.101809] usb 1-1.3: new full-speed USB device number 4 using dwc_otg
+[    5.262286] usb 1-1.3: New USB device found, idVendor=0403, idProduct=6001, bcdDevice= 6.00
+[    5.262318] usb 1-1.3: New USB device strings: Mfr=1, Product=2, SerialNumber=3
+[    5.262334] usb 1-1.3: Product: FT232R USB UART
+[    5.262348] usb 1-1.3: Manufacturer: FTDI
+[    5.262362] usb 1-1.3: SerialNumber: AB0P8IPM
