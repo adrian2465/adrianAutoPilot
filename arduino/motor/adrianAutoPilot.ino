@@ -37,6 +37,15 @@ void reportMotorSpeed() {
   Serial.println("s=" + String(getMotorSpeed(), DEC));
 }
 
+void reportClutchStatus() {
+  String c;
+  if (getClutch() == ClutchEnabled)
+    c = "c=1";
+  else
+    c = "c=0";
+  Serial.println(c);
+}
+
 void reportPosition() {
   int position = getPosition();
   Serial.println("p=" + String(position, DEC)); 
@@ -57,6 +66,7 @@ void reportMotorDirection() {
 }
 
 void reportStatus() {
+  reportClutchStatus();
   reportLimits();
   reportMotorSpeed();
   reportMotorDirection();

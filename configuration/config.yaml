@@ -55,3 +55,21 @@ boat_characteristics:
   boat_turn_rate: 10.0
   # Sampling interval in ms
   sampling_interval: 100
+
+mpu9250:
+  # The following were measured on 08-Apr-2023 by mpu9360-calibration.py, which uses jmdev's MPU library
+  gyro: # Gyro units = degrees per second
+    bias: [ -2.194, 0.670, 0.047]
+    moving_average_window_size: 5
+  accel: # Accelerometer units = Gs
+    bias: [-0.007, 0.004, 0.035]
+    moving_average_window_size: 5
+  temp: # Celsius
+    bias: 0
+    moving_average_window_size: 5
+  mag: # Magnetometer units = microTeslas
+    # FYI Chip factory calibration = [1.19921875, 1.19921875, 1.15234375]
+    calib: [ 1.19921875, 1.19921875, 1.15234375 ]
+    bias: [ 33.30, 0.13, 10.6 ]
+    scale: [ 0.731, 0.722, 4.000 ]
+    moving_average_window_size: 5

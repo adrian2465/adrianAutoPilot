@@ -26,6 +26,17 @@ Operations on the motor controller are:
 * Set rudder limits
 * Get status including rudder position
 
+### Sample Arduino Output
+
+```
+l=0 - Left limit
+r=0 - Right limit
+s=0 - Motor speed
+d=0 - Motor direction
+p=4 - Rudder position - magnitude
+x=0 - Rudder position - direction
+```
+
 ### Hardware
 The hardware for this project consists of: 
 

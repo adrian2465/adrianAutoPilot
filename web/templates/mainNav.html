@@ -1,96 +1,182 @@
 <!doctype html>
-<center>
-<style>
-.button {
-  border: none;
-  color: black;
-  padding: 20px;
-  text-align: center;
-  text-decoration: none;
-  display: inline-block;
-  font-size: 16px;
-  margin: 4px 2px;
-  cursor: pointer;
-  width: 100px; 
-  height: 100px;
-}
-.enabledButton {background-color: green;border-radius: 50%;}
-.disabledButton {background-color: red;border-radius: 50%;}
-</style>
-{% set bigIncVal = '+10' %}
-{% set bigDecVal = '-10' %}
-{% set smallIncVal = '+2' %}
-{% set smallDecVal = '-2' %}
-{% set smallDecVal = '-2' %}
-{% set tackIncVal = '+100' %}
-{% set tackDecVal = '-100' %}
 
-{% if status == 'Enabled' %}
-   {% set currentStatusText = 'Enabled' %}
-   {% set toggleButtonText = 'ON' %}
-   {% set toggleCommand = 'disable' %}
-   {% set buttonClass = 'button enabledButton' %}
-   {% set bigIncText = bigIncVal %}
-   {% set bigDecText = bigDecVal %}
-   {% set smallIncText = smallIncVal %}
-   {% set smallDecText = smallDecVal %}
-   {% set tackIncText = 'TACK STBD' %}
-   {% set tackDecText = 'TACK PORT' %}
-   {% set courseText = course %}
-{% else  %}
-   {% set currentStatusText = 'Disabled' %}
-   {% set toggleButtonText = 'OFF' %}
-   {% set toggleCommand = 'enable' %}
-   {% set buttonClass = 'button disabledButton' %}
-   {% set bigIncText = '---' %}
-   {% set bigDecText = '---' %}
-   {% set smallIncText = '---' %}
-   {% set smallDecText = '---' %}
-   {% set tackIncText = '---- ----' %}
-   {% set tackDecText = '---- ----' %}
-   {% set courseText = '---' %}
-{% endif  %}
-{% set courseButtonStyle = 'font-size : 20px; width: 50px; height: 50px; border-radius: 6px' %}
-{% set tackButtonStyle = 'font-size : 20px; width: 150px; height: 50px; border-radius: 6px' %}
+{% set smallDegrees = '2' %}
+{% set bigDegrees   = '10' %}
+{% set tackDegrees  = '100' %}
+{% set courseButtonWidthPx = '50' %}
+{% set tackButtonWidthPx = '150' %}
+{% set update_frequency_ms   = 100 %}
+
+<style>
+    .button {
+        border: none;
+        color: black;
+        padding: 10px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+        margin: 4px 2px;
+        cursor: pointer;
+        width: 100px;
+        height: 100px;
+        box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+        text-align: center;
+    }
+
+    .enabledButton {
+        font-size: 20px;
+        width: 125px;
+        height: 125px;
+        background-color: green;
+        border-radius: 50%;
+    }
+
+    .disabledButton {
+        font-size: 20px;
+        width: 125px;
+        height: 125px;
+        background-color: red;
+        border-radius: 50%;
+    }
+
+</style>
+
 <html>
+
+<script src="https://code.jquery.com/jquery-3.6.4.min.js"
+        integrity="sha256-oP6HI9z1XaZNBrJURtCoUT5SUnxFr8s3BzRl+cbzUq8="
+        crossorigin="anonymous">
+</script>
+
 <title>Autopilot</title>
 <body>
-<h2>
-<a href="/status/{{ toggleCommand }}">
-<button type="button" class = "{{ buttonClass }}" style="{{ buttonStyle }}">{{ toggleButtonText }}</button></a>
-</h2>
-<h2>Course: {{ courseText }}</h2>
-<!-- Course Adjuster Buttons -->
-<p>
-<a href="/course/{{ bigDecVal }}"><button style="{{ courseButtonStyle }}" type="button">{{ bigDecText }}</button></a>
-<a href="/course/{{ smallDecVal }}"><button style="{{ courseButtonStyle }}" type="button">{{ smallDecText }}</button></a>
-<a href="/course/{{ smallIncVal }}"><button style="{{ courseButtonStyle }}" type="button">{{ smallIncText }}</button></a>
-<a href="/course/{{ bigIncVal }}"><button style="{{ courseButtonStyle }}" type="button">{{ bigIncText }}</button></a>
-</p>
-<p>
-<a href="/course/{{ tackDecVal }}"><button style="{{ tackButtonStyle }}" type="button">{{ tackDecText }}</button></a>
-<a href="/course/{{ tackIncVal }}"><button style="{{ tackButtonStyle }}" type="button">{{ tackIncText }}</button></a>
-</p>
-<script type="text/javascript" src="http://code.jquery.com/jquery-1.8.0.min.js"></script>
-
-<script type="text/javascript">
-var previousMessage = "";
-function updateMessages() {
-  $.get('/messages', function(info) {
-    if (info != previousMessage) {
-      $('#messages').html(info);  // update page with new data
-      previousMessage = info;
-    }
-  });
-};
-
-updateMessages()
-setInterval(updateMessages, 1000);  // run `updateMessages()` every 1000ms (1s)
-</script>
-Messages: <span id="messages"><span>
-{% if ((msg) and (msg != "")) %}
-<p style="color:red;">{{ msg }}</p>
-{% endif %}
-</center>
+<div style="text-align: center;">
+    <input id='onOffInput' type='button' class='' value=''/>
+    <h2>Course: <span id="course">Supplied by jQuery</span>&nbsp;&nbsp;Heading: <span id="heading">Supplied by jQuery</span></h2>
+    <p>
+        <input id='bigDec'    type='button' style="font-size : 20px; width: {{ courseButtonWidthPx }}px; height: 50px; border-radius: 6px" class='button' value='Supplied by jQuery'/>
+        <input id='smallDec'  type='button' style="font-size : 20px; width: {{ courseButtonWidthPx }}px; height: 50px; border-radius: 6px" class='button' value='Supplied by jQuery'/>
+        <input id='smallInc'  type='button' style="font-size : 20px; width: {{ courseButtonWidthPx }}px; height: 50px; border-radius: 6px" class='button' value='Supplied by jQuery'/>
+        <input id='bigInc'    type='button' style="font-size : 20px; width: {{ courseButtonWidthPx }}px; height: 50px; border-radius: 6px" class='button' value='Supplied by jQuery'/>
+    </p>
+    <p>
+        <input id='tackDec'   type='button' style="font-size : 20px; width: {{ tackButtonWidthPx }}px; height: 50px; border-radius: 6px" class='button' value='Supplied by jQuery'/>
+        <input id='tackInc'   type='button' style="font-size : 20px; width: {{ tackButtonWidthPx }}px; height: 50px; border-radius: 6px" class='button' value='Supplied by jQuery'/>
+    </p>
+    <p>&nbsp;<span id="messages" style='jquery'>Supplied by jQuery</span></p>
+    <p>
+        <label for="interfaceCheckbox"><input id='interfaceCheckbox' type='checkbox' name='Debug'/>Show interface status</label>
+        <br/><span id="interfaceMessageArea">Supplied by jQuery</span>
+    </p>
+    <script>
+        $SCRIPT_ROOT = {{ request.script_root | tojson | safe }};
+        let onOffInput = $("#onOffInput");
+        let courseIndicator = $("#course");
+        let headingIndicator = $("#heading");
+        let bigDecButton = $("#bigDec");
+        let bigIncButton = $("#bigInc");
+        let smallDecButton = $("#smallDec");
+        let smallIncButton = $("#smallInc");
+        let tackDecButton = $("#tackDec");
+        let tackIncButton = $("#tackInc");
+        let messages = $("#messages");
+        const interfaceCheckbox = document.querySelector('#interfaceCheckbox');
+        let interfaceMessageArea = $("#interfaceMessageArea");
+        // Click handler definition
+        function onOffHandler() {
+            if (onOffInput.prop("value") == "Enabled") fetch($SCRIPT_ROOT + '/set_status/disable');
+            else fetch($SCRIPT_ROOT + '/set_status/enable');
+        }
+        function bigDecHandler() { if (onOffInput.prop("value") == "Enabled") fetch($SCRIPT_ROOT + '/adjust_course/-{{ bigDegrees }}'); }
+        function bigIncHandler() { if (onOffInput.prop("value") == "Enabled") fetch($SCRIPT_ROOT + '/adjust_course/+{{ bigDegrees }}'); }
+        function smallDecHandler() { if (onOffInput.prop("value") == "Enabled") fetch($SCRIPT_ROOT + '/adjust_course/-{{ smallDegrees }}'); }
+        function smallIncHandler() { if (onOffInput.prop("value") == "Enabled") fetch($SCRIPT_ROOT + '/adjust_course/+{{ smallDegrees }}'); }
+        function tackDecHandler() { if (onOffInput.prop("value") == "Enabled") fetch($SCRIPT_ROOT + '/adjust_course/-{{ tackDegrees }}'); }
+        function tackIncHandler() { if (onOffInput.prop("value") == "Enabled") fetch($SCRIPT_ROOT + '/adjust_course/+{{ tackDegrees }}'); }
+        // Click handler registration
+        onOffInput.on("click", function(){onOffHandler();});
+        bigDecButton.on("click", function(){bigDecHandler();});
+        bigIncButton.on("click", function(){bigIncHandler();});
+        smallDecButton.on("click", function(){smallDecHandler();});
+        smallIncButton.on("click", function(){smallIncHandler();});
+        tackDecButton.on("click", function(){tackDecHandler();});
+        tackIncButton.on("click", function(){tackIncHandler();});
+        // Periodic status monitoring
+        (function () {
+            $.getJSON(
+                $SCRIPT_ROOT + "/get_messages",
+                function (data) {
+                    if (data.messages.startsWith("ERROR")) messages.prop('style', 'color:red');
+                    else messages.prop('style', 'color:blue');
+                    messages.text(data.messages);
+                }
+            ).fail(function() {alert("CONNECTION ERROR")});
+            $.getJSON(
+                $SCRIPT_ROOT + "/get_course",
+                function (data) {
+                    if (onOffInput.prop('value') == 'Enabled') courseIndicator.text(data.course);
+                    else courseIndicator.text("---")
+                }
+            );
+            $.getJSON(
+                $SCRIPT_ROOT + "/get_heading",
+                function (data) {
+                    if (onOffInput.prop('value') == 'Enabled') headingIndicator.text(data.heading);
+                    else headingIndicator.text("---")
+                }
+            );
+            $.getJSON(
+                $SCRIPT_ROOT + "/get_interface_params",
+                function (data) {
+                    if (interfaceCheckbox.checked) {
+                        interfaceMessageArea.text(
+                            "r=" + data.starboard_limit +
+                            " l=" + data.port_limit +
+                            " s=" + data.motor_speed +
+                            " d=" + data.motor_direction +
+                            " p=" + data.rudder_position +
+                            " x=" + data.rudder_direction)
+                    } else {
+                        interfaceMessageArea.text("")
+                    }
+                    if (data.clutch_status == "1") {
+                        onOffInput.prop("value", "Enabled");
+                        onOffInput.prop("class", "button enabledButton");
+                        bigDecButton.prop("value", "-{{ bigDegrees }}");
+                        bigIncButton.prop("value", "+{{ bigDegrees }}");
+                        smallDecButton.prop("value", "-{{ smallDegrees }}");
+                        smallIncButton.prop("value", "+{{ smallDegrees }}");
+                        tackDecButton.prop("value", "TACK PORT");
+                        tackIncButton.prop("value", "TACK STBD");
+                        bigDecButton.removeAttr("disabled");
+                        bigIncButton.removeAttr("disabled");
+                        smallDecButton.removeAttr("disabled");
+                        smallIncButton.removeAttr("disabled");
+                        tackDecButton.removeAttr("disabled");
+                        tackIncButton.removeAttr("disabled");
+                    } else {
+                        onOffInput.prop("value", "Disabled");
+                        onOffInput.prop("class", "button disabledButton");
+                        bigDecButton.prop("value", "---");
+                        bigIncButton.prop("value", "---");
+                        smallDecButton.prop("value", "---");
+                        smallIncButton.prop("value", "---");
+                        tackDecButton.prop("value", "---- ----");
+                        tackIncButton.prop("value", "---- ----");
+                        bigDecButton.prop("disabled", "true");
+                        bigIncButton.prop("disabled", "true");
+                        smallDecButton.prop("disabled", "true");
+                        smallIncButton.prop("disabled", "true");
+                        tackDecButton.prop("disabled", "true");
+                        tackIncButton.prop("disabled", "true");
+                    }
+                }
+            );
+            setTimeout(arguments.callee, {{ update_frequency_ms }}); // Update every so often
+        })();
+    </script>
+</div>
 </body>
 </html>
+
