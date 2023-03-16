@@ -2,8 +2,11 @@
 def normalize_angle(angle):
     return angle % 360
 
-def calculate_angle_difference(course, heading): # Too far to port means negative value
-    angle = ( heading - course + 180 ) % 360 - 180
+# Return acute angle between two vectors. Always between -180 and 180, inclusive.
+# 'actual' is measured from 'desired' so if actual > desired, this indicates actual lies to the right of desired.
+# (i.e. the error is in the positive direction)
+def calculate_angle_difference(desired, actual): # Positive means actual lies to right of desired. 
+    angle = ( actual - desired + 180 ) % 360 - 180
     return (angle + 360) if angle < -180 else angle
 
 def test_equals(expected, actual):
