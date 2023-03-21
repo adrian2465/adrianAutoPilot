@@ -8,7 +8,7 @@ import serial
 class ArduinoSerialInterface(ArduinoInterface):
 
     def __init__(self):
-        super.__init__(self)
+        super().__init__()
         self._usb = "/dev/ttyUSB0"
         self._baudrate = 115200
         self._serial_out = serial.Serial(
@@ -16,7 +16,7 @@ class ArduinoSerialInterface(ArduinoInterface):
                 timeout=1,
                 baudrate=self._baudrate)
         time.sleep(0.2)  # Wait for serial to open
-        if not self._serial_out.isOpen():
+        if not self._serial_out.is_open:
             print('ERROR: __init__: Port is not open: ' + self._usb)
         else:
             self._serial_out.reset_output_buffer()
@@ -30,7 +30,7 @@ class ArduinoSerialInterface(ArduinoInterface):
                 baudrate=self._baudrate) as serial_in:
             serial_in.flushInput()
             time.sleep(0.2)  # Wait for serial to open
-            if not serial_in.is_open():
+            if not serial_in.is_open:
                 print('ERROR: serial_monitor: Could not open port ' + self._usb)
                 return
             while (self.isRunning()):
@@ -52,7 +52,7 @@ class ArduinoSerialInterface(ArduinoInterface):
 
     #override
     def write(self, msg: str) -> None:
-        if not self._serial_out.isOpen():
+        if not self._serial_out.is_open:
             print('ERROR: write: Port is not open: ' + self._usb)
             return
         try:

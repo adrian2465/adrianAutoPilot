@@ -1,6 +1,6 @@
 ## Adrian Vrouwenvelder
 ## December 1, 2022
-from arduinoInterface import ArduinoInterface
+from modules.arduinoInterface import ArduinoInterface
 from modules.direction import normalize
 from modules.status import ENABLED as STATUS_ENABLED, DISABLED as STATUS_DISABLED
 from modules.arduinoSerialInterface import getInterface
@@ -20,6 +20,7 @@ class Brain():
         self._port_limit = self._max_port_limit
         self._stbd_limit = self._max_stbd_limit
         self._motor_speed = 0
+        self._clutch_status = 0
         self._interface = None
 
     def exceeds_port(self, portRudder: int):
@@ -41,7 +42,7 @@ class Brain():
     def get_messages(self) -> str:
         return self._messages
 
-    def set_messages(self, messages:str) -> str:
+    def set_messages(self, messages: str) -> str:
         self._messages = messages
 
     def get_status(self) -> str:
@@ -79,26 +80,26 @@ def from_arduino(msg):
     global _brain
     # Put just enough processing here to communicate with brain loop.
     #  TODO Left off here. Parse messages from arduino.
-    if msg.startswith('m'):  # Text message
-        _brain._messages = int(msg[1:])
+    if msg.startswith('m='):  # Text message
+        _brain._messages = int(msg[2:])
         _brain.set_messages(f"Messages = {_brain._messages}")
-    elif msg.startswith('r'):  # Right limit
-        _brain._stbd_limit = int(msg[1:])
+    elif msg.startswith('r='):  # Right limit
+        _brain._stbd_limit = int(msg[2:])
         _brain.set_messages(f"Starboard limit = {_brain._stbd_limit}")
-    elif msg.startswith('l'):  # Left limit
-        _brain._port_limit = int(msg[1:])
+    elif msg.startswith('l='):  # Left limit
+        _brain._port_limit = int(msg[2:])
         _brain.set_messages(f"Port limit = {_brain._port_limit}")
-    elif msg.startswith('s'):  # Motor speed
-        _brain._motor_speed = int(msg[1:])
+    elif msg.startswith('s='):  # Motor speed
+        _brain._motor_speed = int(msg[2:])
         _brain.set_messages(f"Motor speed = {_brain._motor_speed}")
-    elif msg.startswith('d'):  # Motor direction
-        _brain._motor_direction = int(msg[1:])
+    elif msg.startswith('d='):  # Motor direction
+        _brain._motor_direction = int(msg[2:])
         _brain.set_messages(f"Motor direction = {_brain._motor_direction}")
-    elif msg.startswith('p'):  # Rudder position magnitude
-        _brain._rudder_position = int(msg[1:])
+    elif msg.startswith('p='):  # Rudder position magnitude
+        _brain._rudder_position = int(msg[2:])
         _brain.set_messages(f"Rudder position= {_brain._rudder_position}")
-    elif msg.startswith('x'):  # Rudder position direction
-        _brain._rudder_direction = int(msg[1:])
+    elif msg.startswith('x='):  # Rudder position direction
+        _brain._rudder_direction = int(msg[2:])
         _brain.set_messages(f"Rudder direction = {_brain._rudder_direction}")
     else:
         _brain.set_messages(f"Unsupported message {msg} from Arduino")

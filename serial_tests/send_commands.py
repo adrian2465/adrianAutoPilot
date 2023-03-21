@@ -11,7 +11,7 @@ if __name__ == '__main__':
             timeout=1,
             baudrate=115200) as dev_arduino:
         time.sleep(0.2)  # Wait for serial to open
-        if not dev_arduino.isOpen():
+        if not dev_arduino.is_open:
             print('Could not open port ' + usb)
             exit(1)
         dev_arduino.reset_output_buffer()
