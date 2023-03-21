@@ -22,5 +22,5 @@ void setClutch(ClutchStatus s) {
 
 void initClutch() {
   pinMode(CLUTCH_PIN, OUTPUT);
-  setClutch(ClutchDisabled) // Ensure clutch will be off initially, if not already so
+  setClutch(ClutchDisabled); // Ensure clutch will be off initially, if not already so
 }

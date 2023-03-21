@@ -38,7 +38,12 @@ void reportMotorSpeed() {
 }
 
 void reportClutchStatus() {
-  Serial.println("c=" + (getClutch() == ClutchEnabled ? "1" : "0"));
+  String c;
+  if (getClutch() == ClutchEnabled)
+    c = "c=1";
+  else
+    c = "c=0";
+  Serial.println(c);
 }
 
 void reportPosition() {
