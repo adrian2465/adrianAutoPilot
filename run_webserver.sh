@@ -1,2 +1,2 @@
 #Start web server
-flask --app autopilotWebApp run
+sudo flask --app web/autopilotWebApp run

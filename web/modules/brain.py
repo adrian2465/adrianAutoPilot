@@ -1,9 +1,9 @@
 ## Adrian Vrouwenvelder
 ## December 1, 2022
-
+from arduinoInterface import ArduinoInterface
 from modules.direction import normalize
 from modules.status import ENABLED as STATUS_ENABLED, DISABLED as STATUS_DISABLED
-from modules.arduinoFileInterface import getInterface
+from modules.arduinoSerialInterface import getInterface
 
 import time
 
@@ -15,50 +15,53 @@ class Brain():
         self._course = 0
         self._messages = "Disabled"
         self._rudder_position = 127
-        self._clutch_status = 0
         self._max_port_limit = 127
         self._max_stbd_limit = 127
         self._port_limit = self._max_port_limit
         self._stbd_limit = self._max_stbd_limit
+        self._motor_speed = 0
+        self._interface = None
 
     def exceeds_port(self, portRudder: int):
         # if _max_port_limit < _max_stbd_limit: 
-        return False    # LEFT OFF HERE - Coding exceeds_ functions.
-    def adjustCourse(self, delta:int) -> int:
-      self._course = normalize(self._course + delta)
-    
-    def setCourse(self, course:int) -> int:
-      self._course = normalize(course)
-    
-    def getCourse(self) -> int:
-      return self._course
-    
-    def getStatus(self) -> str:
-      return self._status
+        return False    # TODO - Coding exceeds_ functions.
 
-    def getMessages(self) -> str:
-      return self._messages
+    def exceeds_stbd(self, stbdRudder: int):
+        return False    # TODO - Coding exceeds_ functions.
 
-    def setMessages(self, messages:str) -> str:
+    def adjust_course(self, delta: int) -> int:
+        self._course = normalize(self._course + delta)
+
+    def set_course(self, course: int) -> int:
+        self._course = normalize(course)
+
+    def get_course(self) -> int:
+        return self._course
+
+    def get_messages(self) -> str:
+        return self._messages
+
+    def set_messages(self, messages:str) -> str:
         self._messages = messages
 
-    def setStatus(self, status:str):
-        self._status = status
-        self._messages = status
+    def get_status(self) -> str:
+        return STATUS_ENABLED if self._clutch_status == 1 else STATUS_DISABLED
+
+    def set_status(self, status:str):
+        self._clutch_status = 1 if status == STATUS_ENABLED else 0
+        self._interface.write(f"C{self._clutch_status}".encode())
 
     def set_rudder_position(self, rudder_position: int):
         self._rudder_position = rudder_position
 
-    def set_clutch_status(self, clutch_status: int):
-        self._clutch_status = clutch_status
+    def set_rudder_direction(self, rudder_direction: int):
+        self._rudder_direction = rudder_direction
 
     def set_port_limit(self, port_limit: int):
         self._port_limit = port_limit
-        if exceeds_port(self._port_limit): self._port_limit = self._max_port_limit
 
     def set_stbd_limit(self, stbd_limit: int):
         self._stbd_limit = stbd_limit
-        if exceeds_stbd(self._stbd_limit): self._stbd_limit = self._max_stbd_limit
 
     def set_max_port_limit(self, port_limit: int):
         self._port_limit = port_limit
@@ -66,33 +69,46 @@ class Brain():
     def set_max_stbd_limit(self, stbd_limit: int):
         self._stbd_limit = stbd_limit
 
+    def set_interface(self, interface: ArduinoInterface):
+        self._interface = interface
 
 _brain: Brain
 
 # Called asynchronously from ArduinoInterface
-def from_arduino(msg): 
-    global _brain, _rudder_position, _clutch_status, _port_limit, _stbd_limit
+def from_arduino(msg):
+    global _brain
     # Put just enough processing here to communicate with brain loop.
-    if (msg.startswith('r')):
-        _rudder_position = int(msg[1:4])
-        _brain.setMessages(f"New rudder position: {_rudder_position}")
-    elif (msg.startswith('c')):
-        _clutch_status = int(msg[1:2])
-        output = "Disabled" if clutch == 0 else "Enabled"
-        _brain.setMessage(f"Clutch at {_clutch_status}")
-    elif (msg.startswith('p')):
-        _port_limit = int(msg[1:4])
-        _brain.setMessage(f"Port limit = {_port_limit}")
-    elif (msg.startswith('s')):
-        _stbd_limit = int(msg[1:4])
-        _brain.setMessage(f"Stbd limit = {_stbd_limit}")
+    #  TODO Left off here. Parse messages from arduino.
+    if msg.startswith('m'):  # Text message
+        _brain._messages = int(msg[1:])
+        _brain.set_messages(f"Messages = {_brain._messages}")
+    elif msg.startswith('r'):  # Right limit
+        _brain._stbd_limit = int(msg[1:])
+        _brain.set_messages(f"Starboard limit = {_brain._stbd_limit}")
+    elif msg.startswith('l'):  # Left limit
+        _brain._port_limit = int(msg[1:])
+        _brain.set_messages(f"Port limit = {_brain._port_limit}")
+    elif msg.startswith('s'):  # Motor speed
+        _brain._motor_speed = int(msg[1:])
+        _brain.set_messages(f"Motor speed = {_brain._motor_speed}")
+    elif msg.startswith('d'):  # Motor direction
+        _brain._motor_direction = int(msg[1:])
+        _brain.set_messages(f"Motor direction = {_brain._motor_direction}")
+    elif msg.startswith('p'):  # Rudder position magnitude
+        _brain._rudder_position = int(msg[1:])
+        _brain.set_messages(f"Rudder position= {_brain._rudder_position}")
+    elif msg.startswith('x'):  # Rudder position direction
+        _brain._rudder_direction = int(msg[1:])
+        _brain.set_messages(f"Rudder direction = {_brain._rudder_direction}")
+    else:
+        _brain.set_messages(f"Unsupported message {msg} from Arduino")
 
 def getInstance():
     global _brain
     _brain = Brain()
-    interface = getInterface()
-    interface.setFromArduino(from_arduino)
-    interface.start() # Create monitor and writer.
+    _brain.set_interface(getInterface())
+    _brain._interface.setFromArduino(from_arduino)
+    _brain._interface.start()  # Create monitor and writer.
     return _brain
 
 # For exemplification and testing from the command line
@@ -103,7 +119,7 @@ def brain_cmdline():
     while True:
         i = i + 1
         print(f"Brain cycle {i}")
-        print(f"messages {brain.getMessages()}")
+        print(f"messages {brain.get_messages()}")
         time.sleep(5)
 
 if __name__ == "__main__":

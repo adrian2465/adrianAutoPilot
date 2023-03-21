@@ -11,20 +11,20 @@ brain = get_brain()
 @app.route("/")
 def index():
   global brain
-  return render_template('mainNav.html', status=brain.getStatus(), course=brain.getCourse()) 
+  return render_template('mainNav.html', status=brain.get_status(), course=brain.get_course())
   
 @app.route("/status/<newStatus>")
 def update_status(newStatus:str):
   global brain
   msg=""
   if newStatus == 'enable':
-    brain.setStatus(STATUS_ENABLED)
-    brain.setCourse(readGPSDirection())
+    brain.set_status(STATUS_ENABLED)
+    brain.set_course(readGPSDirection())
   elif newStatus == 'disable':
-    brain.setStatus(STATUS_DISABLED)
+    brain.set_status(STATUS_DISABLED)
   else:
     msg="ERROR: status command must be enable or disable"
-  return render_template('mainNav.html', status=brain.getStatus(), course=brain.getCourse(), msg=msg) 
+  return render_template('mainNav.html', status=brain.get_status(), course=brain.get_course(), msg=msg)
 
 @app.route("/course/<courseAdjustment>")
 def adjust_course(courseAdjustment:str):
@@ -32,13 +32,13 @@ def adjust_course(courseAdjustment:str):
   msg = ""
   print(type(int(courseAdjustment)))
   print(int(courseAdjustment))
-  brain.adjustCourse(int(courseAdjustment))
-  return render_template('mainNav.html', status=brain.getStatus(), course=brain.getCourse(), msg=msg) 
+  brain.adjust_course(int(courseAdjustment))
+  return render_template('mainNav.html', status=brain.get_status(), course=brain.get_course(), msg=msg)
 
 @app.route("/messages")
 def get_messages():
   global brain
-  return brain.getMessages()
+  return brain.get_messages()
 
 
 if __name__ == "__main__":
