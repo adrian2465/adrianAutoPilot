@@ -1,7 +1,6 @@
 # "Console" for monitoring communications from the Arduino. 
 # Can be run in background - pipe output to /dev/tty0
 import serial
-import fcntl
 import time
 
 usb = "/dev/ttyUSB0"
@@ -14,7 +13,7 @@ if __name__ == '__main__':
         baudrate=115200) as dev_arduino:
     dev_arduino.flushInput()
     time.sleep(0.2) # Wait for serial to open
-    if not dev_arduino.is_open(): 
+    if not dev_arduino.is_open:
       print('Could not open port ' + usb)
       exit(1)
     print(f'{dev_arduino.port} Connected!')
