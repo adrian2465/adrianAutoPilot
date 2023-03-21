@@ -12,7 +12,12 @@ brain = get_brain()
 def index():
   global brain
   return render_template('mainNav.html', status=brain.get_status(), course=brain.get_course())
-  
+
+@app.route("/getstatus")
+def get_status():
+  global brain
+  return brain.get_status()
+
 @app.route("/status/<newStatus>")
 def update_status(newStatus:str):
   global brain
