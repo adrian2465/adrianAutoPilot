@@ -1,7 +1,7 @@
 ## Adrian Vrouwenvelder
 ## March 21, 2023
 
-from modules.arduinoInterface import ArduinoInterface
+from modules.arduinoInterface import ArduinoInterface, from_arduino
 import time
 import serial
 
@@ -22,6 +22,7 @@ class ArduinoSerialInterface(ArduinoInterface):
             self._serial_out.reset_output_buffer()
             print(f'INFO: __init__: {self._serial_out.port} Connected for sending commands at {str(self._serial_out.baudrate)}!')
 
+
     #override
     def serial_monitor(self) -> None:
         with serial.Serial(
@@ -33,16 +34,18 @@ class ArduinoSerialInterface(ArduinoInterface):
             if not serial_in.is_open:
                 print('ERROR: serial_monitor: Could not open port ' + self._usb)
                 return
-            while (self.isRunning()):
-                time.sleep(self.check_interval())
-                print(f'INFO: serial_monitor: {serial_in.port} Connected for monitoring at {str(serial_in.baudrate)}!')
+            if not self.is_running():
+                print("WARNING: serial_monitor: Not running.")
+                return
+            print(f'INFO: serial_monitor: {serial_in.port} Connected for monitoring at {str(serial_in.baudrate)}!')
+            while (self.is_running()):
+                time.sleep(self.get_check_interval())
                 try:
-                    while True:
-                        while serial_in.in_waiting > 0:
-                            message = serial_in.readline().decode('utf-8').strip()
-                            if message != '':
-                                print(f'INFO: serial_monitor: Received message "{message}"')
-                                self._from_arduino(msg=message)
+                    while serial_in.in_waiting > 0:
+                        message = serial_in.readline().decode('utf-8').strip()
+                        if message != '':
+                            print(f'INFO: serial_monitor: Received message "{message}"')
+                            from_arduino(interface=self, msg=message)
                 except ValueError:
                     print(f"ERROR: serial_monitor: Value error!")
                 except serial.SerialException as e:
@@ -71,13 +74,8 @@ def getInterface():
 ################################################################################
 # For testing and exemplification
 def cmd_line():
-    # Sample class for subscribing to arduino events.
-    def from_arduino(msg): 
-        # Put just enough processing here to communicate with brain loop.
-        print(f"fromArduino: '{msg}'")
 
     arduino = getInterface()  # Create monitor and writer.
-    arduino.setFromArduino(from_arduino)
     arduino.start()  # Start monitor thread
     print(f'Append commands to arduino to simulate Arduino sending data')
     print(f'From a command prompt, monitor arduino to see data we\'re sending to the Arduino.')

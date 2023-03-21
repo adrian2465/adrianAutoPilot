@@ -1,7 +1,7 @@
 ## Adrian Vrouwenvelder
 ## December 1, 2022
 
-from modules.arduinoInterface import ArduinoInterface
+from modules.arduinoInterface import ArduinoInterface, from_arduino
 from pathlib import Path
 import time
 
@@ -12,14 +12,14 @@ toArduinoFile="/tmp/toArduino.txt"
 class ArduinoFileInterface(ArduinoInterface):
     #override
     def serial_monitor(self) -> str: 
-        while (self.isRunning()):
+        while (self.is_running()):
             my_file = Path(fromArduinoFile)
             if my_file.is_file():
                 with open(fromArduinoFile) as openfileobject:
                     for line in openfileobject:
-                        self._from_arduino(line)
+                        from_arduino(interface=self, msg=line)
                 open(fromArduinoFile, 'w').close() # Delete contents
-            time.sleep(self.check_interval())
+            time.sleep(self.get_check_interval())
 
     #override
     def write(self, msg: str) -> None:
@@ -40,7 +40,6 @@ def cmd_line():
         print(f"fromArduino: '{msg}'")
 
     arduino = getInterface() # Create monitor and writer.
-    arduino.setFromArduino(from_arduino)
     arduino.start() # Start monitor thread
     print(f'Append commands to {fromArduinoFile} to simulate Arduino sending data')
     print(f'From a command prompt, monitor {toArduinoFile} to see data we\'re sending to the Arduino.')
