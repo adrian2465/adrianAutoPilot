@@ -10,10 +10,11 @@ if __name__ == '__main__':
         port=usb, 
         timeout=1,
         baudrate=115200) as dev_arduino:
-    time.sleep(0.2) # Wait for serial to open
+    time.sleep(0.2)  # Wait for serial to open
     if not dev_arduino.isOpen(): 
       print('Could not open port ' + usb)
       exit(1)
+    dev_arduino.reset_output_buffer()
     print(f'{dev_arduino.port} Connected!')
     print('Commands:')
     print('  cn: Clutch. n=0:off; n=1:on')
