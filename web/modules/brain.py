@@ -50,7 +50,7 @@ class Brain():
 
     def set_status(self, status:str):
         self._clutch_status = 1 if status == STATUS_ENABLED else 0
-        self._interface.write(f"C{self._clutch_status}")
+        self._interface.write(f"c{self._clutch_status}")
 
     def set_rudder_position(self, rudder_position: int):
         self._rudder_position = rudder_position
