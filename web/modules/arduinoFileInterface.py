@@ -8,6 +8,7 @@ import time
 fromArduinoFile="/tmp/fromArduino.txt"
 toArduinoFile="/tmp/toArduino.txt"
 
+print(f"Using arduinoFileInterface. Files simulate the Arduino.\n* Echo to {fromArduinoFile} to simulate messages received from Arduino.\n* Monitor {toArduinoFile} for messages being sent to Arduino.")
 # Private
 class ArduinoFileInterface(ArduinoInterface):
     #override

@@ -1,10 +1,13 @@
 ## Adrian Vrouwenvelder
 ## December 1, 2022
+## March 2023
 from modules.arduinoInterface import ArduinoInterface
+from sensor import Sensor
 from modules.direction import normalize
 from modules.status import DISABLED as STATUS_DISABLED, ENABLED as STATUS_ENABLED
 
-from modules.arduinoSerialInterface import getInterface
+# from modules.arduinoSerialInterface import getInterface
+from modules.arduinoFileInterface import getInterface
 
 import time
 
@@ -13,6 +16,7 @@ class Brain():
 
     def __init__(self):
         self._course = 0
+        self._sensor = Sensor()
         self._interface = None
 
     def get_messages(self):
@@ -29,6 +33,9 @@ class Brain():
 
     def get_course(self) -> int:
         return self._course
+
+    def get_heading(self) -> int:
+        return self._sensor.get_heading()
 
     def set_status(self, status):
         self._interface.set_status(1 if status == STATUS_ENABLED else 0)

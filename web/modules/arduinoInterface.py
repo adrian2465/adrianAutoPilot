@@ -26,7 +26,7 @@ def from_arduino(interface, msg):
         interface._clutch_status = int(msg[2:])
     else:
         print(f"Unsupported message {msg}")
-        interface._messages = f"Unsupported message {msg}"
+        interface._messages = f"Unsupported message `{msg}`"
 
 # Private
 class ArduinoInterface():
@@ -37,13 +37,15 @@ class ArduinoInterface():
         self._running = False
 
         self._status = STATUS_DISABLED
-        self._messages = "Disabled"
+        self._messages = ""
         self._rudder_position = 127
+        self._rudder_direction = 0
         self._max_port_limit = 127
         self._max_stbd_limit = 127
         self._port_limit = self._max_port_limit
         self._stbd_limit = self._max_stbd_limit
         self._motor_speed = 0
+        self._motor_direction = 0
         self._clutch_status = 0
 
     def start(self):
