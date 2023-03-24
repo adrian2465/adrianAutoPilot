@@ -2,12 +2,12 @@
 ## December 1, 2022
 ## March 2023
 from modules.arduinoInterface import ArduinoInterface
-from sensor import Sensor
+from modules.sensor import Sensor
 from modules.direction import normalize
 from modules.status import DISABLED as STATUS_DISABLED, ENABLED as STATUS_ENABLED
 
-# from modules.arduinoSerialInterface import getInterface
-from modules.arduinoFileInterface import getInterface
+from modules.arduinoSerialInterface import getInterface
+# from modules.arduinoFileInterface import getInterface
 
 import time
 
