@@ -44,7 +44,6 @@ class ArduinoSerialInterface(ArduinoInterface):
                     while serial_in.in_waiting > 0:
                         message = serial_in.readline().decode('utf-8').strip()
                         if message != '':
-                            print(f'INFO: serial_monitor: Received message "{message}"')
                             from_arduino(interface=self, msg=message)
                 except ValueError:
                     print(f"ERROR: serial_monitor: Value error!")
