@@ -1,4 +1,11 @@
 TODOs
+o Uninstall: 
+  * make
+  * gcc 
+  * compiletc
+  * python3-dev
+which were needed for pip-based installation of smbus (pip install smbus)
+
 o Fix this:
     [2023-03-21 14:19:11,589] ERROR in app: Exception on /status/enable [GET]
     Traceback (most recent call last):

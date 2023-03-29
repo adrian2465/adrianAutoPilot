@@ -1,0 +1,47 @@
+=====
+HINT: Link to REPO for piCoe 13 armv6: http://www.tinycorelinux.net/13.x/armv6/tcz/
+=====
+HINT: To find config.txt with boot parameters, mount /mmt/mmblk0p1
+Then you will find config.txt.
+You do not need to use filetool.sh to persist these changes - they will persist.
+
+=====
+HINT: To SSH to tc with unknown host/cert, use:
+ADDR="192.168.86.179"
+echo "Use ~. to disconnect."
+echo "Using address $ADDR"
+ssh -o PubkeyAuthentication=no tc@$ADDR
+
+=====
+NOTE: To persist changes to bootlocal.sh, use "filetool.sh -b"
+
+=====
+HOWTO: Enable i2c (mpu9250 GPS)
+* You will need tce package i2c-tools
+* You will probably have to manually create the i2c device:
+  sudo modprobe i2c-dev
+* Now you should have /dev/i2c-1
+If you run
+$ sudo i2cdetect -y 1
+you will get a hexdump with a number in it.
+
+=====
+Installing smbus
+* Install make
+* Install gcc
+* install compiletc
+* install python3.10-dev
+
+* pip install smbus
+
+
+=====
+Reading the MPU:
+* Run as ROOT
+* from smbus import SMBus
+* from gps import *
+* i2cbus = SMBus(1)
+* i2caddr = 0x68 (found using sudo i2cdetect -y 1)
+* gpsd = gps(mode=WATCH_ENABLE|WATCH_NEWSTYLE)
+* i2cbus.read_byte(i2c_address)
+ 
