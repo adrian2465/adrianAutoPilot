@@ -1,8 +1,33 @@
 TODOs
-o 2023-03-04 - Get PI talking to Arduino via serial interface
-o 2023-03-04 - Migrate Python code for simulator to micropython
+o Uninstall: 
+  * make
+  * gcc 
+  * compiletc
+  * python3-dev
+which were needed for pip-based installation of smbus (pip install smbus)
+
+o Fix this:
+    [2023-03-21 14:19:11,589] ERROR in app: Exception on /status/enable [GET]
+    Traceback (most recent call last):
+    File "/mnt/mmcblk0p2/venv/lib/python3.10/site-packages/flask/app.py", line 2528, in wsgi_app
+    response = self.full_dispatch_request()
+    File "/mnt/mmcblk0p2/venv/lib/python3.10/site-packages/flask/app.py", line 1825, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+    File "/mnt/mmcblk0p2/venv/lib/python3.10/site-packages/flask/app.py", line 1823, in full_dispatch_request
+    rv = self.dispatch_request()
+    File "/mnt/mmcblk0p2/venv/lib/python3.10/site-packages/flask/app.py", line 1799, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+    File "/mnt/mmcblk0p2/apps/adrianAutoPilot/web/autopilotWebApp.py", line 21, in update_status
+    brain.set_status(STATUS_ENABLED)
+    File "/mnt/mmcblk0p2/apps/adrianAutoPilot/web/modules/brain.py", line 53, in set_status
+    self._interface.write(f"C{self._clutch_status}".encode())
+    File "/mnt/mmcblk0p2/apps/adrianAutoPilot/web/modules/arduinoSerialInterface.py", line 59, in write
+    self._serial_out.write((msg + "\n").encode())
+    TypeError: can't concat str to bytes
+
 
 DONEs
 x 2023-03-04 - Archive working configuration in $HOME. "home_date.tar"
-
+x 2023-03-04 - Get PI talking to Arduino via serial interface
+x 2023-03-04 - Migrate Python code for simulator to micropython
  

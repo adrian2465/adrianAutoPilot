@@ -1,48 +1,67 @@
-from flask import Flask 
-from flask import render_template
+## Adrian Vrouwenvelder
+## December 1, 2022
+## March 2023
+from flask import Flask, jsonify, render_template
+import logging
 from modules.brain import getInstance as get_brain
 from modules.status import DISABLED as STATUS_DISABLED, ENABLED as STATUS_ENABLED
-from modules.sensors import readGPSDirection
 
 app = Flask(__name__)
 
 brain = get_brain()
 
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)
+
+print("Note: Web interface is on http://127.0.0.1:5000 (unless otherwise configured)")
+
 @app.route("/")
 def index():
-  global brain
-  return render_template('mainNav.html', status=brain.getStatus(), course=brain.getCourse()) 
-  
-@app.route("/status/<newStatus>")
-def update_status(newStatus:str):
-  global brain
-  msg=""
-  if newStatus == 'enable':
-    brain.setStatus(STATUS_ENABLED)
-    brain.setCourse(readGPSDirection())
-  elif newStatus == 'disable':
-    brain.setStatus(STATUS_DISABLED)
-  else:
-    msg="ERROR: status command must be enable or disable"
-  return render_template('mainNav.html', status=brain.getStatus(), course=brain.getCourse(), msg=msg) 
+    global brain
+    return render_template('mainNav.html')
 
-@app.route("/course/<courseAdjustment>")
-def adjust_course(courseAdjustment:str):
-  global brain
-  msg = ""
-  print(type(int(courseAdjustment)))
-  print(int(courseAdjustment))
-  brain.adjustCourse(int(courseAdjustment))
-  return render_template('mainNav.html', status=brain.getStatus(), course=brain.getCourse(), msg=msg) 
+@app.route("/set_status/<newStatus>")
+def set_status(newStatus: str):
+    global brain
+    if newStatus == 'enable':
+        brain.set_status(STATUS_ENABLED)
+        brain.set_course(brain.get_heading())
+    else:
+        brain.set_status(STATUS_DISABLED)
+    return ""
 
-@app.route("/messages")
+@app.route("/get_course")
+def get_course():
+    global brain
+    return jsonify(course=f"{brain.get_course():03.0f}")
+
+@app.route("/get_heading")
+def get_heading():
+    global brain
+    return jsonify(heading=f"{brain.get_heading():03.0f}")
+
+@app.route("/adjust_course/<courseAdjustment>")
+def adjust_course(courseAdjustment: str):
+    global brain
+    brain.adjust_course(int(courseAdjustment))
+    return ""
+
+@app.route("/get_messages")
 def get_messages():
-  global brain
-  return brain.getMessages()
+    global brain
+    return jsonify(messages=brain.get_messages())
 
+@app.route("/get_interface_params")
+def get_interface_params():
+    global brain
+    interface = brain.get_arduino_interface()
+    return jsonify(clutch_status=interface.get_status(),
+                   starboard_limit=interface.get_stbd_limit(),
+                   port_limit=interface.get_port_limit(),
+                   motor_speed=interface.get_motor_speed(),
+                   motor_direction=interface.get_motor_direction(),
+                   rudder_position=interface.get_rudder_position(),
+                   rudder_direction=interface.get_rudder_direction())
 
 if __name__ == "__main__":
-  print("This is not meant to run as an application.")
-  print("Use Flask: flask --app autopilotWebApp run")
-
-
+    app.run()
