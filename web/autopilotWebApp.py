@@ -5,7 +5,6 @@ from flask import Flask, jsonify, render_template
 import logging
 from modules.brain import getInstance as get_brain
 from modules.status import DISABLED as STATUS_DISABLED, ENABLED as STATUS_ENABLED
-from modules.sensors import readGPSDirection
 
 app = Flask(__name__)
 
@@ -26,7 +25,7 @@ def set_status(newStatus: str):
     global brain
     if newStatus == 'enable':
         brain.set_status(STATUS_ENABLED)
-        brain.set_course(readGPSDirection())
+        brain.set_course(brain.get_heading())
     else:
         brain.set_status(STATUS_DISABLED)
     return ""
@@ -55,7 +54,7 @@ def get_messages():
 @app.route("/get_interface_params")
 def get_interface_params():
     global brain
-    interface = brain.get_interface()
+    interface = brain.get_arduino_interface()
     return jsonify(clutch_status=interface.get_status(),
                    starboard_limit=interface.get_stbd_limit(),
                    port_limit=interface.get_port_limit(),
