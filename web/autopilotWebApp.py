@@ -33,12 +33,12 @@ def set_status(newStatus: str):
 @app.route("/get_course")
 def get_course():
     global brain
-    return jsonify(course=f"{brain.get_course():03}")
+    return jsonify(course=f"{brain.get_course():03.0f}")
 
 @app.route("/get_heading")
 def get_heading():
     global brain
-    return jsonify(heading=f"{brain.get_heading():03}")
+    return jsonify(heading=f"{brain.get_heading():03.0f}")
 
 @app.route("/adjust_course/<courseAdjustment>")
 def adjust_course(courseAdjustment: str):

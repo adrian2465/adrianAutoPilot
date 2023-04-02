@@ -1,5 +1,5 @@
 # Author: Adrian Vrouwenvelder
-from mpu9250Interface import get_interface
+from modules.mpu9250Interface import get_interface
 # from imuTestInterface import get_interface
 
 class Sensor:
@@ -9,7 +9,7 @@ class Sensor:
         self._imu_interface.start()
 
     def get_heading(self):
-        return self._imu_interface.compass_deg
+        return self._imu_interface.compass_deg()
 
     def get_heel_angle(self): pass  # TODO Implement
 

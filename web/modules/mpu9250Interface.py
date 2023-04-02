@@ -3,7 +3,7 @@ from __future__ import division
 import smbus2 as smbus
 from time import sleep
 import ctypes  # for signed int
-from imuInterface import imu_interface
+from modules.imuInterface import imu_interface
 
 moving_average_size = 5  # Number of samples to combine for an average
 # Enabling the i2c interface for reading the mpu9250
@@ -62,9 +62,15 @@ ASTC_SELF = 0x01 << 6
 
 
 
+def _moving_average_vector(average_vector, val_vector):
+    rc_vector = [0, 0, 0]
+    for i in range(0, 3):
+       rc_vector[i] = (val_vector[i]  + average_vector[i] * (moving_average_size - 1)) / movin
+    return rc_vector
 
-def _moving_average(average, val):
-    return val / moving_average_size + average * (moving_average_size - 1) / moving_average_size
+def _moving_average_scalar(average, val):
+    return (val + average * (moving_average_size - 1)) / moving_average_size
+
 
 
 class mpu9250_interface(imu_interface):
@@ -177,10 +183,10 @@ class mpu9250_interface(imu_interface):
         return data
 
     def _poll(self):
-        self._mag_avg = _moving_average(self.mag, self._mag)
-        self._gyro_avg = _moving_average(self.gyro, self._gyro)
-        self._accel_avg = _moving_average(self.accel, self._accel)
-        self._temp_avg = _moving_average(self.temp, self._temp)
+        self._mag_avg = _moving_average_vector(self.mag, self._mag)
+        self._gyro_avg = _moving_average_vector(self.gyro, self._gyro)
+        self._accel_avg = _moving_average_vector(self.accel, self._accel)
+        self._temp_avg = _moving_average_scalar(self.temp, self._temp)
 
     def monitor(self):
         print("imu9250 monitor started")
@@ -213,7 +219,6 @@ if __name__ == "__main__":
 
     imu = get_interface()
     imu.start()
-
     try:
         while True:
             a = imu.accel
