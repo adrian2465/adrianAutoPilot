@@ -16,7 +16,7 @@ ssh -o PubkeyAuthentication=no tc@$ADDR
 NOTE: To persist changes to bootlocal.sh, use "filetool.sh -b"
 
 =====
-HOWTO: Enable i2c (mpu9250 GPS)
+HOWTO: Enable i2c for reading the mpu9250
 * You will need tce package i2c-tools
 * You will probably have to manually create the i2c device:
   sudo modprobe i2c-dev

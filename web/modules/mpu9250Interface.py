@@ -2,7 +2,6 @@ from __future__ import print_function
 from __future__ import division
 import smbus2 as smbus
 from time import sleep
-import numpy as np
 import ctypes  # for signed int
 from imuInterface import imu_interface
 
@@ -116,9 +115,9 @@ class mpu9250_interface(imu_interface):
         self._write_byte(AK8963_ADDRESS, AK8963_CNTL1, (AK8963_16BIT | AK8963_8HZ))  # cont mode 1
         self._write_byte(AK8963_ADDRESS, AK8963_ASTC, 0)
 
-        self._mag_avg = np.zeros(3)
-        self._gyro_avg = np.zeros(3)
-        self._accel_avg = np.zeros(3)
+        self._mag_avg = [0, 0, 0]
+        self._gyro_avg = [0, 0, 0]
+        self._accel_avg = [0, 0, 0]
         self._temp_avg = 0
 
     def __del__(self):
@@ -140,15 +139,15 @@ class mpu9250_interface(imu_interface):
         data = self.bus.read_i2c_block_data(address, register, 2)
         return self._cshort_big_endian(data[0], data[1])
 
-    def _read_vector(self, address, register, lsb, to_cshort):
+    def _read_vector(self, address, register, scale, to_cshort):
         """
         Reads x, y, and z axes at once and turns them into a tuple.
         """
         # data is MSB, LSB, MSB, LSB ...
         data = self.bus.read_i2c_block_data(address, register, 6)
-        return np.array([to_cshort(data[0], data[1]),
-                         to_cshort(data[2], data[3]),
-                         to_cshort(data[4], data[5])]) * lsb
+        return [to_cshort(data[0], data[1]) * scale,
+                to_cshort(data[2], data[3]) * scale,
+                to_cshort(data[4], data[5]) * scale]
 
     @property
     def _accel(self):
