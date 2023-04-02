@@ -65,7 +65,7 @@ ASTC_SELF = 0x01 << 6
 def _moving_average_vector(average_vector, val_vector):
     rc_vector = [0, 0, 0]
     for i in range(0, 3):
-       rc_vector[i] = (val_vector[i]  + average_vector[i] * (moving_average_size - 1)) / movin
+       rc_vector[i] = (val_vector[i]  + average_vector[i] * (moving_average_size - 1)) / moving_average_size
     return rc_vector
 
 def _moving_average_scalar(average, val):
