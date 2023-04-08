@@ -245,11 +245,11 @@ class mpu9250_interface(imu_interface):
 
     @property
     def accel(self):
-        return v_op(subtr, self._accel_avg, imu.accel_bias)
+        return v_op(subtr, self._accel_avg, self.accel_bias)
 
     @property
     def gyro(self):
-        return v_op(subtr, self._gyro_avg, imu.gyro_bias)
+        return v_op(subtr, self._gyro_avg, self.gyro_bias)
 
     @property
     def mag(self):
@@ -258,7 +258,7 @@ class mpu9250_interface(imu_interface):
 
     @property
     def temp(self):
-        return subtr(self._temp_avg, imu.temp_bias)
+        return subtr(self._temp_avg, self.temp_bias)
 
 
 def get_interface(bus=1, config_file="/mnt/mmcblk0p2/apps/adrianAutoPilot/configuration/config.yaml"):
