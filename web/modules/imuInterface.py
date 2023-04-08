@@ -5,7 +5,7 @@ class imu_interface(object):
     def __init__(self):
         self._monitor_thread = threading.Thread(target=self.monitor)
         self._monitor_thread.daemon = True
-        self._check_interval = 1/60  # NOTE: IMU data refresh rate is 400kHz on i2c interface (so smallest interval = 1/400000)
+        self._check_interval = 1.0/60  # NOTE: IMU data refresh rate is 400kHz on i2c interface (so smallest interval = 1/400000)
         self._is_running = True
     def start(self):
         self._running = True
@@ -44,7 +44,7 @@ class imu_interface(object):
         return self._is_running
 
     @property
-    def get_check_interval(self):
+    def check_interval(self):
         return self._check_interval
 
 #override

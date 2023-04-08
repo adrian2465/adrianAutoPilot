@@ -1,7 +1,7 @@
 ## Adrian Vrouwenvelder
 ## December 1, 2022
 
-from lib.pubsub import Publisher, Broker, Subscriber
+from pubsub import Publisher, Broker, Subscriber
 
 _arduino_topic = 'serial_input'
 _broker = Broker("Arduino")

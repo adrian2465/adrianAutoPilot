@@ -42,7 +42,7 @@ class mpu9250_interface(imu_interface):
     def monitor(self):
         print("test interface started")
         while (self.is_running):
-            sleep(self.get_check_interval)
+            sleep(self.check_interval)
             self._poll()
         print("test interface terminated")
 
