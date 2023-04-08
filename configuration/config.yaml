@@ -72,4 +72,4 @@ mpu9250:
     calib: [ 1.19921875, 1.19921875, 1.15234375 ]
     bias: [ 33.30, 0.13, 10.6 ]
     scale: [ 0.731, 0.722, 4.000 ]
-    moving_average_window_size: 5
+    moving_average_window_size: 100
