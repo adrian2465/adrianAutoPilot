@@ -95,17 +95,12 @@ MAG_CNTL1_16BIT = 0x10  # 0001 0000  (bit 4)
 # "1": Data is ready
 # DRDY bit turns to “1” when data is ready in single measurement mode or self-test mode.
 # It returns to “0” when any one of ST2 register or measurement data register (HXL to HZH) is read.
-#
-# DOR: Data Overrun (bit 1)
-# "0": Normal
-# "1": Data overrun
-# DOR bit turns to “1” when data has been skipped in continuous measurement mode or external trigger measurement mode.
-# It returns to “0” when any one of ST2 register or measurement data register (HXL~HZH) is read.
 MAG_ST1_REG = 0x02
 MAG_ST1_DOR = 0x02
 MAG_ST1_DRDY = 0x01
 
 MAG_ST2_REG = 0x09
+MAG_ST2_MAG_OVERFLOW = 0x08
 MAG_RANGE_CONV = 4912 / 32760  # Per documentation, range is from -4912 to 4912 uT (microTeslas)
 ROOM_TEMP_OFFSET = 21.0
 TEMP_SENSITIVITY = 333.87
@@ -208,8 +203,6 @@ class mpu9250_interface(imu_interface):
             self.moving_average_window_size_accel = accel['moving_average_window_size']
             self.moving_average_window_size_temp = temp['moving_average_window_size']
             self.moving_average_window_size_mag = mag['moving_average_window_size']
-
-        self.start_time_s = time()
         self.sample_rate_hz = 0
 
 
@@ -220,41 +213,33 @@ class mpu9250_interface(imu_interface):
     def monitor(self):
         print("imu9250 monitor started")
         iterations = 0
-        gyro_skip = True
-        accel_skip = True
-        temp_skip = True
-        mag_skip = True
+        start_time_s = time()
+        first_gyro_reading = True
+        first_accel_reading = True
+        first_temp_reading = True
+        first_mag_reading = True
         while (self.is_running):
-            data = self.bus.read_i2c_block_data(MPU9250_ADDRESS, ACCEL_DATA_REG, 14)  # Read Accel, Temp, and Gyro
-            self._gyro = vector_from_data(
-                data,
-                GYRO_OFFSET,
-                GYRO_RANGE_CONV,
-                c_short_fn=c_short_big_endian)
-            self._gyro_avg = self._gyro if gyro_skip else moving_average_vector(self._gyro_avg, self._gyro, self.moving_average_window_size_gyro)
-            gyro_skip = False
-            self._accel = vector_from_data(
-                data,
-                ACCEL_OFFSET,
-                ACCEL_RANGE_CONV,
-                c_short_fn=c_short_big_endian)
-            self._accel_avg = self._accel if accel_skip else moving_average_vector(self._accel_avg, self._accel, self.moving_average_window_size_accel)
-            accel_skip = False
-            self._temp = (c_short_big_endian(
-                data[TEMP_OFFSET],
-                data[TEMP_OFFSET + 1]) - ROOM_TEMP_OFFSET) / TEMP_SENSITIVITY + 21.0
-            self._temp_avg = self._temp if temp_skip else moving_average_scalar(self._temp_avg, self._temp, self.moving_average_window_size_temp)
-            temp_skip = False
-            data = self.bus.read_i2c_block_data(AK8963_ADDRESS, MAG_DATA_REG, 7)  # Read Magnetometer
-            self._mag = vector_from_data(
-                data,
-                0,
-                MAG_RANGE_CONV,
-                c_short_fn=c_short_little_endian)
-            self._mag_avg = self._mag if mag_skip else moving_average_vector(self._mag_avg, self._mag, self.moving_average_window_size_mag)
             iterations += 1
-            mag_skip = False
-            self.sample_rate_hz = iterations / (time() - self.start_time_s)  # TODO REMOVE AFTER CALI
+            data = self.bus.read_i2c_block_data(MPU9250_ADDRESS, ACCEL_DATA_REG, 14)  # Read Accel, Temp, and Gyro
+            self._gyro = vector_from_data(data, GYRO_OFFSET, GYRO_RANGE_CONV, c_short_fn=c_short_big_endian)
+            self._gyro_avg = self._gyro if first_gyro_reading else moving_average_vector(self._gyro_avg, self._gyro, self.moving_average_window_size_gyro)
+            first_gyro_reading = False
+            self._accel = vector_from_data(data, ACCEL_OFFSET, ACCEL_RANGE_CONV, c_short_fn=c_short_big_endian)
+            self._accel_avg = self._accel if first_accel_reading else moving_average_vector(self._accel_avg, self._accel, self.moving_average_window_size_accel)
+            first_accel_reading = False
+            self._temp = (c_short_big_endian(data[TEMP_OFFSET], data[TEMP_OFFSET + 1]) - ROOM_TEMP_OFFSET) / TEMP_SENSITIVITY + 21.0
+            self._temp_avg = self._temp if first_temp_reading else moving_average_scalar(self._temp_avg, self._temp, self.moving_average_window_size_temp)
+            first_temp_reading = False
+            data = self.bus.read_i2c_block_data(AK8963_ADDRESS, MAG_DATA_REG, 7)  # Read Magnetometer and ST2
+            if not MAG_ST2_MAG_OVERFLOW & data[6]:  # data[6] is MAG_ST2_REGISTER. Ignore magnetic overflows.
+                self._mag = vector_from_data(data, 0, MAG_RANGE_CONV, c_short_fn=c_short_little_endian)
+                self._mag_avg = self._mag if first_mag_reading else moving_average_vector(self._mag_avg, self._mag, self.moving_average_window_size_mag)
+                first_mag_reading = False
+            self.sample_rate_hz = iterations / (time() - start_time_s)
+            if iterations > 1000:
+                # Occasionally reset start time and iterations to avoid sample_rate_hz getting too heavily based on the past.
+                iterations = 0
+                start_time_s = time()
         print("imu9250 monitor terminated")
 
     @property
@@ -285,19 +270,14 @@ if __name__ == "__main__":
     imu.start()
     seconds_for_calibration = 10
     try:
-        iterations = 0
-        while time() - imu.start_time_s < seconds_for_calibration:
-            g = imu.gyro
-            a = imu.accel
-            m = imu.mag
-            t = imu.temp
-            print(f'sample_freq={imu.sample_rate_hz}')
-            print(f'g={g[X]:.3f},{g[Y]:.3f},{g[Z]:.3f}')
-            print(f'a = {a[X]:.3f},{a[Y]:.3f},{a[Z]:.3f}')
-            print(f't = {t:.3f},{t:.3f},{t:.3f}')
-            print(f'm = {m[X]:.3f},{m[Y]:.3f},{m[Z]:.3f}')
+        while True:
+            print(f'sample_freq={imu.sample_rate_hz} hz')
+            print(f'g = {imu.gyro} dps')
+            print(f'a = {imu.accel} G')
+            print(f't = {imu.temp} C')
+            print(f'm = {imu.mag} uT')
             print(f'Compass = {imu.compass_deg()}')
-            sleep(0.01)
+            sleep(1)
 
 
     except KeyboardInterrupt:

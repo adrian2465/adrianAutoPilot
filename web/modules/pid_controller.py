@@ -1,6 +1,6 @@
 from anglemath import calculate_angle_difference
-# import time
-from island_time import time # Make things simulate faster
+# import time  # Use this time for production.
+from island_time import time  # Make things simulate faster TODO FOR TESTING ONLY!
 
 # Author: Adrian Vrouwenvelder
 #

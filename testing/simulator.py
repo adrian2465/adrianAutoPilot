@@ -1,7 +1,7 @@
 # Simulator for running PID and BOAT code as a simulation.
 import logging
 import sys
-from pid import PID
+from pid_controller import PID
 from config import Config as BoatConfig
 from boat import Boat
 from island_time import time # Make things simulate faster
