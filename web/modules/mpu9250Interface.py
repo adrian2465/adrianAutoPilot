@@ -277,6 +277,7 @@ if __name__ == "__main__":
             print(f'a = {imu.accel} G')
             print(f't = {imu.temp} C')
             print(f'm = {imu.mag} uT')
+            print(f'Heel = {imu.heel_deg()} deg')
             print(f'Compass = {imu.compass_deg()}')
             sleep(1)
 

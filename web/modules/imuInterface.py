@@ -20,8 +20,8 @@ class imu_interface(object):
         return (atan2(mag[0], mag[1]) * (180/pi) + 90 + 360) % 360
 
     def heel_deg(self):
-        mag = self.mag
-        return 180 - (atan2(mag[2], mag[1]) * (180/pi) + 90 + 360) % 360
+        accel = self.accel
+        return 180 - (atan2(accel[2], accel[0]) * (180/pi) + 90 + 360) % 360
 
     @property
     def accel(self):
