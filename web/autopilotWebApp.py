@@ -40,6 +40,11 @@ def get_heading():
     global brain
     return jsonify(heading=f"{brain.get_heading():03.0f}")
 
+@app.route("/get_heel")
+def get_heading():
+    global brain
+    return jsonify(heel=f"{brain.get_heel():03.0f}")
+
 @app.route("/adjust_course/<courseAdjustment>")
 def adjust_course(courseAdjustment: str):
     global brain

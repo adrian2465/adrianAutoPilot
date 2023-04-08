@@ -39,6 +39,9 @@ class Brain():
     def get_heading(self) -> int:
         return self._sensor.get_heading()
 
+    def get_heel(self) -> int:
+        return self._sensor.get_heel_angle()
+
     def set_status(self, status):
         self._arduino_interface.set_status(1 if status == STATUS_ENABLED else 0)
 

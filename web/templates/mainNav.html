@@ -54,6 +54,7 @@
 <div style="text-align: center;">
     <input id='onOffInput' type='button' class='' value=''/>
     <h2>Course: <span id="course">Supplied by jQuery</span>&nbsp;&nbsp;Heading: <span id="heading">Supplied by jQuery</span></h2>
+    <h2>Heel: <span id="heel">Supplied by jQuery</span></h2>
     <p>
         <input id='bigDec'    type='button' style="font-size : 20px; width: {{ courseButtonWidthPx }}px; height: 50px; border-radius: 6px" class='button' value='Supplied by jQuery'/>
         <input id='smallDec'  type='button' style="font-size : 20px; width: {{ courseButtonWidthPx }}px; height: 50px; border-radius: 6px" class='button' value='Supplied by jQuery'/>
@@ -74,6 +75,7 @@
         let onOffInput = $("#onOffInput");
         let courseIndicator = $("#course");
         let headingIndicator = $("#heading");
+        let heelIndicator = $("#heel");
         let bigDecButton = $("#bigDec");
         let bigIncButton = $("#bigInc");
         let smallDecButton = $("#smallDec");
@@ -122,8 +124,13 @@
             $.getJSON(
                 $SCRIPT_ROOT + "/get_heading",
                 function (data) {
-                    if (onOffInput.prop('value') == 'Enabled') headingIndicator.text(data.heading);
-                    else headingIndicator.text("---")
+                    headingIndicator.text(data.heading);
+                }
+            );
+            $.getJSON(
+                $SCRIPT_ROOT + "/get_heel",
+                function (data) {
+                    heelIndicator.text(data.heel);
                 }
             );
             $.getJSON(

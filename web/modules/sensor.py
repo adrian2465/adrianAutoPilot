@@ -11,7 +11,8 @@ class Sensor:
     def get_heading(self):
         return self._imu_interface.compass_deg()
 
-    def get_heel_angle(self): pass  # TODO Implement
+    def get_heel_angle(self):
+        return self._imu_interface.heel_deg()
 
     def get_pitch_variation_degrees(self): pass  # TODO implement
 

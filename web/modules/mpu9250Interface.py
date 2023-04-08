@@ -163,7 +163,7 @@ class mpu9250_interface(imu_interface):
         if self.bus.read_byte_data(MPU9250_ADDRESS, MPU9250_WHO_AM_I_REG) is not MPU9250_DEVICE_ID:
             raise Exception('MPU9250: init failed to find device')
 
-        self.bus.write_byte_data(MPU9250_ADDRESS, PWR_MGMT_1_REG, 0x00)  # turn sleep mode off
+        self.bus.write_byte_data(MPU9250_ADDRESS, PWR_MGMT_1_REG, 0x00)  # turn MPU mode off
         sleep(0.2)
         self.bus.write_byte_data(MPU9250_ADDRESS, PWR_MGMT_1_REG, 0x01)  # auto select clock source
         self.bus.write_byte_data(MPU9250_ADDRESS, ACCEL_CONFIG_REG, ACCEL_CONFIG_2G)
@@ -207,8 +207,9 @@ class mpu9250_interface(imu_interface):
 
 
     def __del__(self):
-        print("Bus closed")
+        self.bus.write_byte_data(MPU9250_ADDRESS, PWR_MGMT_1_REG, 0x00)  # turn MPU mode off
         self.bus.close()
+        print("Bus closed. MPU off.")
 
     def monitor(self):
         print("imu9250 monitor started")
