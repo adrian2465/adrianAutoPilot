@@ -40,6 +40,18 @@ def get_heading():
     global brain
     return jsonify(heading=f"{brain.get_heading():03.0f}")
 
+
+@app.route("/get_heel")
+def get_heel():
+    global brain
+    heel = brain.get_heel()
+    heel_str = "LEVEL"
+    if heel >= 1.5:
+        heel_str = f'{heel:03.0f} STBD'
+    elif heel <= -1.5:
+        heel_str = f'{-heel:03.0f} PORT'
+    return jsonify(heel=heel_str)
+
 @app.route("/adjust_course/<courseAdjustment>")
 def adjust_course(courseAdjustment: str):
     global brain

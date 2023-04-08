@@ -163,7 +163,7 @@ class mpu9250_interface(imu_interface):
         if self.bus.read_byte_data(MPU9250_ADDRESS, MPU9250_WHO_AM_I_REG) is not MPU9250_DEVICE_ID:
             raise Exception('MPU9250: init failed to find device')
 
-        self.bus.write_byte_data(MPU9250_ADDRESS, PWR_MGMT_1_REG, 0x00)  # turn sleep mode off
+        self.bus.write_byte_data(MPU9250_ADDRESS, PWR_MGMT_1_REG, 0x00)  # turn MPU mode off
         sleep(0.2)
         self.bus.write_byte_data(MPU9250_ADDRESS, PWR_MGMT_1_REG, 0x01)  # auto select clock source
         self.bus.write_byte_data(MPU9250_ADDRESS, ACCEL_CONFIG_REG, ACCEL_CONFIG_2G)
@@ -207,8 +207,9 @@ class mpu9250_interface(imu_interface):
 
 
     def __del__(self):
-        print("Bus closed")
+        self.bus.write_byte_data(MPU9250_ADDRESS, PWR_MGMT_1_REG, 0x00)  # turn MPU mode off
         self.bus.close()
+        print("Bus closed. MPU off.")
 
     def monitor(self):
         print("imu9250 monitor started")
@@ -244,11 +245,11 @@ class mpu9250_interface(imu_interface):
 
     @property
     def accel(self):
-        return v_op(subtr, self._accel_avg, imu.accel_bias)
+        return v_op(subtr, self._accel_avg, self.accel_bias)
 
     @property
     def gyro(self):
-        return v_op(subtr, self._gyro_avg, imu.gyro_bias)
+        return v_op(subtr, self._gyro_avg, self.gyro_bias)
 
     @property
     def mag(self):
@@ -257,7 +258,7 @@ class mpu9250_interface(imu_interface):
 
     @property
     def temp(self):
-        return subtr(self._temp_avg, imu.temp_bias)
+        return subtr(self._temp_avg, self.temp_bias)
 
 
 def get_interface(bus=1, config_file="/mnt/mmcblk0p2/apps/adrianAutoPilot/configuration/config.yaml"):
@@ -276,6 +277,7 @@ if __name__ == "__main__":
             print(f'a = {imu.accel} G')
             print(f't = {imu.temp} C')
             print(f'm = {imu.mag} uT')
+            print(f'Heel = {imu.heel_deg()} deg')
             print(f'Compass = {imu.compass_deg()}')
             sleep(1)
 

@@ -7,14 +7,21 @@ class imu_interface(object):
         self._monitor_thread.daemon = True
         self._check_interval = 1.0/60  # NOTE: IMU data refresh rate is 400kHz on i2c interface (so smallest interval = 1/400000)
         self._is_running = True
+
     def start(self):
         self._running = True
         self._monitor_thread.start()
+
     def stop(self):
         self._running = False
 
     def compass_deg(self):
-        return (atan2(self.mag[0], self.mag[1]) * (180/pi) + 90 + 360) % 360
+        mag = self.mag
+        return (atan2(mag[0], mag[1]) * (180/pi) + 90 + 360) % 360
+
+    def heel_deg(self):
+        accel = self.accel
+        return 180 - (atan2(accel[2], accel[0]) * (180/pi) + 90 + 360) % 360
 
     @property
     def accel(self):

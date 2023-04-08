@@ -62,7 +62,7 @@ mpu9250:
     bias: [ -2.194, 0.670, 0.047]
     moving_average_window_size: 5
   accel: # Accelerometer units = Gs
-    bias: [-0.007, 0.004, 0.035]
+    bias: [-0.007, 0.008, .033]
     moving_average_window_size: 5
   temp: # Celsius
     bias: 0
