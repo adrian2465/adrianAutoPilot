@@ -1,4 +1,7 @@
-
+/*
+Adrian Vrouwenvelder
+November 2022
+*/
 #define hexDigit2Dec(h) (((h) >= '0' && (h) <= '9') ? ((h) - '0') : ((h) | 0x20) + 10 - 'a')
 // Convert a two-nibble hex value (one byte, 8 bits) to a uint8_t.
 // Always expectes there to be 2 bytes at hex.

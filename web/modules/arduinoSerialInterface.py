@@ -25,6 +25,7 @@ class ArduinoSerialInterface(ArduinoInterface):
 
     #override
     def serial_monitor(self) -> None:
+        print("INFO: Arduino started")
         with serial.Serial(
                 port=self._usb,
                 timeout=1,
@@ -51,6 +52,7 @@ class ArduinoSerialInterface(ArduinoInterface):
                     print(f"ERROR: serial_monitor: Serial Exception! {str(e)}")
                 except KeyboardInterrupt as e:
                     print(f"ERROR: serial_monitor: Keyboard Interrupt {str(e)}")
+        print("INFO: Arduino stopped")
 
     #override
     def write(self, msg: str) -> None:

@@ -4,7 +4,15 @@ import smbus2 as smbus
 from time import sleep, time
 from ctypes import c_short  # for signed int. c_short is 16 bits, signed (-32768 to 32767)
 from modules.imuInterface import imu_interface
-import yaml
+from vectormath import moving_average_vector, moving_average_scalar, subtr, mult, vector_from_data
+
+def v_op(fun, vector1, vector2):
+    if len(vector1) != len(vector2):
+        raise Exception(f"{vector1} and {vector2} are not the same length")
+    result_vector = [0] * len(vector1)
+    for i, d in enumerate(vector1):
+        result_vector[i] = fun(d, vector2[i])
+    return result_vector
 
 # Enabling the i2c interface for reading the mpu9250
 # Manually create the i2c device:
@@ -106,16 +114,6 @@ ROOM_TEMP_OFFSET = 21.0
 TEMP_SENSITIVITY = 333.87
 X, Y, Z = 0, 1, 2
 
-def moving_average_vector(average_vector, val_vector, window_size):
-    rc_vector = [0, 0, 0]
-    for i in range(0, 3):
-       rc_vector[i] = (val_vector[i] + average_vector[i] * (window_size - 1)) / window_size
-    return rc_vector
-
-
-def moving_average_scalar(average, val, window_size):
-    return (val + average * (window_size - 1)) / window_size
-
 
 def c_short_big_endian(msb, lsb):
     return c_short(lsb | (msb << 8)).value
@@ -125,31 +123,8 @@ def c_short_little_endian(msb, lsb):
     return c_short(msb | (lsb << 8)).value
 
 
-def subtr(x, y):
-    return x - y
-
-
-def mult(x, y):
-    return x * y
-
-
-def vector_from_data(data, offset, conversion_factor, c_short_fn):
-    return [c_short_fn(data[0 + offset], data[1 + offset]) * conversion_factor,
-            c_short_fn(data[2 + offset], data[3 + offset]) * conversion_factor,
-            c_short_fn(data[4 + offset], data[5 + offset]) * conversion_factor]
-
-# vop = vector operation. fun defines the operation.
-def v_op(fun, vector1, vector2):
-    if len(vector1) != len(vector2):
-        raise Exception(f"{vector1} and {vector2} are not the same length")
-    result_vector = [0] * len(vector1)
-    for i, d in enumerate(vector1):
-        result_vector[i] = fun(d, vector2[i])
-    return result_vector
-
-
 class mpu9250_interface(imu_interface):
-    def __init__(self, bus, config_file):
+    def __init__(self, config, bus):
         """
         Initialize the IMU
         """
@@ -161,7 +136,7 @@ class mpu9250_interface(imu_interface):
         self.bus = smbus.SMBus(bus)
 
         if self.bus.read_byte_data(MPU9250_ADDRESS, MPU9250_WHO_AM_I_REG) is not MPU9250_DEVICE_ID:
-            raise Exception('MPU9250: init failed to find device')
+            raise Exception('SEVERE: MPU9250: init failed to find device')
 
         self.bus.write_byte_data(MPU9250_ADDRESS, PWR_MGMT_1_REG, 0x00)  # turn MPU mode off
         sleep(0.2)
@@ -177,7 +152,7 @@ class mpu9250_interface(imu_interface):
         sleep(0.1)
 
         if self.bus.read_byte_data(AK8963_ADDRESS, AK8963_WHO_AM_I_REG) is not AK8963_DEVICE_ID:
-            raise Exception('AK8963: init failed to find device')
+            raise Exception('SEVERE: AK8963: init failed to find device')
         self.bus.write_byte_data(AK8963_ADDRESS, MAG_CNTL1_REG, (MAG_CNTL1_16BIT | MAG_CNTL1_8HZ))  # cont mode 1
         self.bus.write_byte_data(AK8963_ADDRESS, MAG_SELF_TEST_REG, 0)
 
@@ -187,32 +162,31 @@ class mpu9250_interface(imu_interface):
         self._temp_avg = 0
 
 
-        with open(config_file, 'r') as stream:
-            mpu = yaml.safe_load(stream)["mpu9250"]
-            gyro = mpu['gyro']
-            accel = mpu['accel']
-            temp = mpu['temp']
-            mag = mpu['mag']
-            self.gyro_bias = gyro['bias']
-            self.accel_bias = accel['bias']
-            self.temp_bias = temp['bias']
-            self.mag_bias = mag['bias']
-            self.mag_scale = mag['scale']
-            self.mag_calib = mag['calib']
-            self.moving_average_window_size_gyro = gyro['moving_average_window_size']
-            self.moving_average_window_size_accel = accel['moving_average_window_size']
-            self.moving_average_window_size_temp = temp['moving_average_window_size']
-            self.moving_average_window_size_mag = mag['moving_average_window_size']
+        mpu = config.get_mpu()
+        gyro = mpu['gyro']
+        accel = mpu['accel']
+        temp = mpu['temp']
+        mag = mpu['mag']
+        self.gyro_bias = gyro['bias']
+        self.accel_bias = accel['bias']
+        self.temp_bias = temp['bias']
+        self.mag_bias = mag['bias']
+        self.mag_scale = mag['scale']
+        self.mag_calib = mag['calib']
+        self.moving_average_window_size_gyro = gyro['moving_average_window_size']
+        self.moving_average_window_size_accel = accel['moving_average_window_size']
+        self.moving_average_window_size_temp = temp['moving_average_window_size']
+        self.moving_average_window_size_mag = mag['moving_average_window_size']
         self.sample_rate_hz = 0
 
 
     def __del__(self):
         self.bus.write_byte_data(MPU9250_ADDRESS, PWR_MGMT_1_REG, 0x00)  # turn MPU mode off
         self.bus.close()
-        print("Bus closed. MPU off.")
+        print("INFO: Bus closed. MPU off.")
 
     def monitor(self):
-        print("imu9250 monitor started")
+        print("INFO: imu9250 monitor running")
         iterations = 0
         start_time_s = time()
         first_gyro_reading = True
@@ -241,7 +215,7 @@ class mpu9250_interface(imu_interface):
                 # Occasionally reset start time and iterations to avoid sample_rate_hz getting too heavily based on the past.
                 iterations = 0
                 start_time_s = time()
-        print("imu9250 monitor terminated")
+        print("INFO: imu9250 monitor exited")
 
     @property
     def accel(self):
@@ -261,8 +235,8 @@ class mpu9250_interface(imu_interface):
         return subtr(self._temp_avg, self.temp_bias)
 
 
-def get_interface(bus=1, config_file="/mnt/mmcblk0p2/apps/adrianAutoPilot/configuration/config.yaml"):
-    return mpu9250_interface(bus=bus, config_file=config_file)
+def get_interface(config, bus=1):
+    return mpu9250_interface(bus=bus, config=config)
 
 
 

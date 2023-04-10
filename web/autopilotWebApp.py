@@ -5,13 +5,16 @@ from flask import Flask, jsonify, render_template
 import logging
 from modules.brain import getInstance as get_brain
 from modules.status import DISABLED as STATUS_DISABLED, ENABLED as STATUS_ENABLED
+from config import Config
 
 app = Flask(__name__)
 
-brain = get_brain()
+config = Config("/mnt/mmcblk0p2/apps/adrianAutoPilot/configuration/config.yaml")
+brain = get_brain(config=config)
 
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
+brain.start()
 
 print("Note: Web interface is on http://127.0.0.1:5000 (unless otherwise configured)")
 
@@ -76,4 +79,8 @@ def get_interface_params():
                    rudder_direction=interface.get_rudder_direction())
 
 if __name__ == "__main__":
-    app.run()
+    try:
+        app.run()
+    except KeyboardInterrupt:
+        brain.stop()
+        print('INFO: autoPilotWebApp exited.')

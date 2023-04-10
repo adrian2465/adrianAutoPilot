@@ -1,3 +1,7 @@
+/*
+Adrian Vrouwenvelder
+November 2022
+*/
 #define CMDLEN (64)
 
 char cmdBuffer[CMDLEN] = ""; // Circular buffer for collecting serial input

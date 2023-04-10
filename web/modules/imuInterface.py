@@ -14,6 +14,7 @@ class imu_interface(object):
 
     def stop(self):
         self._running = False
+        print("INFO: IMU stopped")
 
     def compass_deg(self):
         mag = self.mag

@@ -4,8 +4,8 @@ from modules.mpu9250Interface import get_interface
 
 class Sensor:
 
-    def __init__(self):
-        self._imu_interface = get_interface()
+    def __init__(self, config):
+        self._imu_interface = get_interface(config)
         self._imu_interface.start()
 
     def get_heading(self):

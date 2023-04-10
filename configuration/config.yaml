@@ -1,3 +1,6 @@
+# Adrian Vrouwenvelder
+# November 2022
+# April 2023
 gains:
   default:
     # Fitness: 66.66666667
@@ -11,7 +14,7 @@ gains:
     # I: 1.821361435109248e-05
     # D: -5.479034329447524
     # P: 0.0109999
-    P: 0.0110029
+    P: 0.1
     I: 0.000
     D: 0.000
     #
@@ -47,12 +50,13 @@ gains:
     # I: 0.0
     # D: 0.0
 boat_characteristics:
-  # Degrees
-  max_rudder_deflection: 45.0
+  rudder_port_hw_val: 0 # Configure from Arduino P value
+  rudder_stbd_hw_val: 255 # Configure from Arduino P value
+
+  # How long rudder stop to stop using automation
+  rudder_hardover_time_s: 4 # From centered to stop
   # Degrees per second
-  rudder_speed: 10.0
-  # Degrees per second
-  boat_turn_rate: 10.0
+  boat_turn_rate_dps: 10.0
   # Sampling interval in ms
   sampling_interval: 100
 
