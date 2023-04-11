@@ -1,6 +1,3 @@
-from anglemath import calculate_angle_difference
-from time import time as real_time
-
 # Author: Adrian Vrouwenvelder
 #
 # P = Proportional
@@ -30,6 +27,9 @@ from time import time as real_time
 # - Kc is the critical gain value
 # - i_gain = 0.5*Pc
 # - d_gain = Pc/8
+from anglemath import calculate_angle_difference
+from time import time as real_time
+from boat import rudder_as_string
 
 class PID:
 
@@ -125,7 +125,7 @@ if __name__ == "__main__":
             # Boat Simulation code. Actual rudder and boat turn rates would be determined by sensor.
             boat.update(interval)
             diff_avg = moving_average_scalar(diff_avg, abs(calculate_angle_difference(boat.course, boat.heading)), 4)
-            log.debug(f"T={test_time.time() - start_time} H={boat.heading:6.2f} {boat.rudder_as_string(boat.rudder)} ")
+            log.debug(f"T={test_time.time() - start_time} H={boat.heading:6.2f} {rudder_as_string(boat.rudder)} ")
             j -= 1
             if j <= 0: break;
             # if test_time.time() - start_time > 120:  # Break free if not there in 100 seconds
@@ -168,4 +168,6 @@ if __name__ == "__main__":
     log.info(f"Best result for H=1, C=100 = {best_pid} in {best_t} s")
     log.set_level(DEBUG)
     t = test_controller(1, 100, best_pid)
+    if t > 15.5:
+        raise Exception(f"Failed time test. Boat correction time {t} exceeded 16 seconds")
     log.info(f"Finished in {t} seconds. ")

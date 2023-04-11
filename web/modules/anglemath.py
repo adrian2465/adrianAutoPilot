@@ -11,7 +11,10 @@ def calculate_angle_difference(desired, actual): # Positive means actual lies to
 
 def test_equals(expected, actual):
    if actual != expected: raise Exception(f"expected {expected} but got {actual}")
-   
+
+def celsius_to_fahrenheit(c):
+   return c * 9 / 5 + 32
+
 if __name__ == "__main__":
    test_equals(5, normalize_angle(365))
    test_equals(355, normalize_angle(-5))
@@ -25,5 +28,9 @@ if __name__ == "__main__":
    test_equals(179, calculate_angle_difference(90,269)) # Interior angle includes bottom of circle
    test_equals(-179, calculate_angle_difference(90,271)) # Interior angle includes top of circle
    test_equals(179, calculate_angle_difference(271,90)) 
-   test_equals(-179, calculate_angle_difference(269,90)) 
+   test_equals(-179, calculate_angle_difference(269,90))
+   test_equals(32, celsius_to_fahrenheit(0))
+   test_equals(212, celsius_to_fahrenheit(100))
+
    print("All good!")
+
