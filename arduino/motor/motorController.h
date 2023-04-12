@@ -1,6 +1,6 @@
 /*
 Adrian Vrouwenvelder
-November 2022
+April 2023
 */
 
 // Pin definitions
@@ -19,11 +19,11 @@ November 2022
 enum MotorDirection {MotorDirectionNeither, MotorDirectionRight, MotorDirectionLeft};
 uint8_t motorSpeed = MOTOR_STOP_VAL;
 MotorDirection motorDirection = MotorDirectionNeither;
-MotorDirection limitException = MotorDirectionNeither;
-boolean motorSettingsChanged = true;
-int leftPositionLimit, rightPositionLimit; 
+MotorDirection faultDirection = MotorDirectionNeither;
+bool motorSettingsChanged = true;
+int leftPositionLimit = 0;
+int rightPositionLimit = 1023;
 unsigned long statusInterval = DEFAULT_STATUS_INTERVAL_MS;
-boolean lowerLimitIsLeft = true; // True iff the lower limit is left and the upper limit is right.
 
 // speed is a value from 0 to 255.
 void setMotorSpeed(uint8_t s) {
@@ -42,18 +42,13 @@ int getPosition() {
 }
 
 // Returns: MotorDirectionLeft if beyond left. MotorDirectionRight if beyond right. MotorDirectionNeither if no limits exceeded.
-MotorDirection getLimitExceptionDirection() {
+MotorDirection getLimitFaultDirection() {
   int position = getPosition();
-  MotorDirection direction;
-  // Since the position sensor may read either right > left , or left > right, detect this from the limits
-  // and handle accordingly.
-  int lowerLimit = (lowerLimitIsLeft) ? leftPositionLimit : rightPositionLimit;
-  int upperLimit = (lowerLimitIsLeft) ? rightPositionLimit : leftPositionLimit;
-  if (position < lowerLimit) direction = lowerLimitIsLeft ? MotorDirectionLeft : MotorDirectionRight;
-  else if (position > upperLimit) direction = lowerLimitIsLeft ? MotorDirectionRight : MotorDirectionLeft;
-  else direction = MotorDirectionNeither;
-  if (direction != MotorDirectionNeither && direction == motorDirection) return direction;
-  else return MotorDirectionNeither; // No fault if we're no longer going in the direction of the fault.
+  MotorDirection faultDirection = (position < leftPositionLimit) ? MotorDirectionLeft
+     : (position > rightPositionLimit) ? MotorDirectionRight
+     : MotorDirectionNeither;
+  return (faultDirection == motorDirection) ? direction
+     : MotorDirectionNeither; // No fault if we're no longer going in the direction of the fault.
 }
 
 void initMotor() {
@@ -105,18 +100,22 @@ void setLimit(MotorDirection limitSelector, int limit) {
 
 // Set the pins as required.
 void readAndWritePins() {
-  MotorDirection _limitException = getLimitExceptionDirection();
-  motorSettingsChanged |= (_limitException != limitException);
-  limitException = _limitException;
+  MotorDirection _faultDirection = getLimitFaultDirection();
+  motorSettingsChanged |= (_faultDirection != faultDirection);  // Consider motor changed if fault direction changed.
+  faultDirection = _faultDirection;
   if (motorSettingsChanged) {
     switch (motorDirection) {
     case MotorDirectionRight: 
       analogWrite(LEFT_PWM_PIN, MOTOR_STOP_VAL);
-      analogWrite(RIGHT_PWM_PIN, (limitException == MotorDirectionRight) ? MOTOR_STOP_VAL : motorSpeed); 
+      analogWrite(RIGHT_PWM_PIN, (faultDirection == MotorDirectionRight)
+        ? MOTOR_STOP_VAL // If we are in a fault situation, stop going in that direction
+        : motorSpeed);  // Apply motor speed if not in a fault, or if fault is in the opposite direction.
       break;
     case MotorDirectionLeft: 
       analogWrite(RIGHT_PWM_PIN, MOTOR_STOP_VAL);
-      analogWrite(LEFT_PWM_PIN, (limitException == MotorDirectionLeft) ? MOTOR_STOP_VAL : motorSpeed); 
+      analogWrite(LEFT_PWM_PIN, (faultDirection == MotorDirectionLeft)
+        ? MOTOR_STOP_VAL // If we are in a fault situation, stop going in that direction
+        : motorSpeed); // Apply motor speed if not in a fault, or if fault is in the opposite direction.
       break;
     default: 
       analogWrite(RIGHT_PWM_PIN, MOTOR_STOP_VAL);

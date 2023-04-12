@@ -1,7 +1,6 @@
 /*
 Adrian Vrouwenvelder
-November 2022
-March 2023
+April 2023
 
 Code is designed for Arduino Nano.
 Code is designed to operate with the PWM-based IBT-2 Motor Control Board.
@@ -9,7 +8,7 @@ Code is designed to operate with the PWM-based IBT-2 Motor Control Board.
 This motorcontroller is ascii-command driven. 
 Commands are single-letter, followed by one or more parameters.
 Commands are terminated by newlines ('\n').
-Carriage returns ('\r') are discarded and ignored.
+All other characters are ignored.
 
 */
  
@@ -20,6 +19,7 @@ Carriage returns ('\r') are discarded and ignored.
 
 unsigned long latestStatusReportTime=0;
 bool rebooted = true;
+char printbuf[80];
 
 void setup() {
   // Serial.begin(9600);
@@ -29,40 +29,46 @@ void setup() {
 }
 
 void reportLimits() {
-  Serial.println("l=" + String(getLimit(MotorDirectionLeft), DEC)); 
-  Serial.println("r=" + String(getLimit(MotorDirectionRight), DEC)); 
+  sprintf(printbuf, "l=%04d\nr=%04d\n", getLimit(MotorDirectionLeft), getLimit(MotorDirectionRight));
+  Serial.print(printbuf);
 }
 
 void reportMotorSpeed() {
-  Serial.println("s=" + String(getMotorSpeed(), DEC));
+  sprintf(printbuf, "s=%03d\n", getMotorSpeed());
+  Serial.print(printbuf);
 }
 
 void reportClutchStatus() {
-  String c;
   if (getClutch() == ClutchEnabled)
-    c = "c=1";
+    Serial.print("c=1\n")
   else
-    c = "c=0";
-  Serial.println(c);
-}
-
-void reportPosition() {
-  int position = getPosition();
-  Serial.println("p=" + String(position, DEC)); 
-  switch (getLimitExceptionDirection()) {
-    case MotorDirectionLeft: Serial.println("x=1"); break;
-    case MotorDirectionRight: Serial.println("x=2"); break;
-    default: Serial.println("x=0");
-  }
+    Serial.print("c=0\n")
 }
 
 void reportMotorDirection() {
   MotorDirection md = getMotorDirection();
   switch (getMotorDirection()) {
-    case MotorDirectionLeft: Serial.println("d=1"); break;
-    case MotorDirectionRight: Serial.println("d=2"); break;
-    default: Serial.println("d=0"); break;
+    case MotorDirectionLeft: Serial.print("d=1\n"); break;
+    case MotorDirectionRight: Serial.print("d=2\n"); break;
+    default: Serial.print("d=0\n"); break;
   }
+}
+
+void reportPosition() {
+  sprintf(printbuf, "p=%04d\n", getPosition());
+  Serial.print(printbuf);
+  switch (getLimitFaultDirection()) {
+    case MotorDirectionLeft: Serial.print("x=1\n"); break;
+    case MotorDirectionRight: Serial.print("x=2\n"); break;
+    default: Serial.print("x=0\n ");
+  }
+}
+
+void reportEchoStatus() {
+  if (getEcho())
+    Serial.print("e=1\n")
+  else
+    Serial.print("e=0\n")
 }
 
 void reportStatus() {
@@ -71,6 +77,7 @@ void reportStatus() {
   reportMotorSpeed();
   reportMotorDirection();
   reportPosition();
+  reportEchoStatus();
 }
 
 
@@ -89,49 +96,119 @@ int getDecimal(char *decStr, uint8_t n) {
 
 // Command interpreter and processor
 void processCommand(char *command) {
-  int cmdlen = (command != NULL) ? strlen(command) : 0;
-  if (cmdlen > 0)  {
     char *parm = &command[1];
+    int parmlen = str(parm);
     switch (command[0]) {
     case 'c': // Engage or disengage Clutch. c1 is engage. c0 disengage
-      if (cmdlen < 2) Serial.println("m=Missing parm for 'c'");
-      else switch(command[1]) {
+      if (parmlen != 1) {
+        sprintf(printbuf, "m=Wrong parm length for 'c' Expected 1 but got %d\n", parmlen);
+        Serial.print(printbuf);
+      }
+      else switch(*parm) {
         case '1': setClutch(ClutchEnabled); break;
         case '0': setClutch(ClutchDisabled); break;
-        default: Serial.println("m=Bad parm for 'c'");
+        default: {
+            sprintf(printbuf, "m=Bad parm for 'c'. Expected 0 or 1 but got %d\n", *parm)
+            Serial.print(printbuf);
+        }
       } 
       break;
     case 'd': // Set motor direction. d1 d2 for left. d0 for stop.
-      if (cmdlen < 2) Serial.println("m=Missing parm for 'd'");
-      else switch(command[1]) {
+      if (parmlen != 1) {
+           sprintf(printbuf, "m=Wrong parm length for 'd' Expected 1 but got %d\n", parmlen);
+           Serial.print(printbuf);
+      }
+      else switch(*parm) {
         case '1': setMotorDirection(MotorDirectionLeft); break;
         case '2': setMotorDirection(MotorDirectionRight); break;
         case '0': setMotorDirection(MotorDirectionNeither); break;
-        default: Serial.println("m=Bad parm for 'd'");
+        default: {
+            sprintf(printbuf, "m=Bad parm for 'd'.  Expected 0, 1, or 2 but got %c\n", *parm)
+            Serial.print(printbuf);
+        }
       } 
       break;
     case 's': // Set motor speed. s123 = speed 123
-      if (cmdlen < 4) Serial.println("m=Missing parm for 's'");
-      else setMotorSpeed((uint8_t) getDecimal(parm, 3));
+      if (parmlen != 3) {
+           sprintf(printbuf, "m=Wrong parm length for 's' Expected 3 but got %d\n", parmlen);
+           Serial.print(printbuf);
+      }
+      else {
+        uint8_t val = (uint8_t) getDecimal(parm, 3);
+        if (val > 255) {
+            sprintf(printbuf, "m=Invalid value for 's'. Expected s < 255 but got %d\n", val);
+            Serial.print(printbuf);
+        } else {
+            setMotorSpeed(val);
+        }
+      }
       break;
-    case 'l': // Set left limit. e.g. l020 - Set left limit to 20.
-      if (cmdlen < 5) Serial.println("m=Missing parm for 'l'");
-      else setLimit(MotorDirectionLeft, getDecimal(parm, 4));
+    case 'l': // Set left limit. e.g. l0020 - Set left limit to 20.
+      if (parmlen != 4) {
+           sprintf(printbuf, "m=Wrong parm length for 'l' Expected 4 but got %d\n", parmlen);
+           Serial.print(printbuf);
+      }
+      else {
+        int val = getDecimal(parm, 4);
+        if (val < 0 || val > 1023) {
+            sprintf(printbuf, "m=Invalid value for 'l'. Expected 0 <= l <= 1023 but got %d\n", val);
+            Serial.print(printbuf);
+        } else {
+            setLimit(MotorDirectionLeft, val);
+        }
+      }
       break;
-    case 'r': // Set right limit. e.g. r200 - Set left limit to 200.
-      if (cmdlen < 5) Serial.println("m=Missing parm for 'r'");
-      else setLimit(MotorDirectionRight, getDecimal(parm, 4));
+    case 'r': // Set right limit. e.g. r0200 - Set left limit to 200.
+      if (parmlen != 4) {
+           sprintf(printbuf, "m=Wrong parm length for 'r' Expected 4 but got %d\n", parmlen);
+           Serial.print(printbuf);
+      }
+      else {
+        int val = getDecimal(parm, 4);
+        if (val < 0 || val > 1023) {
+            sprintf(printbuf, "m=Invalid value for 'r'. Expected 0 <= r <= 1023 but got %d\n", val);
+            Serial.print(printbuf);
+        } else {
+            setLimit(MotorDirectionRight, val);
+        }
+      }
       break;
     case 'i': // Set status interval. i0010 means set to 10ms
-      if (cmdlen < 5) Serial.println("m=Missing parm for 'i'");
-      else setStatusInterval(getDecimal(parm, 4));
+      if (parmlen != 4) {
+           sprintf(printbuf, "m=Wrong parm length for 'i' Expected 4 but got %d\n", parmlen);
+           Serial.print(printbuf);
+      }
+      else {
+        int val = getDecimal(parm, 4);
+        if (val < 0 || val > 9999) {
+            sprintf(printbuf, "m=Invalid value for 'i'. Expected 0 <= i <= 9999 but got %d\n", val);
+            Serial.print(printbuf);
+        } else {
+            setStatusInterval(val);
+        }
+      }
       break;
-    default: 
-      Serial.println("m=Unrecognized command:" + String(command)); 
+    case 'e': // echo command
+       if (parmlen != 1) {
+         sprintf(printbuf, "m=Wrong parm length for 'e' Expected 1 but got %d\n", parmlen);
+         Serial.print(printbuf);
+       }
+       else switch(*parm) {
+         case '1': setEcho(true); break;
+         case '0': setEcho(false); break;
+         default: {
+             sprintf(printbuf, "m=Bad parm for 'e'. Expected 0 or 1 but got %d\n", *parm)
+             Serial.print(printbuf);
+         }
+       }
+       break;
+    default:
+      Serial.print("m=Unrecognized command: ");
+      Serial.println(command);
     }
-  }
 }
 
+// master loop
 void loop() {
   if (rebooted) {
     rebooted = false;
@@ -142,7 +219,9 @@ void loop() {
   // Get and process command
   if (Serial.available() > 0) {
     char *command = getCommandOrNULL(Serial.read()); 
-    processCommand(command);
+    if (command != NULL && strlen(command) > 0) {
+        processCommand(command);
+    }
   }
 
   // Actuate motor

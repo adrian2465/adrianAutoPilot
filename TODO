@@ -3,28 +3,15 @@ o Uninstall:
   * make
   * gcc 
   * compiletc
-  * python3-dev
+  * python3-dev?
 which were needed for pip-based installation of smbus (pip install smbus)
 
-o Fix this:
-    [2023-03-21 14:19:11,589] ERROR in app: Exception on /status/enable [GET]
-    Traceback (most recent call last):
-    File "/mnt/mmcblk0p2/venv/lib/python3.10/site-packages/flask/app.py", line 2528, in wsgi_app
-    response = self.full_dispatch_request()
-    File "/mnt/mmcblk0p2/venv/lib/python3.10/site-packages/flask/app.py", line 1825, in full_dispatch_request
-    rv = self.handle_user_exception(e)
-    File "/mnt/mmcblk0p2/venv/lib/python3.10/site-packages/flask/app.py", line 1823, in full_dispatch_request
-    rv = self.dispatch_request()
-    File "/mnt/mmcblk0p2/venv/lib/python3.10/site-packages/flask/app.py", line 1799, in dispatch_request
-    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
-    File "/mnt/mmcblk0p2/apps/adrianAutoPilot/web/autopilotWebApp.py", line 21, in update_status
-    brain.set_status(STATUS_ENABLED)
-    File "/mnt/mmcblk0p2/apps/adrianAutoPilot/web/modules/brain.py", line 53, in set_status
-    self._interface.write(f"C{self._clutch_status}".encode())
-    File "/mnt/mmcblk0p2/apps/adrianAutoPilot/web/modules/arduinoSerialInterface.py", line 59, in write
-    self._serial_out.write((msg + "\n").encode())
-    TypeError: can't concat str to bytes
-
+o 2023-04-12 - Re-flash arduino with updated C code.
+o 2023-04-12 - In arduinoInterface test.  Add 'echo' (e=1) to testing.
+o 2023-04-12 - Remove extra newline from write in arduinoInterfacde - shouldn't need it. If we do, why?
+o 2023-04-12 - Fix brain, etc., which probably broke overhauling the arduinointerface.
+o 2023-04-12 - Make sure send_to_arduino and receive_from_arduino still work!! 
+o 2023-04-12 - Potentially, add tests for parameter messups.  l123, etc.
 
 DONEs
 x 2023-03-04 - Archive working configuration in $HOME. "home_date.tar"
