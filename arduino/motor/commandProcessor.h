@@ -1,3 +1,6 @@
+typedef void (*updateStatusFn)();
+char printbuf[80];
+
 void reportLimits() {
   sprintf(printbuf, "l=%04d\nr=%04d\n", getLimit(MotorDirectionLeft), getLimit(MotorDirectionRight));
   Serial.print(printbuf);
@@ -30,7 +33,7 @@ void reportPosition() {
   switch (getLimitFaultDirection()) {
     case MotorDirectionLeft: Serial.print("x=1\n"); break;
     case MotorDirectionRight: Serial.print("x=2\n"); break;
-    default: Serial.print("x=0\n ");
+    default: Serial.print("x=0\n");
   }
 }
 
@@ -40,10 +43,22 @@ void reportStatusInterval() {
 }
 
 void reportEchoStatus() {
-  Serial.print(getEcho() ? "e=1\n" : "e=0\n");
+  Serial.print(isEcho() ? "e=1\n" : "e=0\n");
 }
 
-// Read a n-digit decimal number. Max is 255.
+
+void reportAllStatus() {
+  reportEchoStatus();
+  reportStatusInterval();
+  reportPosition();
+  reportMotorDirection();
+  reportClutchStatus();
+  reportMotorSpeed();
+  reportLimits();
+}
+
+
+// Read a n-digit decimal number. 
 int getDecimal(char *decStr, uint8_t n) {
   int digits = n;
   int multiplier = 1;
@@ -59,7 +74,7 @@ int getDecimal(char *decStr, uint8_t n) {
 // Command interpreter and processor
 updateStatusFn processCommand(char *command) {
     char *parm = &command[1];
-    int parmlen = str(parm);
+    int parmlen = strlen(parm);
     updateStatusFn statusUpdater = NULL;
     switch (command[0]) {
     case 'c': // Engage or disengage Clutch. c1 is engage. c0 disengage
@@ -170,6 +185,13 @@ updateStatusFn processCommand(char *command) {
          }
        }
        break;
+    case '?': // Show all status
+      if (parmlen != 0) {
+         Serial.print("m=? takes no parameters\n");
+      } else {
+         statusUpdater = reportAllStatus;
+      }
+      break;
     default:
       Serial.print("m=Unrecognized command: ");
       Serial.println(command);

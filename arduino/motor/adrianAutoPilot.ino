@@ -11,6 +11,7 @@ Commands are terminated by newlines ('\n').
 All other characters are ignored.
 
 */
+#include "echo.h"
 #include "commandbuffer.h"
 #include "motorController.h"
 #include "clutch.h"
@@ -19,9 +20,7 @@ All other characters are ignored.
 
 unsigned long latestStatusReportTime=0;
 bool rebooted = true;
-char printbuf[80];
 
-typedef void (*updateStatusFn)();
 
 void setup() {
   Serial.begin(115200);

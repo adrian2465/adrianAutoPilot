@@ -13,7 +13,7 @@ int nextIdx(int idx) {
 }
 
 bool isValidChar(char c) {
-  return c == '\n' || c >= '0' && c <= '9' || c >= 'a' && c <= 'z' || c == '=';
+  return c == '\n' || c >= '0' && c <= '9' || c >= 'a' && c <= 'z' || c == '?';
 }
 
 // Append character to command buffer. 
