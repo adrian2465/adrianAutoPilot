@@ -8,7 +8,7 @@ March 2023
 
 enum ClutchStatus {ClutchDisabled, ClutchEnabled};
 ClutchStatus clutchStatus = ClutchDisabled;
- 
+
 ClutchStatus getClutch() {
     return clutchStatus;
 }

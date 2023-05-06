@@ -40,9 +40,9 @@ void reportMotorSpeed() {
 
 void reportClutchStatus() {
   if (getClutch() == ClutchEnabled)
-    Serial.print("c=1\n")
+    Serial.print("c=1\n");
   else
-    Serial.print("c=0\n")
+    Serial.print("c=0\n");
 }
 
 void reportMotorDirection() {
@@ -66,9 +66,9 @@ void reportPosition() {
 
 void reportEchoStatus() {
   if (getEcho())
-    Serial.print("e=1\n")
+    Serial.print("e=1\n");
   else
-    Serial.print("e=0\n")
+    Serial.print("e=0\n");
 }
 
 void reportStatus() {
@@ -97,7 +97,7 @@ int getDecimal(char *decStr, uint8_t n) {
 // Command interpreter and processor
 void processCommand(char *command) {
     char *parm = &command[1];
-    int parmlen = str(parm);
+    int parmlen = strlen(parm);
     switch (command[0]) {
     case 'c': // Engage or disengage Clutch. c1 is engage. c0 disengage
       if (parmlen != 1) {
@@ -108,7 +108,7 @@ void processCommand(char *command) {
         case '1': setClutch(ClutchEnabled); break;
         case '0': setClutch(ClutchDisabled); break;
         default: {
-            sprintf(printbuf, "m=Bad parm for 'c'. Expected 0 or 1 but got %d\n", *parm)
+            sprintf(printbuf, "m=Bad parm for 'c'. Expected 0 or 1 but got %d\n", *parm);
             Serial.print(printbuf);
         }
       } 
@@ -123,7 +123,7 @@ void processCommand(char *command) {
         case '2': setMotorDirection(MotorDirectionRight); break;
         case '0': setMotorDirection(MotorDirectionNeither); break;
         default: {
-            sprintf(printbuf, "m=Bad parm for 'd'.  Expected 0, 1, or 2 but got %c\n", *parm)
+            sprintf(printbuf, "m=Bad parm for 'd'.  Expected 0, 1, or 2 but got %c\n", *parm);
             Serial.print(printbuf);
         }
       } 
@@ -197,7 +197,7 @@ void processCommand(char *command) {
          case '1': setEcho(true); break;
          case '0': setEcho(false); break;
          default: {
-             sprintf(printbuf, "m=Bad parm for 'e'. Expected 0 or 1 but got %d\n", *parm)
+             sprintf(printbuf, "m=Bad parm for 'e'. Expected 0 or 1 but got %d\n", *parm);
              Serial.print(printbuf);
          }
        }
