@@ -1,51 +1,95 @@
-## Adrian Vrouwenvelder
-## December 1, 2022
-## March 2023
+# Adrian Vrouwenvelder
 
 import threading
-import time
-from modules.status import ENABLED as STATUS_ENABLED, DISABLED as STATUS_DISABLED
+
+
+def _rudder_val_from_arduino(v):
+    """
+    Normalize a rudder value received from the arduino
+    Mapping: 0 <= v <= 1023 :: -1 <= rc <= 1
+    :return: normalized value  -1 to 1
+    """
+    return v / 512 - 1
+
+
+def _rudder_val_to_arduino(v):
+    """
+    Encode a normalized rudder to a rudder value to be sent to the arduino
+    Mapping: -1 <= v <= 1 :: 0 <= rc <= 1023
+    :return: 0 - 1023 rudder value to send to arduino
+    """
+    return int(512 * (v + 1))
+
+
+def _motor_from_arduino(v):
+    """
+    Normalize a motor speed value received from the arduino
+    Mapping: 0 <= v <= 255 :: 0 <= rc <= 1
+    NOTE: No direction is included.  See _apply_direction_to_motor
+    :return: normalized value 0 to 1
+    """
+    return v / 255
+
+
+def _motor_to_arduino(v):
+    """
+    Encode a normalized motor value to a motor speed to be sent to arduino
+    Mapping: 0 <= |v| <= 1 :: 0 <= rc <= 255
+    NOTE: both v=-1 and v=1 map to 255. 0 maps to 0.
+    :return: 0 - 255 motor speed to send to arduino
+    """
+    return int(abs(255 * v))
+
+
+def _signed_motor(normalized_motor, direction):
+    """
+    Modify motor value to be signed according to direction.
+    Mapping: d in {0 for ctr, 1 for port, 2 for stbd}; 0 <= |motor_val| <= 1 :: -1 <= motor_speed <= 1
+    See _motor_from_arduino
+    :return: motor speed (signed motor value)
+    """
+    return -abs(normalized_motor) if direction == 1 \
+        else abs(normalized_motor) if direction == 2 \
+        else normalized_motor
+
 
 # Called asynchronously from ArduinoInterface
 def from_arduino(interface, msg):
     if msg.startswith('m='):  # Text message
         interface._messages = msg[2:]
     elif msg.startswith('r='):  # Right limit
-        interface._stbd_limit = int(msg[2:])
+        interface._stbd_limit = _rudder_val_from_arduino(int(msg[2:]))
     elif msg.startswith('l='):  # Left limit
-        interface._port_limit = int(msg[2:])
-    elif msg.startswith('s='):  # Motor speed
-        interface._motor_speed = int(msg[2:])
-    elif msg.startswith('d='):  # Motor direction
-        interface._motor_direction = int(msg[2:])
+        interface._port_limit = _rudder_val_from_arduino(int(msg[2:]))
     elif msg.startswith('p='):  # Rudder position magnitude
-        interface._rudder_position = int(msg[2:])
-    elif msg.startswith('x='):  # Rudder position direction
-        interface._rudder_direction = int(msg[2:])
-    elif msg.startswith('c='):  # Rudder position direction
+        interface._rudder_position = _rudder_val_from_arduino(int(msg[2:]))
+    elif msg.startswith('x='):  # Rudder position exception (out of bounds)
+        v = int(msg[2:])
+        interface._rudder_fault = 1 if v == 2 else -1 if v == 1 else 0
+    elif msg.startswith('s='):  # Motor speed
+        interface._motor_speed = _motor_from_arduino(int(msg[2:]))
+    elif msg.startswith('d='):  # Motor direction
+        interface._motor_speed = _signed_motor(interface.set_motor_speed, int(msg[2:]))
+    elif msg.startswith('c='):  # Clutch disposition
         interface._clutch_status = int(msg[2:])
     else:
         print(f"Unsupported message {msg}")
         interface._messages = f"Unsupported message `{msg}`"
 
-# Private
+
 class ArduinoInterface():
     def __init__(self):
         self._monitor_thread = threading.Thread(target=self.serial_monitor)
         self._monitor_thread.daemon = True
-        self._check_interval = 1
-        self._running = False
+        self._check_interval = 0.2
+        self._running: bool = False
 
-        self._status = STATUS_DISABLED
         self._messages = ""
-        self._rudder_position = 127
-        self._rudder_direction = 0
-        self._max_port_limit = 127
-        self._max_stbd_limit = 127
-        self._port_limit = self._max_port_limit
-        self._stbd_limit = self._max_stbd_limit
+        self._port_limit = -1
+        self._stbd_limit = 1
+        self._rudder_position = 0
+        self._rudder_fault = 0
         self._motor_speed = 0
-        self._motor_direction = 0
         self._clutch_status = 0
 
     def start(self):
@@ -53,113 +97,92 @@ class ArduinoInterface():
         self._monitor_thread.start()
 
     def stop(self):
+        self.get_motor_speed = 0.0
+        self.set_status = 0
         self._running = False
 
-    # Seconds between polling for messages. Seconds between loops in Arduino monitor
-    def get_check_interval(self):
+    @property
+    def check_interval_s(self):
+        """
+        Seconds between polling the arduino.
+        """
         return self._check_interval
 
-    def is_running(self):
+    @check_interval_s.setter
+    def check_interval_s(self, i):
+        self._check_interval = i
+
+    def is_running(self) -> bool:
+        """
+        True if Web Server App has not been terminated.
+        """
         return self._running
 
-    # Status: 0 = disengaged, 1 = engaged
-    def get_status(self) -> int:
-        return self._clutch_status
+    def get_message(self) -> str:
+        """
+        Message from arduino
+        """
+        return "Online" if self._messages == "REBOOTED" else self._messages
 
-    def set_status(self, status: int):
-        self.write(f"c{status}")
+    def get_rudder_limits(self):
+        """
+        At tuple (port, stbd) representing Port and Starboard Rudder limits.
+        Each limit is normalized to range from -1 <= limit <= 1.
+        """
+        return self._port_limit, self._stbd_limit
 
-    # Speed: 0 <= speed <= 255
-    def set_motor_speed(self, speed: int):
-        self.write(f"s{speed:03}")
+    def set_rudder_limits(self, port_limit, stbd_limit):
+        self.write(f"l{_rudder_val_to_arduino(port_limit):04}")
+        self.write(f"r{_rudder_val_to_arduino(stbd_limit):04}")
 
-    def get_motor_speed(self):
-        return self._motor_speed
-
-    # Direction: 0 neither. 1 = left. 2 = right.
-    def set_motor_direction(self, motor_direction: int):
-        self.write(f"d{motor_direction}")
-
-    def get_motor_direction(self):
-        return self._motor_direction
-
-    def get_messages(self) -> str:
-        return self._messages
-
-    # 4 digit number whose range is determined by arduino value for rudder sensor at rudder limit
-    def set_port_limit(self, port_limit: int):
-        self.write(f"l{port_limit:04}")
-
-    # 4 digit number whose range is determined by arduino value for rudder sensor at rudder limit
-    def get_port_limit(self):
-        return self._port_limit
-
-    # 4 digit number whose range is determined by arduino value for rudder sensor at rudder limit
-    def set_stbd_limit(self, stbd_limit: int):
-        self.write(f"r{stbd_limit:04}")
-
-    # 4 digit number whose range is determined by arduino value for rudder sensor at rudder limit
-    def get_stbd_limit(self):
-        return self._stbd_limit
-
-    def set_status_interval(self, interval: int):
-        self.write(f"i{interval:04}")
-
-    # Rudder position. Cannot be set. Determined by rudder angle sensor.
-    def get_rudder_position(self):
+    def get_rudder(self) -> int:
+        """
+        Rudder position. Sensed by Arduino. Not settable - to move rudder, operate the motor.
+        Range is-1 <= rudder_position <= 1, where neg is to port, pos is to starboard.
+        """
         return self._rudder_position
 
-    # Rudder Direction: 0 = neither. 1 = Left. 2 = Right. Cannot be set. Determined by rudder angle sensor.
-    def get_rudder_direction(self):
-        return self._rudder_direction
+    def get_rudder_fault(self):
+        """
+        Rudder exceeded stops. Fault. Sent by Arduino. Read-only. Clears when rudder is back within specs.
+        Value is 0 if no fault, -1 if rudder exceeded to port, 1 if rudder exceeded to starboard.
+        """
+        return self._rudder_fault
 
-    #override this
-    def serial_monitor(self) -> str:
-        # Implement this
-        k = 0
-        while True:
-            from_arduino(self, msg=f"publishing {k}")
-            k = k + 1
-            time.sleep(1)
+    def get_motor_speed(self):
+        """
+        Motor Speed: -1 <= speed <= 1.  -1 is to port. 1 is to starboard.
+        """
+        return self._motor_speed
 
-    #override this
-    def write(self, msg: str) -> None:
-        print(f"ArduinoInterface.write({msg})")
+    def set_motor_speed(self, motor_speed):
+        # TODO Refactor motor to return 0 - 1023 centered on 512 to simplify direction logic and remove one command.
+        self.write(f"d{1 if motor_speed < -0.01 else 2 if motor_speed > 0.01 else 0}")
+        self.write(f"s{_motor_to_arduino(motor_speed):03}")
+
+    def set_status(self) -> int:
+        """
+        Status of autopilot.
+        0 = disengaged, 1 = engaged
+        """
+        return self._clutch_status
+
+    def get_status(self, status: int):
+        self.write(f"c{status}")
+
+    def set_status_interval_ms(self, interval: int):
+        """
+        :param interval: Milliseconds between status reports from Arduino. 4 digit int. 0 <= interval <= 9999
+        """
+        self.write(f"i{interval:04}")
+
+    # override this
+    def serial_monitor(self) -> None: pass
+
+    # override this
+    def write(self, msg: str) -> None: pass
 
 
-#override factory method
-def getInterface():
+# override factory method
+def get_interface():
     return ArduinoInterface()
-
-################################################################################
-# For testing and exemplification
-def testBrain():
-
-    arduino = getInterface()  # Create monitor and writer.
-    arduino.start()  # Start monitor thread
-    k = 0
-    while k < 5:
-        time.sleep(4)
-        arduino.write(f"{k}")
-        k = k + 1
-    print("Stopped.")
-
-if __name__ == "__main__":
-    testBrain()
-    
-#Brain Received 'publishing 0'
-#Brain Received 'publishing 1'
-#Brain Received 'publishing 2'
-#Brain Received 'publishing 3'
-#ArduinoInterface.write(0)
-#Brain Received 'publishing 4'
-#Brain Received 'publishing 5'
-#Brain Received 'publishing 6'
-#Brain Received 'publishing 7'
-#ArduinoInterface.write(1)
-#Brain Received 'publishing 8'
-#Brain Received 'publishing 9'
-#Brain Received 'publishing 10'
-#Brain Received 'publishing 11'
-#ArduinoInterface.write(2)
-#Brain Received 'publishing 12'

@@ -1,0 +1,66 @@
+{% set currentStatusText = 'Enabled' %}
+{% set toggleButtonText = 'ON' %}
+{% set toggleCommand = 'disable' %}
+{% set buttonClass = 'button enabledButton' %}
+{% set bigIncText = bigIncVal %}
+{% set bigDecText = bigDecVal %}
+{% set smallIncText = smallIncVal %}
+{% set smallDecText = smallDecVal %}
+{% set tackIncText = 'TACK STBD' %}
+{% set tackDecText = 'TACK PORT' %}
+{% set courseText = course %}
+
+{% set currentStatusText = 'Disabled' %}
+{% set toggleButtonText = 'OFF' %}
+{% set toggleCommand = 'enable' %}
+{% set buttonClass = 'button disabledButton' %}
+{% set bigIncText = '---' %}
+{% set bigDecText = '---' %}
+{% set smallIncText = '---' %}
+{% set smallDecText = '---' %}
+{% set tackIncText = '---- ----' %}
+{% set tackDecText = '---- ----' %}
+{% set courseText = '---' %}
+
+
+<h2>Course: {{ courseText }}</h2>
+<!-- Course Adjuster Buttons -->
+<p>
+    <a href="/course/{{ bigDecVal }}"><button style="{{ courseButtonStyle }}" type="button">{{ bigDecText }}</button></a>
+    <a href="/course/{{ smallDecVal }}"><button style="{{ courseButtonStyle }}" type="button">{{ smallDecText }}</button></a>
+    <a href="/course/{{ smallIncVal }}"><button style="{{ courseButtonStyle }}" type="button">{{ smallIncText }}</button></a>
+    <a href="/course/{{ bigIncVal }}"><button style="{{ courseButtonStyle }}" type="button">{{ bigIncText }}</button></a>
+</p>
+<p>
+    <a href="/course/{{ tackDecVal }}"><button style="{{ tackButtonStyle }}" type="button">{{ tackDecText }}</button></a>
+    <a href="/course/{{ tackIncVal }}"><button style="{{ tackButtonStyle }}" type="button">{{ tackIncText }}</button></a>
+</p>
+<script type="text/javascript" src="http://code.jquery.com/jquery-1.8.0.min.js"></script>
+
+<script type="text/javascript">
+    var previousMessage = "";
+    function updateMessages() {
+        $.get('/messages', function(info) {
+            if (info != previousMessage) {
+                $('#messages').html(info);  // update page with new data
+                previousMessage = info;
+            }
+        });
+    };
+
+    updateMessages()
+    setInterval(updateMessages, 1000);  // run `updateMessages()` every 1000ms (1s)
+</script>
+
+Messages: <span id="messages">
+   {% if ((msg) and (msg != "")) %}
+   <p style="color:red;">{{ msg }}</p>
+   {% endif %}
+   </span>
+</div>
+
+
+
+{% set enableButtonStyle = 'font-size : 20px; width: 150px; height: 150px; border-radius: 6px' %}
+{% set courseButtonStyle = 'font-size : 20px; width: 50px; height: 50px; border-radius: 6px' %}
+{% set tackButtonStyle = 'font-size : 20px; width: 150px; height: 50px; border-radius: 6px' %}

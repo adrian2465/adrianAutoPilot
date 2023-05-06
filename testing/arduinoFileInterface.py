@@ -13,14 +13,14 @@ print(f"Using arduinoFileInterface. Files simulate the Arduino.\n* Echo to {from
 class ArduinoFileInterface(ArduinoInterface):
     #override
     def serial_monitor(self) -> str: 
-        while (self.is_running()):
+        while (self.is_running):
             my_file = Path(fromArduinoFile)
             if my_file.is_file():
                 with open(fromArduinoFile) as openfileobject:
                     for line in openfileobject:
                         from_arduino(interface=self, msg=line)
                 open(fromArduinoFile, 'w').close() # Delete contents
-            time.sleep(self.get_check_interval())
+            time.sleep(self.check_interval_s)
 
     #override
     def write(self, msg: str) -> None:
@@ -29,7 +29,7 @@ class ArduinoFileInterface(ArduinoInterface):
            openfileobject.write(msg)
 
 #override
-def getInterface():
+def get_interface():
     return ArduinoFileInterface()
 
 ################################################################################
@@ -40,7 +40,7 @@ def cmd_line():
         # Put just enough processing here to communicate with brain loop.
         print(f"fromArduino: '{msg}'")
 
-    arduino = getInterface() # Create monitor and writer.
+    arduino = get_interface() # Create monitor and writer.
     arduino.start() # Start monitor thread
     print(f'Append commands to {fromArduinoFile} to simulate Arduino sending data')
     print(f'From a command prompt, monitor {toArduinoFile} to see data we\'re sending to the Arduino.')

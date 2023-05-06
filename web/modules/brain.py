@@ -8,7 +8,7 @@ from modules.sensor import Sensor
 from modules.status import DISABLED as STATUS_DISABLED, ENABLED as STATUS_ENABLED
 
 from modules.arduinoInterface import ArduinoInterface
-from modules.arduinoSerialInterface import getInterface as getArduinoInterface
+from modules.arduinoSerialInterface import get_interface as getArduinoInterface
 from anglemath import calculate_angle_difference, normalize_angle
 
 import threading
@@ -30,7 +30,7 @@ class Brain:
         self._controller = PID(self.config.get_P_gain(), self.config.get_I_gain(), self.config.get_D_gain(), self.config.get_sampling_interval_ms())
 
     def get_messages(self):
-        return self._arduino_interface.get_messages()
+        return self._arduino_interface.get_message()
 
     def set_arduino_interface(self, interface: ArduinoInterface):
         self._arduino_interface = interface
@@ -45,16 +45,16 @@ class Brain:
         return self._course
 
     def get_heading(self) -> int:
-        return self._sensor.get_heading()
+        return self._sensor.heading()
 
     def get_heel(self) -> int:
-        return self._sensor.get_heel_angle()
+        return self._sensor.heel_angle_deg()
 
     def set_status(self, status):
-        self._arduino_interface.set_status(1 if status == STATUS_ENABLED else 0)
+        self._arduino_interface.set_status = (1 if status == STATUS_ENABLED else 0)
 
     def get_status(self) -> str:
-        return STATUS_ENABLED if self._arduino_interface.get_status() == 1 else STATUS_DISABLED
+        return STATUS_ENABLED if self._arduino_interface.set_status == 1 else STATUS_DISABLED
 
     def adjust_course(self, delta: int) -> int:
         self._course = normalize(self._course + delta)
@@ -75,7 +75,10 @@ class Brain:
             ##########################  FIX THIS vvvv
             if self._arduino_interface.get_status() == 1:
                 rudder_adjustment = self.controller.output(self, self.get_heading())
-                # TODO LEFT OFF HERE Try this code.
+                # TODO LEFT OFF HERE
+                # You just got through doing a major refactor of the interface. You need to make sure it's
+                # provisioned with a sensor, and that all the calls still compile (because you changed them
+                # to @properties.  So, still a lot of work to do.
                 self._arduino_interface.set_motor_direction(1 if rudder_adjustment > 0 else -1)
                 self._arduino_interface.set_motor_speed(abs(rudder_adjustment))
                 #  boat.request_rudder_angle(self.controller.compute_output(process_value=boat.sensor.get_heading()))

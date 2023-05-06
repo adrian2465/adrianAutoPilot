@@ -3,56 +3,11 @@
 # April 2023
 gains:
   default:
-    # Fitness: 66.66666667
-    # P: 1.1530373537257457
-    # I: -0.08747923746854921
-    # D: -0.049758692257780124
-    # P: -1.0799467251047274
-    # I: 0.010963286027932973
-    # D: -0.0040683031703653725
-    # P: 1.2458174823807793
-    # I: 1.821361435109248e-05
-    # D: -5.479034329447524
-    # P: 0.0109999
-    P: 0.1
+    P: 8.170
     I: 0.000
     D: 0.000
-    #
-    # P: 1.0  # Settles in on a course within 30 seconds. No oscillation.
-    # I: 0.0
-    # D: 0.0
-    #
-    # P: 0.5 # Nice aggressive rudder action - 40d rudder after 4 sec, then quickly backs off, but takes too long to settle down to new course
-    # I: 0.0
-    # D: 0.0
-    #
-    # P: 0.065 No oscillation. Too slow
-    # I: 0.0
-    # D: 0.0
-    #
-    # P: 0.067 No oscillation. Too slow
-    # I: 0.0
-    # D: 0.0
-    #
-    # P: 0.0678 # Oscillates, but then oscillation stops after 10s
-    # I: 0.0
-    # D: 0.0
-    #
-    # P: 0.0674 # Oscillates, but then oscillation stops after 5
-    # I: 0.0
-    # D: 0.0
-    #
-    # P: 0.0685 Oscillates
-    # I: 0.0
-    # D: 0.0
-    #
-    # P: 0.07 Oscillates
-    # I: 0.0
-    # D: 0.0
-boat_characteristics:
-  rudder_port_hw_val: 0 # Configure from Arduino P value
-  rudder_stbd_hw_val: 255 # Configure from Arduino P value
 
+boat_characteristics:
   # How long rudder stop to stop using automation
   rudder_hardover_time_s: 4 # From centered to stop
   # Degrees per second

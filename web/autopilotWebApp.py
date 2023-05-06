@@ -28,7 +28,7 @@ def set_status(newStatus: str):
     global brain
     if newStatus == 'enable':
         brain.set_status(STATUS_ENABLED)
-        brain.set_course(brain.get_heading())
+        brain.set_course(brain.heading())
     else:
         brain.set_status(STATUS_DISABLED)
     return ""
@@ -41,7 +41,7 @@ def get_course():
 @app.route("/get_heading")
 def get_heading():
     global brain
-    return jsonify(heading=f"{brain.get_heading():03.0f}")
+    return jsonify(heading=f"{brain.heading():03.0f}")
 
 
 @app.route("/get_heel")
@@ -64,19 +64,19 @@ def adjust_course(courseAdjustment: str):
 @app.route("/get_messages")
 def get_messages():
     global brain
-    return jsonify(messages=brain.get_messages())
+    return jsonify(messages=brain.get_message())
 
 @app.route("/get_interface_params")
 def get_interface_params():
     global brain
     interface = brain.get_arduino_interface()
+    port_limit, stbd_limit = interface.get_rudder_limits()
     return jsonify(clutch_status=interface.get_status(),
                    starboard_limit=interface.get_stbd_limit(),
-                   port_limit=interface.get_port_limit(),
-                   motor_speed=interface.get_motor_speed(),
+                   port_limit=port_limit,
+                   motor_speed=stbd_limit,
                    motor_direction=interface.get_motor_direction(),
-                   rudder_position=interface.get_rudder_position(),
-                   rudder_direction=interface.get_rudder_direction())
+                   rudder_position=interface.get_rudder())
 
 if __name__ == "__main__":
     try:

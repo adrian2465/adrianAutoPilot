@@ -1,40 +1,31 @@
 from config import Config
 from anglemath import normalize_angle
 from boat import Boat
+from sensor import Sensor
+from arduinoInterface import ArduinoInterface
 
 class BoatImpl(Boat):
 
-    def __init__(self):
+    def __init__(self, sensor: Sensor, arduino: ArduinoInterface):
         super().__init__()
         cfg = Config("../../configuration/config.yaml").boat
-        self._rudder_hardover_time_s = cfg['rudder_hardover_time_s']  #  From Center -- for simulations.
-        self._max_boat_turn_rate_dps = cfg['boat_turn_rate_dps']  #  From Center -- for simulations.
-        self._heel = None
-        self._rudder = 0
-        self._heading = None
-
-    @property
-    def hard_over_time(self):
-        return self._rudder_hardover_time_s
+        self._sensor: Sensor = sensor
+        self._arduino: ArduinoInterface = arduino
 
     @property
     def heading(self):
         """Boat's current heading."""
-        return self._heading
-
-    @heading.setter
-    def heading(self, heading):
-        self._heading = heading
+        return self._sensor.heading()
 
     @property
     def heel(self):
         """Angle of heel in degrees. 0 = level"""
-        return self._heel
+        return self._sensor.heel_angle_deg()
 
     @property
     def rudder(self):
         """Returns normalized rudder (-1 for full port, 1 for full starboard, 0 for centered)"""
-        return self._rudder
+        return self._arduino.get_rudder()
 
     def update(self, elapsed_time):  # For Simulation. Normally, get this from sensor.
         max_rudder_adjustment = elapsed_time / self._rudder_hardover_time_s
