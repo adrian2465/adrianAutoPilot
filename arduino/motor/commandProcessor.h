@@ -71,7 +71,7 @@ updateStatusFn processCommand(char *command) {
         case '1': setClutch(ClutchEnabled); statusUpdater = reportClutchStatus; break;
         case '0': setClutch(ClutchDisabled);  statusUpdater = reportClutchStatus; break;
         default: {
-            sprintf(printbuf, "m=Bad parm for 'c'. Expected 0 or 1 but got %d\n", *parm)
+            sprintf(printbuf, "m=Bad parm for 'c'. Expected 0 or 1 but got %d\n", *parm);
             Serial.print(printbuf);
         }
       }
@@ -86,7 +86,7 @@ updateStatusFn processCommand(char *command) {
         case '2': setMotorDirection(MotorDirectionRight); statusUpdater = reportMotorDirection; break;
         case '0': setMotorDirection(MotorDirectionNeither); statusUpdater = reportMotorDirection; break;
         default: {
-            sprintf(printbuf, "m=Bad parm for 'd'.  Expected 0, 1, or 2 but got %c\n", *parm)
+            sprintf(printbuf, "m=Bad parm for 'd'.  Expected 0, 1, or 2 but got %c\n", *parm);
             Serial.print(printbuf);
         }
       }
@@ -164,7 +164,7 @@ updateStatusFn processCommand(char *command) {
          case '1': setEcho(true); break;
          case '0': setEcho(false); break;
          default: {
-             sprintf(printbuf, "m=Bad parm for 'e'. Expected 0 or 1 but got %d\n", *parm)
+             sprintf(printbuf, "m=Bad parm for 'e'. Expected 0 or 1 but got %d\n", *parm);
              Serial.print(printbuf);
              statusUpdater = reportEchoStatus;
          }

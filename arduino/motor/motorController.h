@@ -47,7 +47,7 @@ MotorDirection getLimitFaultDirection() {
   MotorDirection faultDirection = (position < leftPositionLimit) ? MotorDirectionLeft
      : (position > rightPositionLimit) ? MotorDirectionRight
      : MotorDirectionNeither;
-  return (faultDirection == motorDirection) ? direction
+  return (faultDirection == motorDirection) ? faultDirection
      : MotorDirectionNeither; // No fault if we're no longer going in the direction of the fault.
 }
 
@@ -95,7 +95,6 @@ void setLimit(MotorDirection limitSelector, int limit) {
     motorSettingsChanged = true;
     break;
   }
-  lowerLimitIsLeft = (leftPositionLimit < rightPositionLimit);
 }
 
 // Set the pins as required.
