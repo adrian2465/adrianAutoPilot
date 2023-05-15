@@ -25,7 +25,7 @@ def _motor_from_arduino(v):
     """
     Normalize a motor speed value received from the arduino
     Mapping: 0 <= v <= 255 :: 0 <= rc <= 1
-    NOTE: No direction is included.  See _apply_direction_to_motor
+    NOTE: No direction is included. 
     :return: normalized value 0 to 1
     """
     return v / 255
@@ -39,18 +39,6 @@ def _motor_to_arduino(v):
     :return: 0 - 255 motor speed to send to arduino
     """
     return int(abs(255 * v))
-
-
-def _signed_motor(normalized_motor, direction):
-    """
-    Modify motor value to be signed according to direction.
-    Mapping: d in {0 for ctr, 1 for port, 2 for stbd}; 0 <= |motor_val| <= 1 :: -1 <= motor_speed <= 1
-    See _motor_from_arduino
-    :return: motor speed (signed motor value)
-    """
-    return -abs(normalized_motor) if direction == 1 \
-        else abs(normalized_motor) if direction == 2 \
-        else normalized_motor
 
 
 # Called asynchronously from ArduinoInterface
@@ -67,9 +55,11 @@ def from_arduino(interface, msg):
         v = int(msg[2:])
         interface._rudder_fault = 1 if v == 2 else -1 if v == 1 else 0
     elif msg.startswith('s='):  # Motor speed
-        interface._motor_speed = _motor_from_arduino(int(msg[2:]))
+        direction_sign = -1 if interface._motor_speed < 0 else 1
+        interface._motor_speed = abs(_motor_from_arduino(int(msg[2:]))) * direction_sign
     elif msg.startswith('d='):  # Motor direction
-        interface._motor_speed = _signed_motor(interface.set_motor_speed, int(msg[2:]))
+        direction = -1 if int(msg[2:]) == 1 else 1
+        interface._motor_speed = abs(interface._motor_speed) * direction
     elif msg.startswith('c='):  # Clutch disposition
         interface._clutch_status = int(msg[2:])
     else:
@@ -97,8 +87,8 @@ class ArduinoInterface():
         self._monitor_thread.start()
 
     def stop(self):
-        self.get_motor_speed = 0.0
-        self.set_status = 0
+        self.set_motor_speed(0.0)
+        self.set_status(0)
         self._running = False
 
     @property
@@ -160,14 +150,14 @@ class ArduinoInterface():
         self.write(f"d{1 if motor_speed < -0.01 else 2 if motor_speed > 0.01 else 0}")
         self.write(f"s{_motor_to_arduino(motor_speed):03}")
 
-    def set_status(self) -> int:
+    def get_status(self) -> int:
         """
         Status of autopilot.
         0 = disengaged, 1 = engaged
         """
         return self._clutch_status
 
-    def get_status(self, status: int):
+    def set_status(self, status: int):
         self.write(f"c{status}")
 
     def set_status_interval_ms(self, interval: int):

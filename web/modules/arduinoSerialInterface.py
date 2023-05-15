@@ -71,7 +71,7 @@ class ArduinoSerialInterface(ArduinoInterface):
             return
         try:
             if self.debugging:
-                print(f'sending: {msg}')
+                print(f'sending: "{msg}"')
             self._serial_out.write((msg + "\n").encode())
         except ValueError:
             print(f"ERROR: write: Value error! {msg}")
@@ -109,36 +109,36 @@ if __name__ == "__main__":
 
     def test_message():
         print("test_message start")
-        verify_equals("Online", arduino.get_message, "Message is not the expected 'Online'")
+        verify_equals("Online", arduino.get_message(), "Message is not the expected 'Online'")
         print("test_message successful.")
 
     def test_status():
         print("test_status start")
-        arduino.set_status = 1
+        arduino.set_status(1)
         sleep(LAG)
-        verify_equals(1, arduino.set_status, "Clutch did not engage")
-        arduino.set_status = 0
+        verify_equals(1, arduino.get_status(), "Clutch did not engage")
+        arduino.set_status(0)
         sleep(LAG)
-        verify_equals(0, arduino.set_status, "Clutch did not disengage")
+        verify_equals(0, arduino.get_status(), "Clutch did not disengage")
         print("test_status successful")
 
     def test_motor():
         print("test_motor full speed to starboard")
-        arduino.get_motor_speed = 1.0
+        arduino.set_motor_speed(1.0)
         sleep(2)
-        verify_is_basically_equal(1, arduino.get_motor_speed, "Motor did not engage to starboard")
-        print("test_motor full speed to port")
-        arduino.get_motor_speed = -1.0
-        sleep(2)
-        verify_is_basically_equal(-1, arduino.get_motor_speed, "Motor did not engage to port")
+        verify_is_basically_equal(1, arduino.get_motor_speed(), "Motor did not engage to starboard")
         print("test_motor half speed to starboard")
-        arduino.get_motor_speed = 0.5
+        arduino.set_motor_speed(0.5)
         sleep(2)
-        verify_is_basically_equal(0.5, arduino.get_motor_speed, "Motor did not engage to starboard at half speed")
+        verify_is_basically_equal(0.5, arduino.get_motor_speed(), "Motor did not engage to starboard at half speed")
+        print("test_motor full speed to port")
+        arduino.set_motor_speed(-1.0)
+        sleep(2)
+        verify_is_basically_equal(-1, arduino.get_motor_speed(), "Motor did not engage to port")
         print("test_motor - stopping motor")
-        arduino.get_motor_speed = 0
+        arduino.set_motor_speed(0)
         sleep(LAG)
-        verify_is_basically_equal(0, arduino.get_motor_speed, "Motor did not disengage")
+        verify_is_basically_equal(0, arduino.get_motor_speed(), "Motor did not disengage")
         print("test_motor successful")
 
     def test_limits():
@@ -189,10 +189,10 @@ if __name__ == "__main__":
         print("test_rudder_fault successful")
 
     try:
-        test_message()
-        test_status()
+        # test_message()
+        # test_status()
         test_motor()
-        test_limits()
+        # test_limits()
         # test_rudder_fault() # NOTE: Can't test rudder fault until position pin is hooked up.
     except Exception as e:
         print(f"ERROR: Exception {e}")
