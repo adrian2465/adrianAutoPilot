@@ -56,7 +56,7 @@ def from_arduino(interface, msg):
     elif msg.startswith('s='):  # Motor speed
         interface._motor_speed = _motor_from_arduino(int(msg[2:]))
     elif msg.startswith('d='):  # Motor direction
-        interface._direction = -1 if int(msg[2:]) == 1 else 1 if int(msg[2:] == 2) else 0
+        interface._direction = -1 if int(msg[2:]) == 1 else 1 if int(msg[2:]) == 2 else 0
     elif msg.startswith('c='):  # Clutch disposition
         interface._clutch_status = int(msg[2:])
     elif msg.startswith('i='):
@@ -82,6 +82,7 @@ class ArduinoInterface():
         self._rudder_position = 0
         self._rudder_fault = 0
         self._motor_speed = 0
+        self._direction = 0
         self._clutch_status = 0
         self._echo_status = 0
 
@@ -153,7 +154,9 @@ class ArduinoInterface():
         Motor Speed: -1 <= speed <= 1.  -1 is to port. 1 is to starboard.
         Internally, also sets direction.
         """
-        self.write(f"d{1 if self._direction < -0 else 2 if self._direction > 0 else 0}")
+        direction = 1 if motor_speed > 0 else -1 if motor_speed < 0 else 0
+        motor_speed = abs(motor_speed)
+        self.write(f"d{1 if direction < -0 else 2 if direction > 0 else 0}")
         self.write(f"s{_motor_to_arduino(motor_speed):03}")
 
     def get_status(self) -> int:
