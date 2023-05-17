@@ -131,6 +131,8 @@ if __name__ == "__main__":
         arduino.set_motor_speed(0.5)
         sleep(2)
         verify_is_basically_equal(0.5, arduino.get_motor_speed(), "Motor did not engage to starboard at half speed")
+        arduino.set_motor_speed(0.0)  # Stop motor so it doesn't slam from starboard to port
+        sleep(0.5)
         print("test_motor full speed to port")
         arduino.set_motor_speed(-1.0)
         sleep(2)
@@ -189,11 +191,11 @@ if __name__ == "__main__":
         print("test_rudder_fault successful")
 
     try:
-        # test_message()
-        # test_status()
+        test_message()
+        test_status()
         test_motor()
-        # test_limits()
-        # test_rudder_fault() # NOTE: Can't test rudder fault until position pin is hooked up.
+        test_limits()
+        test_rudder_fault() # NOTE: Can't test rudder fault until position pin is hooked up.
     except Exception as e:
         print(f"ERROR: Exception {e}")
     finally:

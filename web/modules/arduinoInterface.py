@@ -62,6 +62,10 @@ def from_arduino(interface, msg):
         interface._motor_speed = abs(interface._motor_speed) * direction
     elif msg.startswith('c='):  # Clutch disposition
         interface._clutch_status = int(msg[2:])
+    elif msg.startswith('i='):
+        interface._status_interval = int(msg[2:])
+    elif msg.startswith('e='):
+        interface._echo_status = int(msg[2:])
     else:
         print(f"Unsupported message {msg}")
         interface._messages = f"Unsupported message `{msg}`"
@@ -72,6 +76,7 @@ class ArduinoInterface():
         self._monitor_thread = threading.Thread(target=self.serial_monitor)
         self._monitor_thread.daemon = True
         self._check_interval = 0.2
+        self._status_interval = 1000
         self._running: bool = False
 
         self._messages = ""
@@ -81,6 +86,7 @@ class ArduinoInterface():
         self._rudder_fault = 0
         self._motor_speed = 0
         self._clutch_status = 0
+        self._echo_status = 0
 
     def start(self):
         self._running = True
@@ -146,7 +152,6 @@ class ArduinoInterface():
         return self._motor_speed
 
     def set_motor_speed(self, motor_speed):
-        # TODO Refactor motor to return 0 - 1023 centered on 512 to simplify direction logic and remove one command.
         self.write(f"d{1 if motor_speed < -0.01 else 2 if motor_speed > 0.01 else 0}")
         self.write(f"s{_motor_to_arduino(motor_speed):03}")
 
@@ -160,12 +165,20 @@ class ArduinoInterface():
     def set_status(self, status: int):
         self.write(f"c{status}")
 
+    def get_status_interval_ms(self):
+        """
+        Milliseconds between status reports from Arduino. 4 digit int. 0 <= interval <= 9999
+        """
+        return self._status_interval
+
     def set_status_interval_ms(self, interval: int):
-        """
-        :param interval: Milliseconds between status reports from Arduino. 4 digit int. 0 <= interval <= 9999
-        """
         self.write(f"i{interval:04}")
 
+    def get_echo_status(self):
+        return self._echo_status
+
+    def set_echo_status(self, status: int):
+        self.write(f"e{status:01}")
     # override this
     def serial_monitor(self) -> None: pass
 
