@@ -35,10 +35,9 @@ def _motor_to_arduino(v):
     """
     Encode a normalized motor value to a motor speed to be sent to arduino
     Mapping: 0 <= |v| <= 1 :: 0 <= rc <= 255
-    NOTE: both v=-1 and v=1 map to 255. 0 maps to 0.
     :return: 0 - 255 motor speed to send to arduino
     """
-    return int(abs(255 * v))
+    return int(255 * v)
 
 
 # Called asynchronously from ArduinoInterface
@@ -55,11 +54,9 @@ def from_arduino(interface, msg):
         v = int(msg[2:])
         interface._rudder_fault = 1 if v == 2 else -1 if v == 1 else 0
     elif msg.startswith('s='):  # Motor speed
-        direction_sign = -1 if interface._motor_speed < 0 else 1
-        interface._motor_speed = abs(_motor_from_arduino(int(msg[2:]))) * direction_sign
+        interface._motor_speed = _motor_from_arduino(int(msg[2:]))
     elif msg.startswith('d='):  # Motor direction
-        direction = -1 if int(msg[2:]) == 1 else 1
-        interface._motor_speed = abs(interface._motor_speed) * direction
+        interface._direction = -1 if int(msg[2:]) == 1 else 1 if int(msg[2:] == 2) else 0
     elif msg.startswith('c='):  # Clutch disposition
         interface._clutch_status = int(msg[2:])
     elif msg.startswith('i='):
@@ -149,10 +146,14 @@ class ArduinoInterface():
         """
         Motor Speed: -1 <= speed <= 1.  -1 is to port. 1 is to starboard.
         """
-        return self._motor_speed
+        return self._motor_speed * self._direction
 
     def set_motor_speed(self, motor_speed):
-        self.write(f"d{1 if motor_speed < -0.01 else 2 if motor_speed > 0.01 else 0}")
+        """
+        Motor Speed: -1 <= speed <= 1.  -1 is to port. 1 is to starboard.
+        Internally, also sets direction.
+        """
+        self.write(f"d{1 if self._direction < -0 else 2 if self._direction > 0 else 0}")
         self.write(f"s{_motor_to_arduino(motor_speed):03}")
 
     def get_status(self) -> int:
