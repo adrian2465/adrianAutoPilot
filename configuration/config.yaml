@@ -1,13 +1,14 @@
 # Adrian Vrouwenvelder
 # November 2022
 # April 2023
-gains:
-  default:
-    P: 8.170
-    I: 0.000
-    D: 0.000
+brain:
+  gains:
+    default:
+      P: 8.170
+      I: 0.000
+      D: 0.000
 
-boat_characteristics:
+boat:
   # How long rudder stop to stop using automation
   rudder_hardover_time_s: 4 # From centered to stop
   # Degrees per second

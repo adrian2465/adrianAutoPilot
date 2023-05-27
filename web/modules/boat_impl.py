@@ -8,7 +8,7 @@ class BoatImpl(Boat):
 
     def __init__(self, sensor: Sensor, arduino: ArduinoInterface):
         super().__init__()
-        cfg = Config("../../configuration/config.yaml").boat
+        # cfg = Config("../../configuration/config.yaml").boat
         self._sensor: Sensor = sensor
         self._arduino: ArduinoInterface = arduino
 

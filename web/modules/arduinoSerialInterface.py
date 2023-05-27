@@ -85,7 +85,8 @@ class ArduinoSerialInterface(ArduinoInterface):
 def get_interface() -> ArduinoInterface:
     return ArduinoSerialInterface()
 
-
+# Integration test. Send commands to Arduino and ensure it performs
+# as expected
 if __name__ == "__main__":
     from time import sleep
     LAG = 1.0
@@ -145,48 +146,48 @@ if __name__ == "__main__":
 
     def test_limits():
         print("test_limits start")
-        port, stbd = arduino.get_rudder_limits
+        port, stbd = arduino.get_rudder_limits()
         print("test_limits testing default full range")
         verify_is_basically_equal(-1.0, port, "Port limit wrong")
         verify_is_basically_equal(1.0, stbd, "Starboard limit wrong")
         print("test_limits testing half range")
-        arduino.get_rudder_limits = -0.5, 0.5
+        arduino.set_rudder_limits(-0.5, 0.5)
         sleep(LAG)
-        port, stbd = arduino.get_rudder_limits
+        port, stbd = arduino.get_rudder_limits()
         verify_is_basically_equal(-0.5, port, f"Reduced Port limit wrong {port}")
         verify_is_basically_equal(0.5, stbd, f"Reduced Starboard limit wrong {stbd}")
         print("test_limits testing non-default full range")
-        arduino.get_rudder_limits = -1.0, 1.0
+        arduino.set_rudder_limits(-1.0, 1.0)
         sleep(LAG)
-        port, stbd = arduino.get_rudder_limits
+        port, stbd = arduino.get_rudder_limits()
         verify_is_basically_equal(-1.0, port, "Port limit could not be reset to default")
         verify_is_basically_equal(1.0, stbd, "Starboard limit could not be reset to default")
         print("test_limits successful")
 
     def test_rudder_fault():
         print("test_rudder_fault start")
-        arduino.get_motor_speed = 1.0
+        arduino.set_motor_speed(1.0)
         sleep(2)
-        f = arduino.get_rudder_fault
+        f = arduino.get_rudder_fault()
         verify_equals(0, f, f"Rudder fault {f} without limit constraint")
         print("test_rudder_fault testing ridiculously narrow band to starboard - Motor should stop")
-        arduino.get_rudder_limits = 0.9, 1.0  # Excessive constraint should fault to port.
+        arduino.set_rudder_limits(0.9, 1.0)  # Excessive constraint should fault to port.
         sleep(LAG)
-        f = arduino.get_rudder_fault
+        f = arduino.get_rudder_fault()
         verify_equals(-1, f, f"Rudder fault {f} with excessive port constraint")
         print("test_rudder_fault testing ridiculously narrow band to port - Motor should stop")
-        arduino.get_rudder_limits = -1.0, -0.9  # Excessive constraint should fault to starboard.
+        arduino.set_rudder_limits(-1.0, -0.9)  # Excessive constraint should fault to starboard.
         sleep(LAG)
-        f = arduino.get_rudder_fault
+        f = arduino.get_rudder_fault()
         verify_equals(1, f, f"Rudder fault {f} with excessive stbd constraint")
         print("test_rudder_fault testing normal range - motor should restart, fault should clear")
-        arduino.get_rudder_limits = -1.0, 1.0
+        arduino.set_rudder_limits(-1.0, 1.0)
         sleep(LAG)
-        f = arduino.get_rudder_fault
+        f = arduino.get_rudder_fault()
         verify_equals(0, f, f"Rudder fault {f} without limit constraint after reset")
         sleep(2)
         print("test_rudder_fault - Stopping motor after rudder fault test.")
-        arduino.get_motor_speed = 0.0
+        arduino.set_motor_speed(0.0)
         sleep(LAG)
         print("test_rudder_fault successful")
 

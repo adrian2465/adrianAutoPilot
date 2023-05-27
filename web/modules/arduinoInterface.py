@@ -40,7 +40,7 @@ def _motor_to_arduino(v):
     return int(255 * v)
 
 
-# Called asynchronously from ArduinoInterface
+# Called asynchronously from ArduinoSerialInterface -- signal from arduino
 def from_arduino(interface, msg):
     if msg.startswith('m='):  # Text message
         interface._messages = msg[2:]

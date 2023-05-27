@@ -9,7 +9,7 @@ class Config:
         self._boat_characteristics = None
         with open(filename, 'r') as stream:
             data = yaml.safe_load(stream)
-            self._boat_characteristics = data["boat_characteristics"]
+            self._boat_characteristics = data["boat"]
             self._gains = data["gains"]
             self._mpu = data["mpu9250"]
 
@@ -24,5 +24,3 @@ class Config:
     @property
     def mpu(self):
         return self._mpu
-
-# TODO Revisit places thqat use config
