@@ -6,12 +6,13 @@ o Uninstall:
   * python3-dev?
 which were needed for pip-based installation of smbus (pip install smbus)
 
-o 2023-04-12 - Re-flash arduino with updated C code.
-o 2023-04-12 - In arduinoInterface test.  Add 'debug' (e=1) to testing.
-o 2023-04-12 - I'm thinking that methods that are not simply internal properties should be named get_xxx and set_xxx.
-o 2023-04-12 - Fix brain, etc., which probably broke overhauling the arduinointerface.
-o 2023-04-12 - Make sure send_to_arduino and receive_from_arduino still work!! 
-o 2023-04-12 - Potentially, add tests for parameter messups.  l123, etc.
+o 2023-05-27 - Push up Motor. Where did "Motor" come from? Consolidate branches.
+o 2023-05-27 - Revisit the places that use the Config object
+o 2023-04-12 - Fix brain, etc., which broke overhauling the controller.
+DONE o 2023-04-12 - Make sure send_to_arduino and receive_from_arduino still work!! 
+DONE o 2023-04-12 - Re-flash arduino with updated C code.
+DONE o 2023-04-12 - In arduinoInterface test.  Add 'debug' (e=1) to testing.
+DONE o 2023-04-12 - I'm thinking that methods that are not simply internal properties should be named get_xxx and set_xxx.
 o 2023-04-12 - In YAML, move gains under 'brain'. Re-label 'boat_characteristics' to just 'boat'
 o 2023-04-12 - Potentially, label test boat parameters "testboat"
 o 2023-04-12 - MAYBE: I'm also thinking to change e= to mean debug mode. Major refactor, as it would mean maintaining state in the program instead of arduino. and that the only things reported in non-debug mode would be p and (exceptionally) m and x.
