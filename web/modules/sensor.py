@@ -18,9 +18,10 @@ class Sensor:
         return self._imu_interface.heel_deg()
 
     @property
-    def turn_rate_dps(self): pass
+    def turn_rate_dps(self):
+        return self._imu_interface.turn_rate_dps()
 
     @property
     def temp_celsius(self):
-        return self._imu_interface.temp
+        return self._imu_interface.temp()
 

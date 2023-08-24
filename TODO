@@ -6,15 +6,34 @@ o Uninstall:
   * python3-dev?
 which were needed for pip-based installation of smbus (pip install smbus)
 
-o 2023-05-27 - Push up Motor. Where did "Motor" come from? Consolidate branches.
-o 2023-05-27 - Revisit the places that use the Config object
+o 2023-05-27 - Code-Review the places that use the Config object.  Overhaul list:
+  - ./web/autopilotWebApp.py
+  - ./web/modules/sensor.py
+  - ./web/modules/calibration/debugmpu.py
+  - ./web/modules/calibration/mpu9360-calibration.py
+  - ./web/modules/vectormath.py
+  - ./web/modules/brain.py
+  - ./web/modules/imuInterface.py
+  - ./web/modules/file_logger.py
+  - ./web/modules/arduinoSerialInterface.py
+  - ./web/modules/mpu9250Interface.py
+  - ./testing/imuTestInterface.py
+  - ./testing/arduinoFileInterface.py
+  - DONE ./testing/send_to_arduino.py
+  - DONE ./testing/read_from_arduino.py
+  - DONE ./web/modules/status.py
+  - DONE ./web/modules/direction.py
+  - DONE ./web/modules/config.py
+  - DONE ./web/modules/pid_controller.py
+  - DONE ./web/modules/island_time.py
+  - DONE ./web/modules/arduinoInterface.py
+  - DONE ./web/modules/test_boat.py
+  - DONE ./web/modules/boat.py
+  - DONE ./web/modules/anglemath.py
+o 2023-08-24 - How will you translate rudder angle (-1 <= 0 <= 1) to motor speed and duration?  Figure the motor duration as a percentage of hard over angle vs rudder speed.
+o 2023-08-24 - pid_controller appears to be working. Push the development branch.
 o 2023-04-12 - Fix brain, etc., which broke overhauling the controller.
-DONE o 2023-04-12 - Make sure send_to_arduino and receive_from_arduino still work!! 
-DONE o 2023-04-12 - Re-flash arduino with updated C code.
-DONE o 2023-04-12 - In arduinoInterface test.  Add 'debug' (e=1) to testing.
-DONE o 2023-04-12 - I'm thinking that methods that are not simply internal properties should be named get_xxx and set_xxx.
-o 2023-04-12 - In YAML, move gains under 'brain'. Re-label 'boat_characteristics' to just 'boat'
-o 2023-04-12 - Potentially, label test boat parameters "testboat"
+
 o 2023-04-12 - MAYBE: I'm also thinking to change e= to mean debug mode. Major refactor, as it would mean maintaining state in the program instead of arduino. and that the only things reported in non-debug mode would be p and (exceptionally) m and x.
 
 DONEs
@@ -22,4 +41,9 @@ x 2023-03-04 - Archive working configuration in $HOME. "home_date.tar"
 x 2023-03-04 - Get PI talking to Arduino via serial interface
 x 2023-03-04 - Migrate Python code for simulator to micropython
 x 2023-04-12 - Remove extra newline from write in arduinoInterface - shouldn't need it. If we do, why?
-
+DONE o 2023-05-23 - In the middle of adding setters to the PID values.
+DONE o 2023-04-12 - Make sure send_to_arduino and receive_from_arduino still work!!
+DONE o 2023-04-12 - Re-flash arduino with updated C code.
+DONE o 2023-04-12 - In arduinoInterface test.  Add 'debug' (e=1) to testing.
+DONE o 2023-04-12 - I'm thinking that methods that are not simply internal properties should be named get_xxx and set_xxx.
+DONE o 2023-08-24 - !! Push development branch from laptop to GIT

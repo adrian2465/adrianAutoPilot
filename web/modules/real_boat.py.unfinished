@@ -1,0 +1,25 @@
+from config import Config
+from anglemath import normalize_angle
+from boat import Boat
+from sensor import Sensor
+from arduinoInterface import ArduinoInterface
+
+class BoatImpl(Boat):
+
+    def __init__(self, sensor: Sensor, arduino: ArduinoInterface):
+        super().__init__()
+        # cfg = Config("../../configuration/config.yaml").boat
+        self._sensor: Sensor = sensor
+        self._arduino: ArduinoInterface = arduino
+
+    def get_heading(self):
+        """Boat's current heading."""
+        return self._sensor.heading()
+
+    def get_heel(self):
+        """Angle of heel in degrees. 0 = level"""
+        return self._sensor.heel_angle_deg()
+
+    def get_rudder(self):
+        """Returns normalized rudder (-1 for full port, 1 for full starboard, 0 for centered)"""
+        return self._arduino.get_rudder()

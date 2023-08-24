@@ -6,6 +6,10 @@ This is a marine autopilot, with a web interface.
 
 ## Details
 
+### PiCore Help
+
+See PiCore_Hints_and_Tips.txt
+
 ### Software
 Uses python3 for the brain and the web interface.  Run the web server using the `run_webserver.sh` script -- that starts everything.
 The motor controller 
@@ -29,12 +33,15 @@ Operations on the motor controller are:
 ### Sample Arduino Output
 
 ```
-l=0 - Left limit
-r=0 - Right limit
-s=0 - Motor speed
-d=0 - Motor direction
-p=4 - Rudder position - magnitude
-x=0 - Rudder position - direction
+i=1000 # Status interval ms
+p=0000 # Rudder position. 0 (max left) <= 512 (center) <= 1023 (max right)
+x=0 # Limit fault direction. 0 = none, 1 = left, 2 = right.
+d=0 # Direction 0 (none), 1 (left), 2 (right)
+c=0 # Clutch status. 0 (off), 1 (on)
+s=000 # Motor speed 0 (stationary) <= speed <= 255 (max)
+l=0000 # Left rudder limit
+r=1023 # Right rudder limit.
+m=message string
 ```
 
 ### Hardware

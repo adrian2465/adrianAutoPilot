@@ -108,64 +108,47 @@ class PID:
 # For testing
 if __name__ == "__main__":
     from island_time import time as island_time
-    from testboat import BoatImpl
+    from test_boat import BoatImpl
     from vectormath import moving_average_scalar
     from file_logger import logger, INFO, DEBUG
-    config = Config("../../configuration/config.yaml")
-    boat = BoatImpl()
+
     log = logger(dest=None)
     log.set_level(DEBUG)
     test_time = island_time()
 
-    def test_hard_over_time(boat):
-        start_time = test_time.time()
-        interval = 0.5
-        while boat.rudder < 1:
-            boat.commanded_rudder = 1
-            boat.update(interval)
-            test_time.sleep(interval)
-        duration = test_time.time() - start_time
-        if duration <= 0.1:
-            raise Exception(f"Rudder hard-over took {duration} s which is implausibly fast.")
-        if duration > boat.hard_over_time:
-            raise Exception(f"Rudder hard-over took {duration} s and should have completed within {boat.hard_over_time} s")
-        log.info(f"Hardover completed in {duration} s")
-
     def test_controller(boat, pid):
         log.debug(f"Starting run for pid.p={pid.p_gain:4.2f} pid.i={pid.i_gain:4.2f} pid.d={pid.d_gain:4.2f})")
         start_time = test_time.time()
-        diff_avg = abs(calculate_angle_difference(boat.target_course, boat.heading))
+        diff_avg = abs(calculate_angle_difference(boat.get_target_course(), boat.get_heading()))
         interval = 0.5  # seconds between samples
         j = 1000
         log.debug("TIME, COURSE, HEADING, RUDDER, RUDDER_STRING")
-        log.debug(f"{0:5.2f}, {boat.target_course:6.2f}, {boat.heading:6.2f}, {boat.rudder:4.2f}, {rudder_as_string(boat.rudder)} ")
-        while not (boat.is_on_course and abs(boat.rudder) <= 0.01):
-            boat.commanded_rudder = pid.output(boat.heading)
+        log.debug(f"{0:5.2f}, {boat.get_target_course():6.2f}, {boat.get_heading():6.2f}, {boat.get_rudder():4.2f}, {rudder_as_string(boat.get_rudder())} ")
+        while not (boat.is_on_course() and abs(boat.get_rudder()) <= 0.01):
+            boat.set_commanded_rudder(pid.output(boat.get_heading()))
             # The following simulates what happens in the next time frame.
             test_time.sleep(interval)  # Simulation
             # Boat Simulation code. Actual rudder and boat turn rates would be determined by sensor.
             boat.update(interval)
-            diff_avg = moving_average_scalar(diff_avg, abs(calculate_angle_difference(boat.target_course, boat.heading)), 4)
-            log.debug(f"{test_time.time() - start_time:5.2f}, {boat.target_course:6.2f}, {boat.heading:6.2f}, {boat.rudder:4.2f}, {rudder_as_string(boat.rudder)} ")
+            diff_avg = moving_average_scalar(diff_avg, abs(calculate_angle_difference(boat.get_target_course(), boat.get_heading())), 4)
+            log.debug(f"{test_time.time() - start_time:5.2f}, {boat.get_target_course():6.2f}, {boat.get_heading():6.2f}, {boat.get_rudder():4.2f}, {rudder_as_string(boat.get_rudder())} ")
             j -= 1
-            if j <= 0: break;
+            if j <= 0:
+                break
             # if test_time.time() - start_time > 120:  # Break free if not there in 100 seconds
             #     log.debug("NOTE! Course did not settle in 2 minutes!!")
             #     break
         return test_time.time() - start_time
 
-    boat.heading = 0
-    boat.target_course = 100
-    log.debug(f"Testing hardover time. Starting at {boat.heading}, going to {boat.target_course}")
-    test_hard_over_time(boat)
-
-    boat.heading = 0
-    boat.target_course = 100
-    boat.rudder = 0
+    config = Config("../../configuration/config.yaml")
+    boat = BoatImpl(config)
+    boat.set_heading(0)
+    boat.set_target_course(100)
+    boat.set_rudder(0)
 
     pid = PID(config, time_fn=test_time.time)
-    pid.set_target_value(boat.target_course)
-    log.debug(f"Testing controller. Starting at {boat.heading}, going to {boat.target_course}")
+    pid.set_target_value(boat.get_target_course())
+    log.debug(f"Testing controller. Starting at {boat.get_heading()}, going to {boat.get_target_course()}")
     t = test_controller(boat, pid)
 
     time_limit = 16.5

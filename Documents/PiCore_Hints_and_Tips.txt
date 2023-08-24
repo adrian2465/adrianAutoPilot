@@ -7,7 +7,7 @@ You do not need to use filetool.sh to persist these changes - they will persist.
 
 =====
 HINT: To SSH to tc with unknown host/cert, use:
-ADDR="192.168.86.179"
+ADDR="192.168.86.31"
 echo "Use ~. to disconnect."
 echo "Using address $ADDR"
 ssh -o PubkeyAuthentication=no tc@$ADDR

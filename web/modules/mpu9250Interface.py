@@ -160,8 +160,9 @@ class mpu9250_interface(imu_interface):
         self._gyro_avg = [0] * 3
         self._accel_avg = [0] * 3
         self._temp_avg = 0
+        self._turn_rate_dps = 0
 
-        mpu = config.get_mpu()
+        mpu = config.mpu
         gyro = mpu['gyro']
         accel = mpu['accel']
         temp = mpu['temp']
@@ -232,7 +233,6 @@ class mpu9250_interface(imu_interface):
     @property
     def temp(self):
         return subtr(self._temp_avg, self.temp_bias)
-
 
 def get_interface(config, bus=1):
     return mpu9250_interface(config=config, bus=bus)

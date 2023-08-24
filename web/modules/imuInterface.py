@@ -24,6 +24,9 @@ class imu_interface(object):
         accel = self.accel
         return 180 - (atan2(accel[2], accel[0]) * (180/pi) + 90 + 360) % 360
 
+    def turn_rate_dps(self):
+        return self.gyro[2]
+
     @property
     def accel(self):
         """Return vector for acceleration along all 3 axes. Units = Gs  (9.8m/s/s = 1.0g)"""

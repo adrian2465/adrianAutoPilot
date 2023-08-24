@@ -23,12 +23,10 @@ class ArduinoSerialInterface(ArduinoInterface):
         self._serial_out.reset_output_buffer()
         print(f'INFO: __init__: {self._serial_out.port} Connected for sending commands at {str(self._serial_out.baudrate)}!')
 
-    @property
-    def debugging(self):
+    def is_debugging(self):
         return self._debugging
 
-    @debugging.setter
-    def debugging(self, tf):
+    def set_debugging(self, tf):
         self._debugging = tf
 
     # override
@@ -53,7 +51,7 @@ class ArduinoSerialInterface(ArduinoInterface):
                     while serial_in.in_waiting > 0:
                         message = serial_in.readline().decode('utf-8').strip()
                         if message != '':
-                            if self.debugging:
+                            if self.is_debugging():
                                 print(f'received: {message}')
                             from_arduino(interface=self, msg=message)
                 except ValueError:
@@ -70,7 +68,7 @@ class ArduinoSerialInterface(ArduinoInterface):
             print('ERROR: write: Port is not open: ' + self._usb)
             return
         try:
-            if self.debugging:
+            if self.is_debugging():
                 print(f'sending: "{msg}"')
             self._serial_out.write((msg + "\n").encode())
         except ValueError:
@@ -95,7 +93,7 @@ if __name__ == "__main__":
     time.sleep(2)  # Wait for monitor to start up.
 
     arduino.check_interval_s = 0.2  # TODO THROW EXCEPTION WHEN NOT STARTED
-    arduino.debugging = True
+    arduino.set_debugging(True)
     arduino.set_status_interval_ms(int(arduino.check_interval_s * 1000 / 2))
     arduino.get_rudder_limits = [-1, 1]  # TODO FIXME
 
