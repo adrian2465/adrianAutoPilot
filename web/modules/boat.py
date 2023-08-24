@@ -21,19 +21,19 @@ class Boat:
         self._heading = None
         self._course = None
         self._commanded_rudder = None
-        self._course_tolerance = 0.2
+        self._course_tolerance = 0.1
 
     @property
     def is_on_course(self):
         return abs(self._course - self._heading) <= self._course_tolerance
 
     @property
-    def course(self):
+    def target_course(self):
         """Desired course for aautopilot to steer"""
         return self._course
 
-    @course.setter
-    def course(self, course):
+    @target_course.setter
+    def target_course(self, course):
         self._course = course
 
     @property

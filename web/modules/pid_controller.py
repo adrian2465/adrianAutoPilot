@@ -139,7 +139,7 @@ if __name__ == "__main__":
         j = 1000
         log.debug("TIME, COURSE, HEADING, RUDDER, RUDDER_STRING")
         log.debug(f"{0:5.2f}, {boat.target_course:6.2f}, {boat.heading:6.2f}, {boat.rudder:4.2f}, {rudder_as_string(boat.rudder)} ")
-        while not (boat.is_on_course and boat.rudder < 0.01):
+        while not (boat.is_on_course and abs(boat.rudder) <= 0.01):
             boat.commanded_rudder = pid.output(boat.heading)
             # The following simulates what happens in the next time frame.
             test_time.sleep(interval)  # Simulation
