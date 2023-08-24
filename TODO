@@ -9,9 +9,7 @@ which were needed for pip-based installation of smbus (pip install smbus)
 o 2023-05-27 - Code-Review the places that use the Config object.  Overhaul list:
   - ./web/autopilotWebApp.py
   - ./web/modules/sensor.py
-  - ./web/modules/calibration/debugmpu.py
   - ./web/modules/calibration/mpu9360-calibration.py
-  - ./web/modules/vectormath.py
   - ./web/modules/brain.py
   - ./web/modules/imuInterface.py
   - ./web/modules/file_logger.py
@@ -19,6 +17,8 @@ o 2023-05-27 - Code-Review the places that use the Config object.  Overhaul list
   - ./web/modules/mpu9250Interface.py
   - ./testing/imuTestInterface.py
   - ./testing/arduinoFileInterface.py
+  - DONE ./web/modules/calibration/debugmpu.py
+  - DONE ./web/modules/vectormath.py
   - DONE ./testing/send_to_arduino.py
   - DONE ./testing/read_from_arduino.py
   - DONE ./web/modules/status.py
@@ -27,7 +27,7 @@ o 2023-05-27 - Code-Review the places that use the Config object.  Overhaul list
   - DONE ./web/modules/pid_controller.py
   - DONE ./web/modules/island_time.py
   - DONE ./web/modules/arduinoInterface.py
-  - DONE ./web/modules/test_boat.py
+  - DONE ./web/modules/test_boat.py  ## Test boat can get properties from local object, but real boat should read from sensor (heading, heel, ...) So, maybe revisit this.
   - DONE ./web/modules/boat.py
   - DONE ./web/modules/anglemath.py
 o 2023-08-24 - How will you translate rudder angle (-1 <= 0 <= 1) to motor speed and duration?  Figure the motor duration as a percentage of hard over angle vs rudder speed.
