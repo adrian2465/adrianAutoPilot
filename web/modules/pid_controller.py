@@ -30,50 +30,77 @@
 from anglemath import calculate_angle_difference
 from time import time as real_time
 from boat import rudder_as_string
+from config import Config
+
 
 class PID:
 
-    def __init__(self, gain, time_fn=real_time):
-        self._p_gain = gain[0]  # Tunable Proportional gain
-        self._i_gain = gain[1]  # Tunable Integral gain
-        self._d_gain = gain[2]  # Tunable Derivative gain
+    def __init__(self, config, time_fn=real_time):
+        self._gains = config.pid["gains"]["default"]
         self._prev_timestamp = 0
         self._time_fn = time_fn  # Supply island time to speed up testing
         self._prev_err = 0  # Previous error
-        self._p_val = 0  # P
-        self._i_val = 0  # I
-        self._d_val = 0  # D
+        self._val = [0] * 3
         self._err = None
 
     @property
     def p_gain(self):
-        return self._p_gain
+        return self._gains["P"]
 
     @property
     def i_gain(self):
-        return self._i_gain
+        return self._gains["I"]
 
     @property
     def d_gain(self):
-        return self._d_gain
+        return self._gains["D"]
+
+    @property
+    def p_val(self):
+        return self._val[0]
+
+    @p_val.setter
+    def p_val(self, v):
+        self._val[0] = v
+
+    @property
+    def i_val(self):
+        return self._val[1]
+
+    @i_val.setter
+    def i_val(self, v):
+        self._val[1] = v
+
+    @property
+    def d_val(self):
+        return self._val[2]
+
+    @d_val.setter
+    def d_val(self, v):
+        self._val[2] = v
 
     @property
     def err(self):
         return self._err
 
+    @err.setter
+    def err(self, v):
+        self._err = v
+
     def set_target_value(self, target_value):  # Desired value
-        self.target_value = target_value
+        log.debug(f"New target value is {target_value}")
+        self._target_value = target_value
         self._err = None
 
     def output(self, process_value):  # Process using PID algorithm
         dt = self._time_fn() - self._prev_timestamp
         self._prev_timestamp = self._time_fn()
-        self._err = calculate_angle_difference(self.target_value, process_value)
-        self._p_val = self.p_gain * self._err
-        self._i_val += self._err * self.i_gain * dt
-        self._d_val = self.d_gain * (self._prev_err - self._err) / dt
-        self._prev_err = self._err
-        rc = -(self._p_val + self._i_val + self._d_val) / 180
+        self.err = calculate_angle_difference(self._target_value, process_value)
+        self.p_val = self.p_gain * self.err
+        self.i_val += self.err * self.i_gain * dt
+        self.d_val = self.d_gain * (self._prev_err - self.err) / dt
+        self._prev_err = self.err
+        rc = -(self.p_val + self.i_val + self.d_val) / 180
         return 1 if rc > 1 else -1 if rc < -1 else rc  # Return desired correction.
 
 
@@ -84,15 +111,13 @@ if __name__ == "__main__":
     from testboat import BoatImpl
     from vectormath import moving_average_scalar
     from file_logger import logger, INFO, DEBUG
+    config = Config("../../configuration/config.yaml")
     boat = BoatImpl()
     log = logger(dest=None)
-    log.set_level(INFO)
+    log.set_level(DEBUG)
     test_time = island_time()
 
-    def test_hard_over_time():
-        global boat
-        boat.heading = 1
-        boat.course = 100
+    def test_hard_over_time(boat):
         start_time = test_time.time()
         interval = 0.5
         while boat.rudder < 1:
@@ -106,26 +131,22 @@ if __name__ == "__main__":
             raise Exception(f"Rudder hard-over took {duration} s and should have completed within {boat.hard_over_time} s")
         log.info(f"Hardover completed in {duration} s")
 
-
-    def test_controller(heading, course, gain):
-        global boat
-        boat.heading = heading
-        boat.course = course
-        pid = PID(gain, time_fn=test_time.time)
-        pid.set_target_value(boat.course)
-        log.debug(f"Starting run for H={boat.heading:5.2f} C={boat.course:6.2f} p={pid.p_gain:4.2f} i={pid.i_gain:4.2f} d={pid.d_gain:4.2f})")
+    def test_controller(boat, pid):
+        log.debug(f"Starting run for pid.p={pid.p_gain:4.2f} pid.i={pid.i_gain:4.2f} pid.d={pid.d_gain:4.2f})")
         start_time = test_time.time()
-        diff_avg = abs(calculate_angle_difference(boat.course, boat.heading))
+        diff_avg = abs(calculate_angle_difference(boat.target_course, boat.heading))
         interval = 0.5  # seconds between samples
         j = 1000
+        log.debug("TIME, COURSE, HEADING, RUDDER, RUDDER_STRING")
+        log.debug(f"{0:5.2f}, {boat.target_course:6.2f}, {boat.heading:6.2f}, {boat.rudder:4.2f}, {rudder_as_string(boat.rudder)} ")
         while not (boat.is_on_course and boat.rudder < 0.01):
             boat.commanded_rudder = pid.output(boat.heading)
             # The following simulates what happens in the next time frame.
             test_time.sleep(interval)  # Simulation
             # Boat Simulation code. Actual rudder and boat turn rates would be determined by sensor.
             boat.update(interval)
-            diff_avg = moving_average_scalar(diff_avg, abs(calculate_angle_difference(boat.course, boat.heading)), 4)
-            log.debug(f"T={test_time.time() - start_time} H={boat.heading:6.2f} {rudder_as_string(boat.rudder)} ")
+            diff_avg = moving_average_scalar(diff_avg, abs(calculate_angle_difference(boat.target_course, boat.heading)), 4)
+            log.debug(f"{test_time.time() - start_time:5.2f}, {boat.target_course:6.2f}, {boat.heading:6.2f}, {boat.rudder:4.2f}, {rudder_as_string(boat.rudder)} ")
             j -= 1
             if j <= 0: break;
             # if test_time.time() - start_time > 120:  # Break free if not there in 100 seconds
@@ -133,41 +154,21 @@ if __name__ == "__main__":
             #     break
         return test_time.time() - start_time
 
+    boat.heading = 0
+    boat.target_course = 100
+    log.debug(f"Testing hardover time. Starting at {boat.heading}, going to {boat.target_course}")
+    test_hard_over_time(boat)
 
-    test_hard_over_time()
+    boat.heading = 0
+    boat.target_course = 100
+    boat.rudder = 0
 
-    best_pid = None
-    best_t = None
-    best_p = 0
-    best_i = 0
-    best_d = 0
-    log.info("Looking for best p")
-    p = 0
-    while p <= 15:
-        t = test_controller(1, 100, [p, best_i, best_d])
-        if best_t is None or t < best_t:
-            best_p, best_t = p, t
-        p += 0.01
-    log.info(f"Best p is {best_p}. Looking for i...")
-    i = 0
-    best_t = None
-    while i <= 2:
-        t = test_controller(1, 100, [best_p, i, best_d])
-        if best_t is None or t < best_t:
-            best_i, best_t = i, t
-        i += 0.001
-    log.info(f"Best i is {best_i}. Looking for d...")
-    d = 0
-    best_t = None
-    while d <= .01:
-        t = test_controller(1, 100, [best_p, best_i, d])
-        if best_t is None or t < best_t:
-            best_d, best_t = d, t
-        d += 0.00001
-    best_pid = [best_p, best_i, best_d]
-    log.info(f"Best result for H=1, C=100 = {best_pid} in {best_t} s")
-    log.set_level(DEBUG)
-    t = test_controller(1, 100, best_pid)
-    if t > 15.5:
-        raise Exception(f"Failed time test. Boat correction time {t} exceeded 16 seconds")
-    log.info(f"Finished in {t} seconds. ")
+    pid = PID(config, time_fn=test_time.time)
+    pid.set_target_value(boat.target_course)
+    log.debug(f"Testing controller. Starting at {boat.heading}, going to {boat.target_course}")
+    t = test_controller(boat, pid)
+
+    time_limit = 16.5
+    if t > time_limit:
+        raise Exception(f"Failed time test. Boat correction time {t} exceeded {time_limit} seconds")
+    log.info(f"Course correction finished in {t} seconds. ")

@@ -5,21 +5,19 @@ import yaml
 class Config:
 
     def __init__(self, filename):
-        self._gains = None
-        self._boat_characteristics = None
         with open(filename, 'r') as stream:
             data = yaml.safe_load(stream)
-            self._boat_characteristics = data["boat"]
-            self._gains = data["gains"]
+            self._pid = data["pid"]
+            self._boat = data["boat"]
             self._mpu = data["mpu9250"]
 
     @property
-    def gains(self):
-        return self._gains
+    def pid(self):
+        return self._pid
 
     @property
     def boat(self):
-        return self._boat_characteristics
+        return self._boat
 
     @property
     def mpu(self):

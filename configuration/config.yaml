@@ -1,7 +1,7 @@
 # Adrian Vrouwenvelder
 # November 2022
 # April 2023
-brain:
+pid:
   gains:
     default:
       P: 8.170
