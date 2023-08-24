@@ -16,16 +16,24 @@ if __name__ == '__main__':
             exit(1)
         dev_arduino.reset_output_buffer()
         print(f'{dev_arduino.port} Connected!')
-        print('Commands:')
+        print('Commands (can be separated with semicolons):')
+        print('  sleep: (Not sent to arduino) - sleeps for 0.05s. Concatenate to extend sleep.')
         print('  cn: Clutch. n=0:off; n=1:on')
         print('  dn: Motor direction. n=0:neither; n=1:left; n=2:right')
         print('  snnn: Speed. nnn=000:off; nnn=255:max')
         print('  lnnnn: Left limit. 0000 <= nnnn <= 1023')
         print('  rnnnn: Right limit. 0000 <= nnnn <= 1023')
         print('  innnn: Status interval (ms). i0010 means 10ms. 1000 means 1s.')
+        print('e.g. d1;sleep;sleep;sleep;d0')
         try:
             while True:
-                dev_arduino.write((input("Enter command: ") + "\n").encode())
+                input_str = input("Enter command:")
+                cmds = input_str.split(";")
+                for cmd in cmds:
+                    if cmd.startswith("sleep"):
+                      time.sleep(0.05)
+                      continue
+                    dev_arduino.write((cmd + "\n").encode())
         except ValueError:
             print("Value error!")
             exit(1)
