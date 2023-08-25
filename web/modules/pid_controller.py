@@ -29,14 +29,15 @@
 # - d_gain = Pc/8
 from anglemath import calculate_angle_difference
 from time import time as real_time
-from boat import rudder_as_string
+from boat_interface import rudder_as_string
 from config import Config
 
 
 class PID:
 
-    def __init__(self, config, time_fn=real_time):
-        self._gains = config.pid["gains"]["default"]
+    def __init__(self, cfg, time_fn=real_time):
+        self._target_value = None
+        self._gains = cfg.pid["gains"]["default"]
         self._prev_timestamp = 0
         self._time_fn = time_fn  # Supply island time to speed up testing
         self._prev_err = 0  # Previous error
@@ -55,36 +56,28 @@ class PID:
     def d_gain(self):
         return self._gains["D"]
 
-    @property
     def p_val(self):
         return self._val[0]
 
-    @p_val.setter
-    def p_val(self, v):
+    def set_p_val(self, v):
         self._val[0] = v
 
-    @property
     def i_val(self):
         return self._val[1]
 
-    @i_val.setter
-    def i_val(self, v):
+    def set_i_val(self, v):
         self._val[1] = v
 
-    @property
     def d_val(self):
         return self._val[2]
 
-    @d_val.setter
-    def d_val(self, v):
+    def set_d_val(self, v):
         self._val[2] = v
 
-    @property
     def err(self):
         return self._err
 
-    @err.setter
-    def err(self, v):
+    def set_err(self, v):
         self._err = v
 
     def set_target_value(self, target_value):  # Desired value
@@ -95,20 +88,19 @@ class PID:
     def output(self, process_value):  # Process using PID algorithm
         dt = self._time_fn() - self._prev_timestamp
         self._prev_timestamp = self._time_fn()
-        self.err = calculate_angle_difference(self._target_value, process_value)
-        self.p_val = self.p_gain * self.err
-        self.i_val += self.err * self.i_gain * dt
-        self.d_val = self.d_gain * (self._prev_err - self.err) / dt
-        self._prev_err = self.err
-        rc = -(self.p_val + self.i_val + self.d_val) / 180
+        self.set_err(calculate_angle_difference(self._target_value, process_value))
+        self.set_p_val(self.p_gain * self.err())
+        self.set_i_val(self.i_val() + self.err() * self.i_gain * dt)
+        self.set_d_val(self.d_gain * (self._prev_err - self.err()) / dt)
+        self._prev_err = self.err()
+        rc = -(self.p_val() + self.i_val() + self.d_val()) / 180
         return 1 if rc > 1 else -1 if rc < -1 else rc  # Return desired correction.
-
 
 
 # For testing
 if __name__ == "__main__":
     from island_time import time as island_time
-    from test_boat import BoatImpl
+    from boat_simulator import BoatImpl
     from vectormath import moving_average_scalar
     from file_logger import logger, INFO, DEBUG
 
@@ -135,21 +127,18 @@ if __name__ == "__main__":
             j -= 1
             if j <= 0:
                 break
-            # if test_time.time() - start_time > 120:  # Break free if not there in 100 seconds
-            #     log.debug("NOTE! Course did not settle in 2 minutes!!")
-            #     break
         return test_time.time() - start_time
 
     config = Config("../../configuration/config.yaml")
-    boat = BoatImpl(config)
-    boat.set_heading(0)
-    boat.set_target_course(100)
-    boat.set_rudder(0)
+    test_boat = BoatImpl(config)
+    test_boat.set_heading(0)
+    test_boat.set_target_course(100)
+    test_boat.set_rudder(0)
 
     pid = PID(config, time_fn=test_time.time)
-    pid.set_target_value(boat.get_target_course())
-    log.debug(f"Testing controller. Starting at {boat.get_heading()}, going to {boat.get_target_course()}")
-    t = test_controller(boat, pid)
+    pid.set_target_value(test_boat.get_target_course())
+    log.debug(f"Testing controller. Starting at {test_boat.get_heading()}, going to {test_boat.get_target_course()}")
+    t = test_controller(test_boat, pid)
 
     time_limit = 16.5
     if t > time_limit:

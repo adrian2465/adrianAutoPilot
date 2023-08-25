@@ -1,7 +1,8 @@
 import threading
 from math import atan2, pi
 
-class imu_interface(object):
+
+class ImuInterface(object):
     def __init__(self):
         self._monitor_thread = threading.Thread(target=self.monitor)
         self._monitor_thread.daemon = True
@@ -9,40 +10,36 @@ class imu_interface(object):
         self._is_running = True
 
     def start(self):
-        self._running = True
+        self._is_running = True
         self._monitor_thread.start()
 
     def stop(self):
-        self._running = False
+        self._is_running = False
         print("INFO: IMU stopped")
 
     def compass_deg(self):
-        mag = self.mag
+        mag = self.mag()
         return (atan2(mag[0], mag[1]) * (180/pi) + 90 + 360) % 360
 
     def heel_deg(self):
-        accel = self.accel
+        accel = self.accel()
         return 180 - (atan2(accel[2], accel[0]) * (180/pi) + 90 + 360) % 360
 
     def turn_rate_dps(self):
-        return self.gyro[2]
+        return self.gyro()[2]
 
-    @property
     def accel(self):
         """Return vector for acceleration along all 3 axes. Units = Gs  (9.8m/s/s = 1.0g)"""
         pass  # Override.
 
-    @property
     def gyro(self):
         """Return vector for angular velocity for all 3 axes. Units = degrees per Second."""
         pass  # Override.
 
-    @property
     def mag(self):
         """Return vector for magnetometer for all 3 axes. Units = microteslas"""
         pass  # Override.
 
-    @property
     def temp(self):
         """Return value for chip (roughly ambient) temperature in degrees Celsius."""
         pass  # Override.
@@ -50,11 +47,9 @@ class imu_interface(object):
     def monitor(self):
         pass
 
-    @property
     def is_running(self):
         return self._is_running
 
-    @property
     def check_interval(self):
         return self._check_interval
 

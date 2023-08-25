@@ -1,65 +1,41 @@
-def rudder_as_string(rudder):
-    """
-    Boat rudder angle displayed as:
-       '      ----      ' for centered rudder,
-       '<==== 1.00      ' for hard over port rudder,
-       '      1.00 ====>' for hard over starboard rudder
-    Value displayed ranges from 0.01 to 1.00
-    """
-    rudder_tolerance = 0.01
-    num_dashes = int(rudder * 4)
-    blanks = ' ' * (4-num_dashes)
-    dashes = '=' * num_dashes
-    return   f"{blanks}<{dashes} {-rudder:1.2f}     " if rudder < -rudder_tolerance \
-        else f"     {rudder:1.2f} {dashes}>{blanks}" if rudder > rudder_tolerance \
-        else  "     ----      "
+# Author: Adrian Vrouwenvelder  August 2023
+
+from boat_interface import BoatInterface
+from arduinoInterface import ArduinoInterface
+from modules.mpu9250Interface import get_interface as get_mpu_interface
+from config import Config
 
 
-class Boat:
+class BoatImpl(BoatInterface):
 
     def __init__(self, config):
-        self._cfg = config.boat
-        self._heading = None
-        self._course = None
-        self._commanded_rudder = None
-        self._course_tolerance = self._cfg['course_tolerance_deg']
-        self._rudder_hardover_time_s = self._cfg['rudder_hardover_time_s']
-        self._max_boat_turn_rate_dps = self._cfg['boat_turn_rate_dps']
-        self._heading = None
-        self._heel = None
-        self._rudder = None
-
-    def get_target_course(self):
-        """Desired course for aautopilot to steer"""
-        return self._course
-
-    def set_target_course(self, course):
-        self._course = course
-
-    def get_commanded_rudder(self):
-        """Desired rudder angle. Range is 0 <= commanded_rudder <= 1"""
-        return self._commanded_rudder
-
-    def set_commanded_rudder(self, commanded_rudder):
-        self._commanded_rudder = commanded_rudder
-
-    def get_hard_over_time_s(self):
-        return self._rudder_hardover_time_s
-
-    def get_max_boat_turn_rate_dps(self):
-        return self._max_boat_turn_rate_dps
-
-    def is_on_course(self):
-        return abs(self._course - self._heading) <= self._course_tolerance
+        super().__init__(config)
+        self._imu_interface = get_mpu_interface(config)
+        self._arduinoInterface = ArduinoInterface()
+        self._imu_interface.start()
 
     def get_heading(self):
         """Boat's current heading."""
-        return self._heading
+        return self._imu_interface.compass_deg()
 
     def get_heel(self):
         """Angle of heel in degrees. 0 = level"""
-        return self._heel
+        return self._sensor.heel_angle_deg()
 
     def get_rudder(self):
         """Returns normalized rudder (-1 for full port, 1 for full starboard, 0 for centered)"""
-        return self._rudder
+        return self._arduinoInterface.get_rudder()
+
+
+if __name__ == "__main__":
+    from file_logger import logger, DEBUG
+    from time import sleep
+    log = logger(dest=None)
+    log.set_level(DEBUG)
+
+    log.info("Hit ^C to terminate")
+    boat = BoatImpl(Config("../../configuration/config.yaml"))
+
+    while True:
+        log.info(f"Heading is {boat.get_heading()}, Heel is {boat.get_heel()}, Rudder is {boat.get_rudder()}")
+        sleep(1)

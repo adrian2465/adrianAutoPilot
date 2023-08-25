@@ -26,6 +26,7 @@ def calibrate(mpu, retry=3):
             raise err
     mpu.configure()
 
+
 if __name__ == "__main__":
     mpu = MPU9250(
         address_ak=AK8963_ADDRESS,

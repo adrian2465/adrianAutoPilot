@@ -1,4 +1,4 @@
-# Adrian Vrouwenvelder
+# Adrian Vrouwenvelder  August 2023
 
 from modules.arduinoInterface import ArduinoInterface, from_arduino
 import time
@@ -45,7 +45,7 @@ class ArduinoSerialInterface(ArduinoInterface):
                 print("WARNING: serial_monitor: Not running.")
                 return
             print(f'INFO: serial_monitor: {serial_in.port} Connected for monitoring at {str(serial_in.baudrate)}!')
-            while (self.is_running):
+            while self.is_running:
                 time.sleep(self.check_interval_s)
                 try:
                     while serial_in.in_waiting > 0:
@@ -82,6 +82,7 @@ class ArduinoSerialInterface(ArduinoInterface):
 # override
 def get_interface() -> ArduinoInterface:
     return ArduinoSerialInterface()
+
 
 # Integration test. Send commands to Arduino and ensure it performs
 # as expected

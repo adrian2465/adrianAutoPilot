@@ -1,4 +1,3 @@
-
 def moving_average_vector(average_vector, val_vector, window_size):
     rc_vector = [0, 0, 0]
     for i in range(0, 3):
@@ -23,6 +22,7 @@ def vector_from_data(data, offset, conversion_factor, c_short_fn):
             c_short_fn(data[2 + offset], data[3 + offset]) * conversion_factor,
             c_short_fn(data[4 + offset], data[5 + offset]) * conversion_factor]
 
+
 # vop = vector operation. fun defines the operation.
 def v_op(fun, vector1, vector2):
     if len(vector1) != len(vector2):
@@ -31,4 +31,3 @@ def v_op(fun, vector1, vector2):
     for i, d in enumerate(vector1):
         result_vector[i] = fun(d, vector2[i])
     return result_vector
-

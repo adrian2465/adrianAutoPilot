@@ -8,15 +8,13 @@ which were needed for pip-based installation of smbus (pip install smbus)
 
 o 2023-05-27 - Code-Review the places that use the Config object.  Overhaul list:
   - ./web/autopilotWebApp.py
-  - ./web/modules/sensor.py
-  - ./web/modules/calibration/mpu9360-calibration.py
   - ./web/modules/brain.py
-  - ./web/modules/imuInterface.py
-  - ./web/modules/file_logger.py
-  - ./web/modules/arduinoSerialInterface.py
-  - ./web/modules/mpu9250Interface.py
-  - ./testing/imuTestInterface.py
-  - ./testing/arduinoFileInterface.py
+  - DONE (DELETED) ./web/modules/sensor.py
+  - SKIP (DO WE NEED THIS?) ./web/modules/calibration/mpu9360-calibration.py
+  - SKIP ./web/modules/imuInterface.py
+  - SKIP ./web/modules/file_logger.py
+  - DONE ./web/modules/mpu9250Interface.py
+  - DONE (DELETED) ./testing/imuTestInterface.py
   - DONE ./web/modules/calibration/debugmpu.py
   - DONE ./web/modules/vectormath.py
   - DONE ./testing/send_to_arduino.py
@@ -27,6 +25,8 @@ o 2023-05-27 - Code-Review the places that use the Config object.  Overhaul list
   - DONE ./web/modules/pid_controller.py
   - DONE ./web/modules/island_time.py
   - DONE ./web/modules/arduinoInterface.py
+  - DONE ./web/modules/arduinoSerialInterface.py
+  - DONE ./testing/arduinoFileInterface.py
   - DONE ./web/modules/test_boat.py  ## Test boat can get properties from local object, but real boat should read from sensor (heading, heel, ...) So, maybe revisit this.
   - DONE ./web/modules/boat.py
   - DONE ./web/modules/anglemath.py

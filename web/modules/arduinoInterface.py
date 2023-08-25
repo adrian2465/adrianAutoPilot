@@ -120,7 +120,7 @@ class ArduinoInterface():
 
     def get_rudder_limits(self):
         """
-        At tuple (port, stbd) representing Port and Starboard Rudder limits.
+        A tuple (port, stbd) representing Port and Starboard Rudder limits.
         Each limit is normalized to range from -1 <= limit <= 1.
         """
         return self._port_limit, self._stbd_limit

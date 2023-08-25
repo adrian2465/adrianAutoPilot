@@ -1,14 +1,27 @@
 from anglemath import normalize_angle
-from boat import Boat
+from boat_interface import BoatInterface
 from config import Config
 
-class BoatImpl(Boat):
+
+class BoatImpl(BoatInterface):
 
     def __init__(self, config):
         super().__init__(config)
         self._heading = 0
         self._heel = 0
         self._rudder = 0
+
+    def get_heading(self):
+        """Boat's current heading."""
+        return self._heading
+
+    def get_heel(self):
+        """Angle of heel in degrees. 0 = level"""
+        return self._heel
+
+    def get_rudder(self):
+        """Returns normalized rudder (-1 for full port, 1 for full starboard, 0 for centered)"""
+        return self._rudder
 
     def set_heading(self, heading):
         self._heading = heading
@@ -32,10 +45,12 @@ class BoatImpl(Boat):
             normalize_angle(self.get_heading() + self.get_max_boat_turn_rate_dps() * elapsed_time * self.get_rudder()))
 
 # For testing
+
+
 if __name__ == "__main__":
     from island_time import time as island_time
-    from test_boat import BoatImpl
-    from file_logger import logger, INFO, DEBUG
+    from boat_simulator import BoatImpl
+    from file_logger import logger, DEBUG
 
     log = logger(dest=None)
     log.set_level(DEBUG)
@@ -55,8 +70,8 @@ if __name__ == "__main__":
             raise Exception(f"Rudder hard-over took {duration} s and should have completed within {boat.get_hard_over_time_s()} s")
         log.info(f"Hardover completed in {duration} s")
 
-    boat = BoatImpl(Config("../../configuration/config.yaml"))
-    boat.set_heading(0)
-    boat.set_target_course(100)
-    log.debug(f"Testing hardover time. Starting at {boat.get_heading()}, going to {boat.get_target_course()}")
-    test_hard_over_time(boat)
+    test_boat = BoatImpl(Config("../../configuration/config.yaml"))
+    test_boat.set_heading(0)
+    test_boat.set_target_course(100)
+    log.debug(f"Testing hardover time. Starting at {test_boat.get_heading()}, going to {test_boat.get_target_course()}")
+    test_hard_over_time(test_boat)

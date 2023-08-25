@@ -11,6 +11,7 @@ INFO = 2
 DEBUG = 3
 PI_CONSOLE = '/dev/tty0'
 
+
 class logger:
 
     def __init__(self, lvl=INFO, dest=None):
