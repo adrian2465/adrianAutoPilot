@@ -34,7 +34,7 @@ from vectormath import v_op
 #
 # 0x0c will not appear until you enable it (this code enables it).
 #
-# This code should be run as root to access bus(1)
+# This code should be run as root to access bus(1). See run_tests.sh
 
 ############################################################
 # --- MPU9250 -----------------

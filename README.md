@@ -60,7 +60,7 @@ The hardware for this project consists of:
 
 
 ## Connections to the IBT-2 board:
-======================================================================
+```
 IBT-2     Arduino
 pin desc  pin - MODE
 --------  ---------------------------------------
@@ -77,6 +77,10 @@ IBT-2 pin 2 (LPWM) to Arduino pin 6(PWM)
 IBT-2 pins 3 (R_EN), 4 (L_EN), 7 (VCC) to +5V (e.g. Arduino 5v pin)
 IBT-2 pin 8 (GND) to Arduino GND
 IBT-2 pins 5 (R_IS) and 6 (L_IS) not connected
+```
+
+## Calibration of the IMU
+To calibrate the IMU (get bias values), run mpu9250-calibration.py
 
 ## Author
 ```

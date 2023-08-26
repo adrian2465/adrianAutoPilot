@@ -19,7 +19,7 @@ boat:
   course_tolerance_deg: 0.1
 
 mpu9250:
-  # The following were measured on 08-Apr-2023 by mpu9360-calibration.py, which uses jmdev's MPU library
+  # The following were measured on 08-Apr-2023 by mpu9250-calibration.py, which uses jmdev's MPU library
   gyro: # Gyro units = degrees per second
     bias: [ -2.194, 0.670, 0.047]
     moving_average_window_size: 5

@@ -1,3 +1,11 @@
+NOTES:
+
+2023-08-26 11:13 - Tested the following on the RPi0:
+ - mpu9250Interface.py
+ - arduinoSerialInterface.py
+ - send_to_arduino.py
+ - read_from_arduino.py
+
 TODOs
 o Uninstall: 
   * make
