@@ -29,8 +29,12 @@
 # - d_gain = Pc/8
 from anglemath import calculate_angle_difference
 from time import time as real_time
-from boat_interface import rudder_as_string
+from boat_interface import rudder_as_string, BoatInterface
 from config import Config
+from file_logger import logger, INFO, DEBUG
+
+log = logger(dest=None)
+log.set_level(DEBUG)
 
 
 class PID:
@@ -85,16 +89,18 @@ class PID:
         self._target_value = target_value
         self._err = None
 
-    def output(self, process_value):  # Process using PID algorithm
+    def set_commanded_rudder(self, boat: BoatInterface):  # Process using PID algorithm
         dt = self._time_fn() - self._prev_timestamp
         self._prev_timestamp = self._time_fn()
-        self.set_err(calculate_angle_difference(self._target_value, process_value))
+        self.set_err(calculate_angle_difference(boat.target_course(), boat.heading()))
         self.set_p_val(self.p_gain * self.err())
         self.set_i_val(self.i_val() + self.err() * self.i_gain * dt)
         self.set_d_val(self.d_gain * (self._prev_err - self.err()) / dt)
         self._prev_err = self.err()
         rc = -(self.p_val() + self.i_val() + self.d_val()) / 180
-        return 1 if rc > 1 else -1 if rc < -1 else rc  # Return desired correction.
+        commanded_rudder = 1 if rc > 1 else -1 if rc < -1 else rc  # Return desired correction.
+        log.debug(f"hdg={boat.heading()} - tgt={boat.target_course()} => rdr={commanded_rudder}")
+        boat.set_commanded_rudder(commanded_rudder)
 
 
 # For testing
@@ -102,28 +108,26 @@ if __name__ == "__main__":
     from island_time import time as island_time
     from boat_simulator import BoatImpl
     from vectormath import moving_average_scalar
-    from file_logger import logger, INFO, DEBUG
 
-    log = logger(dest=None)
-    log.set_level(DEBUG)
     test_time = island_time()
 
     def test_controller(boat, pid):
         log.debug(f"Starting run for pid.p={pid.p_gain:4.2f} pid.i={pid.i_gain:4.2f} pid.d={pid.d_gain:4.2f})")
         start_time = test_time.time()
-        diff_avg = abs(calculate_angle_difference(boat.get_target_course(), boat.get_heading()))
+        diff_avg = abs(calculate_angle_difference(boat.target_course(), boat.heading()))
         interval = 0.5  # seconds between samples
         j = 1000
         log.debug("TIME, COURSE, HEADING, RUDDER, RUDDER_STRING")
-        log.debug(f"{0:5.2f}, {boat.get_target_course():6.2f}, {boat.get_heading():6.2f}, {boat.get_rudder():4.2f}, {rudder_as_string(boat.get_rudder())} ")
-        while not (boat.is_on_course() and abs(boat.get_rudder()) <= 0.01):
-            boat.set_commanded_rudder(pid.output(boat.get_heading()))
+        log.debug(f"{0:5.2f}, {boat.target_course():6.2f}, {boat.heading():6.2f}, {boat.rudder():4.2f}, {rudder_as_string(boat.rudder())} ")
+        while not (boat.is_on_course() and abs(boat.rudder()) <= 0.01):
+            pid.set_commanded_rudder(boat)
+
             # The following simulates what happens in the next time frame.
             test_time.sleep(interval)  # Simulation
             # Boat Simulation code. Actual rudder and boat turn rates would be determined by sensor.
             boat.update(interval)
-            diff_avg = moving_average_scalar(diff_avg, abs(calculate_angle_difference(boat.get_target_course(), boat.get_heading())), 4)
-            log.debug(f"{test_time.time() - start_time:5.2f}, {boat.get_target_course():6.2f}, {boat.get_heading():6.2f}, {boat.get_rudder():4.2f}, {rudder_as_string(boat.get_rudder())} ")
+            diff_avg = moving_average_scalar(diff_avg, abs(calculate_angle_difference(boat.target_course(), boat.heading())), 4)
+            log.debug(f"{test_time.time() - start_time:5.2f}, {boat.target_course():6.2f}, {boat.heading():6.2f}, {boat.rudder():4.2f}, {rudder_as_string(boat.rudder())} ")
             j -= 1
             if j <= 0:
                 break
@@ -136,8 +140,8 @@ if __name__ == "__main__":
     test_boat.set_rudder(0)
 
     pid = PID(config, time_fn=test_time.time)
-    pid.set_target_value(test_boat.get_target_course())
-    log.debug(f"Testing controller. Starting at {test_boat.get_heading()}, going to {test_boat.get_target_course()}")
+    pid.set_target_value(test_boat.target_course())
+    log.debug(f"Testing controller. Starting at {test_boat.heading()}, going to {test_boat.target_course()}")
     t = test_controller(test_boat, pid)
 
     time_limit = 16.5

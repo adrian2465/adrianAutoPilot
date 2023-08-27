@@ -15,7 +15,9 @@ boat:
   boat_turn_rate_dps: 10.0
   # Sampling interval in ms
   sampling_interval: 100
-
+  # Rudder tolerance = how far off can rudder be the desired angle before actuator corrects
+  rudder_tolerance: 0.01
+  # Course tolerance = How far off can course be before AP action is taken
   course_tolerance_deg: 0.1
 
 mpu9250:

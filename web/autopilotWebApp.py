@@ -3,7 +3,7 @@
 ## March 2023
 from flask import Flask, jsonify, render_template
 import logging
-from modules.brain import getInstance as get_brain
+from modules.brain import get_instance as get_brain
 from modules.status import DISABLED as STATUS_DISABLED, ENABLED as STATUS_ENABLED
 from config import Config
 
@@ -27,10 +27,10 @@ def index():
 def set_status(newStatus: str):
     global brain
     if newStatus == 'enable':
-        brain.set_status(STATUS_ENABLED)
+        brain.set_clutch(STATUS_ENABLED)
         brain.set_course(brain.heading())
     else:
-        brain.set_status(STATUS_DISABLED)
+        brain.set_clutch(STATUS_DISABLED)
     return ""
 
 @app.route("/get_course")
@@ -47,7 +47,7 @@ def get_heading():
 @app.route("/get_heel")
 def get_heel():
     global brain
-    heel = brain.get_heel()
+    heel = brain.heel()
     heel_str = "LEVEL"
     if heel >= 1.5:
         heel_str = f'{heel:03.0f} STBD'
@@ -70,13 +70,13 @@ def get_messages():
 def get_interface_params():
     global brain
     interface = brain.get_arduino_interface()
-    port_limit, stbd_limit = interface.get_rudder_limits()
-    return jsonify(clutch_status=interface.get_status(),
+    port_limit, stbd_limit = interface.rudder_limits()
+    return jsonify(clutch_status=interface.clutch(),
                    starboard_limit=interface.get_stbd_limit(),
                    port_limit=port_limit,
                    motor_speed=stbd_limit,
                    motor_direction=interface.get_motor_direction(),
-                   rudder_position=interface.get_rudder())
+                   rudder_position=interface.rudder())
 
 if __name__ == "__main__":
     try:

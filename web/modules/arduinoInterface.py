@@ -1,10 +1,10 @@
 # Adrian Vrouwenvelder
 
 import threading
-from file_logger import logger, INFO
+from file_logger import logger, DEBUG
 
 _log = logger(dest=None)
-_log.set_level(INFO)
+_log.set_level(DEBUG)
 
 
 def _rudder_val_from_arduino(v):
@@ -48,7 +48,7 @@ def _motor_to_arduino(v):
 
 # Called asynchronously from ArduinoSerialInterface -- signal from arduino
 def from_arduino(interface, msg):
-    _log.debug(f"Processing msg={msg}")
+    _log.debug(f"ArduinoInterface ({interface}) Processing msg={msg}")
     if msg.startswith('m='):  # Text message
         interface._messages = msg[2:]
     elif msg.startswith('r='):  # Right limit
@@ -62,6 +62,7 @@ def from_arduino(interface, msg):
         interface._rudder_fault = 1 if v == 2 else -1 if v == 1 else 0
     elif msg.startswith('s='):  # Motor speed
         interface._motor_speed = _motor_from_arduino(int(msg[2:]))
+        _log.debug(f"Interface changing motor speed to {interface._motor_speed}")
     elif msg.startswith('d='):  # Motor direction
         interface._direction = -1 if int(msg[2:]) == 1 else 1 if int(msg[2:]) == 2 else 0
     elif msg.startswith('c='):  # Clutch disposition
@@ -155,8 +156,7 @@ class ArduinoInterface:
         """
         Motor Speed: -1 <= speed <= 1.  -1 is to port. 1 is to starboard.
         """
-        return self._direction
-        # return self._motor_speed * self._direction # For variable-voltage motors
+        return self._motor_speed * self._direction # For variable-voltage motors
 
     def set_motor_speed(self, motor_speed):
         """

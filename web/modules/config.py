@@ -2,6 +2,7 @@
 # April 9, 2023
 import yaml
 
+
 class Config:
 
     def __init__(self, filename):

@@ -2,105 +2,94 @@
 ## December 1, 2022
 ## March 2023
 ## April 2023
-
-from modules.direction import normalize
-from modules.sensor import Sensor
-from modules.status import DISABLED as STATUS_DISABLED, ENABLED as STATUS_ENABLED
-
-from modules.arduinoInterface import ArduinoInterface
-from modules.arduinoSerialInterface import get_interface as getArduinoInterface
+from arduinoInterface import ArduinoInterface
+from boat_interface import BoatInterface
+from config import Config
 
 import threading
 import time
 from pid_controller import PID
+from file_logger import logger, INFO, DEBUG
 
 class Brain:
 
-    def __init__(self, config):
-        self._course = 0
-        self._sensor = Sensor(config)
-        self._arduino_interface: ArduinoInterface = None
+    def __init__(self, arduino_interface: ArduinoInterface, cfg: Config, boat: BoatInterface):
+        self._boat = boat
+        self._arduino_interface = arduino_interface
         self._brain_thread = threading.Thread(target=self.daemon)
         self._brain_thread.daemon = True
-        self._check_interval = 1.0/60  # NOTE: IMU data refresh rate is 400kHz on i2c interface (so smallest interval = 1/400000)
-        self._is_running = True
-        self._config = config
-        self._course_difference_theshold = 2  # TODO Make this adjustable based on sea state
-        self._controller = PID(self.config.get_P_gain(), self.config.get_I_gain(), self.config.get_D_gain(), self.config.get_sampling_interval_ms())
-
-    def get_messages(self):
-        return self._arduino_interface.get_message()
-
-    def set_arduino_interface(self, interface: ArduinoInterface):
-        self._arduino_interface = interface
-
-    def get_arduino_interface(self) -> ArduinoInterface:
-        return self._arduino_interface
-
-    def set_course(self, course: int) -> int:
-        self._course = normalize(course)
-
-    def get_course(self) -> int:
-        return self._course
-
-    def get_heading(self) -> int:
-        return self._sensor.heading()
-
-    def get_heel(self) -> int:
-        return self._sensor.heel_angle_deg()
-
-    def set_status(self, status):
-        self._arduino_interface.set_status(1 if status == STATUS_ENABLED else 0)
-
-    def get_status(self) -> str:
-        return STATUS_ENABLED if self._arduino_interface.get_status() == 1 else STATUS_DISABLED
-
-    def adjust_course(self, delta: int) -> int:
-        self._course = normalize(self._course + delta)
-        self.controller.set_target_value(self._course)  ## TODO
+        self._boat_sampling_interval = int(cfg.boat["sampling_interval"])
+        self._stop_requested = False
+        self._controller = PID(cfg)
+        self._rudder_tolerance = int(cfg.boat["rudder_tolerance"])
 
     def start(self):
-        self._running = True
         self._brain_thread.start()
+        self._arduino_interface.start()  # Create monitor and writer.
 
     def stop(self):
-       self._running = False
-       self._arduino_interface.stop()
-       print("INFO: Brain stopped")
+        self._stop_requested = True
+        log.info("Brain stop requested")
 
     def daemon(self):
-        print("INFO: Brain running")
-        while (self._is_running):
-            ##########################  FIX THIS vvvv
-            if self._arduino_interface.get_status() == 1:
-                rudder_adjustment = self.controller.output(self, self.get_heading())
-                # TODO Fix controller references
-                # You just got through doing a major refactor of the interface. You need to make sure it's
-                # provisioned with a sensor, and that all the calls still compile (because you changed them
-                # to @properties.  So, still a lot of work to do.
-                self._arduino_interface.set_motor_direction(1 if rudder_adjustment > 0 else -1)
-                self._arduino_interface.set_motor_speed(abs(rudder_adjustment))
-                #  boat.request_rudder_angle(self.controller.compute_output(process_value=boat.sensor.get_heading()))
-                # timestamp = time.time() - start_time
+        # Brain should check on course, heading, and rudder, and compute a new commanded rudder based on that.
+        # Brain also talks to the arduino (which is the hydraulic ram actuator) to effectuate changes
+        log.info("Brain started")
+        while not self._stop_requested:
+            self._controller.set_commanded_rudder(self._boat)
+            desired_pump_motor_speed = 1 if self._boat.commanded_rudder() > 0 else -1
+            desired_and_actual_pump_motor_same_direction = desired_pump_motor_speed == self._arduino_interface.motor_speed()
+            if self._arduino_interface.clutch() == 0 \
+                    or abs(self._boat.rudder() - self._boat.commanded_rudder()) <= self._rudder_tolerance:
+                # Stop motor if it's running but either the clutch is off or the rudder is where we want it.
+                # The motor should be stopped if the clutch is off.
+                if self._arduino_interface.motor_speed() != 0:
+                    log.debug(f"Motor is being stopped due to {'clutch off' if self._arduino_interface.clutch() == 0 else 'rudder on station'}")
+                    self._arduino_interface.set_motor_speed(0)
+            else:
+                # Clutch is on and boat is off course. Set pump motor direction according to need
+                if self._arduino_interface.motor_speed() != 0:
+                    # Pump motor is already running.
+                    if desired_and_actual_pump_motor_same_direction:
+                        log.debug("Motor is already spinning in right direction")  # Motor is already running in the right direction, so leave it alone.
+                    else:
+                        # Motor is running, but in the wrong direction. Stop it. Start it again next loop.
+                        log.debug("Motor is spinning, but in wrong direction. Changing...")
+                        self._arduino_interface.set_motor_speed(0)
+                else:
+                    # Motor is stopped, but needs to be running.
+                    log.debug(f"arduinoInterface = {self._arduino_interface}")
+                    log.debug(f"Motor (currently at {self._arduino_interface.motor_speed()}) is being set to spin in direction {desired_pump_motor_speed}")
+                    self._arduino_interface.set_motor_speed(desired_pump_motor_speed)
+            time.sleep(self._boat_sampling_interval/1000)
 
-            time.sleep(0.1)
-        ##########################  FIX THIS ^^^
-        print("INFO: Brain exited")
-
-def getInstance(config):
-    b = Brain(config)
-    arduino_interface = getArduinoInterface()
-    b.set_arduino_interface(arduino_interface)
-    arduino_interface.start()  # Create monitor and writer.
-    return b
+        log.info("Brain stopped")
 
 
 if __name__ == "__main__":
-    brain = getInstance()
-    i = 0
-    print("INFO: echo messages to /tmp/fromArduino.txt to simulate sending messages from Arduino")
-    while True:
-        i = i + 1
-        print(f"Brain cycle {i}")
-        print(f"messages {brain.get_messages()}")
-        time.sleep(5)
+    from boat_simulator import BoatImpl
+    from arduinoFileInterface import get_interface as get_arduino_interface
+    log = logger(dest=None)
+    log.set_level(DEBUG)
+    config = Config("../../configuration/config.yaml")
+    test_boat = BoatImpl(config)
+    test_boat.set_target_course(10)
+    arduino_interface = get_arduino_interface()
+    log.debug(f"arduinoInterface in brain is {arduino_interface}")
+    brain = Brain(arduino_interface, config, test_boat)
+    brain._boat_sampling_interval = 1000
+    brain.start()
+    ## LEFT OFF HERE 20230827-1243. See 'receive_status_from_arduino.sh'
+    ## Next to do, interface the brain test code with the simulated boat rudder to make course correction, and then
+    ## provide a way to enter the heading into the brain to let it know when it's done (again, simulated boat).
+    ## At that point, it should be possible to poke different values into the brain in for course course updates and
+    ## have it respond accordingly.  Or, have it drift off course with heading, and watch it respond.
+
+    try:
+        log.info("ctrl-C to stop")
+        while True:
+            time.sleep(1)
+
+    except KeyboardInterrupt:
+        brain.stop()
+        log.info('Bye')

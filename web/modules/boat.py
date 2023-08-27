@@ -10,21 +10,27 @@ class BoatImpl(BoatInterface):
 
     def __init__(self, config):
         super().__init__(config)
-        self._imu_interface = get_mpu_interface(config)
-        self._arduinoInterface = ArduinoInterface()
-        self._imu_interface.start()
+        self._imu = get_mpu_interface(config)
+        self._actuator = ArduinoInterface()
+        self._imu.start()
 
-    def get_heading(self):
+    def imu(self):
+        return self._imu
+
+    def actuator(self):
+        return self._actuator
+
+    def heading(self):
         """Boat's current heading."""
-        return self._imu_interface.compass_deg()
+        return self._imu.compass_deg()
 
-    def get_heel(self):
+    def heel(self):
         """Angle of heel in degrees. 0 = level"""
-        return self._sensor.heel_angle_deg()
+        return self._imu.heel_deg()
 
-    def get_rudder(self):
+    def rudder(self):
         """Returns normalized rudder (-1 for full port, 1 for full starboard, 0 for centered)"""
-        return self._arduinoInterface.get_rudder()
+        return self._actuator.rudder()
 
 
 if __name__ == "__main__":
@@ -33,9 +39,9 @@ if __name__ == "__main__":
     log = logger(dest=None)
     log.set_level(DEBUG)
 
-    log.info("Hit ^C to terminate")
+    log.info("Monitoring Boat. Hit ^C to terminate")
     boat = BoatImpl(Config("../../configuration/config.yaml"))
 
     while True:
-        log.info(f"Heading is {boat.get_heading()}, Heel is {boat.get_heel()}, Rudder is {boat.get_rudder()}")
+        log.info(f"Heading is {boat.heading()}, Heel is {boat.heel()}, Rudder is {boat.rudder()}")
         sleep(1)
