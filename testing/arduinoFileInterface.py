@@ -3,53 +3,56 @@
 
 from modules.arduinoInterface import ArduinoInterface, from_arduino
 from pathlib import Path
+from file_logger import logger, INFO
 import time
 
-fromArduinoFile="/tmp/fromArduino.txt"
-toArduinoFile="/tmp/toArduino.txt"
+_from_arduino_filename = "/tmp/fromArduino.txt"
+_to_arduino_filename = "/tmp/toArduino.txt"
+_log = logger(dest=None)
+_log.set_level(INFO)
 
-print(f"Using arduinoFileInterface. Files simulate the Arduino.\n* Echo to {fromArduinoFile} to simulate messages received from Arduino.\n* Monitor {toArduinoFile} for messages being sent to Arduino.")
-# Private
+
 class ArduinoFileInterface(ArduinoInterface):
-    #override
-    def serial_monitor(self) -> str: 
-        while (self.is_running):
-            my_file = Path(fromArduinoFile)
+    # override
+    def serial_monitor(self) -> str:
+        while self.is_running:
+            my_file = Path(_from_arduino_filename)
             if my_file.is_file():
-                with open(fromArduinoFile) as openfileobject:
-                    for line in openfileobject:
+                with open(_from_arduino_filename) as from_arduino_file:
+                    for line in from_arduino_file:
                         from_arduino(interface=self, msg=line)
-                open(fromArduinoFile, 'w').close() # Delete contents
+                open(_from_arduino_filename, 'w').close()  # Delete contents
             time.sleep(self.check_interval_s)
 
-    #override
+    # override
     def write(self, msg: str) -> None:
         # Append-adds at last
-        with open(toArduinoFile, "a") as openfileobject:
-           openfileobject.write(msg)
+        with open(_to_arduino_filename, "a") as to_arduino_file:
+            to_arduino_file.write(msg)
 
-#override
+    def __str__(self):
+        return f"ArduinoFileInterface({_from_arduino_filename}, {_to_arduino_filename})"
+
+
 def get_interface():
+    _log.info("ArduinoFileInterface - used for simulation")
+    _log.info(f"BRAIN <===  ARDUINO: echo -n \"c=1\" >> {_from_arduino_filename}")
+    _log.info(f"BRAIN  ===> ARDUINO: tail -f {_to_arduino_filename}")
     return ArduinoFileInterface()
 
-################################################################################
-# For testing and exemplification
-def cmd_line():
-    # Sample class for subscribing to arduino events.
-    def from_arduino(msg): 
-        # Put just enough processing here to communicate with brain loop.
-        print(f"fromArduino: '{msg}'")
-
-    arduino = get_interface() # Create monitor and writer.
-    arduino.start() # Start monitor thread
-    print(f'Append commands to {fromArduinoFile} to simulate Arduino sending data')
-    print(f'From a command prompt, monitor {toArduinoFile} to see data we\'re sending to the Arduino.')
-    while True:
-        cmd = input("Enter command to send to arduino(x=exit):")
-        if cmd == 'x': break;
-        arduino.write(cmd)
-    arduino.stop()
-    print("Stopped.")
 
 if __name__ == "__main__":
-    cmd_line()
+    # Sample class for subscribing to arduino events.
+    def from_arduino(interface, msg):
+        _log.info(f"Received from Arduino: '{msg}' on interface {interface}")
+
+
+    arduino = get_interface()  # Create monitor and writer.
+    arduino.start()  # Start monitor thread
+    while True:
+        cmd = input("Enter command to send to arduino(x=exit):")
+        if cmd == 'x':
+            break
+        arduino.write(cmd)
+    arduino.stop()
+    _log.info("Stopped.")

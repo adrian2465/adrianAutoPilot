@@ -1,6 +1,10 @@
 # Adrian Vrouwenvelder
 
 import threading
+from file_logger import logger, INFO
+
+_log = logger(dest=None)
+_log.set_level(INFO)
 
 
 def _rudder_val_from_arduino(v):
@@ -18,7 +22,7 @@ def _rudder_val_to_arduino(v):
     Mapping: -1 <= v <= 1 :: 0 <= rc <= 1023
     :return: 0 - 1023 rudder value to send to arduino
     """
-    return int(512 * (v + 1))
+    return int((512 - 0.5) * (v + 1))
 
 
 def _motor_from_arduino(v):
@@ -28,7 +32,8 @@ def _motor_from_arduino(v):
     NOTE: No direction is included. 
     :return: normalized value 0 to 1
     """
-    return v / 255
+    # return v / 255 # For variable voltage motor
+    return 1 if v > 0 else 0
 
 
 def _motor_to_arduino(v):
@@ -37,11 +42,13 @@ def _motor_to_arduino(v):
     Mapping: 0 <= |v| <= 1 :: 0 <= rc <= 255
     :return: 0 - 255 motor speed to send to arduino
     """
-    return int(255 * v)
+    # return int(255 * v)  # For variable voltage motor
+    return 255 if v > 0 else 0
 
 
 # Called asynchronously from ArduinoSerialInterface -- signal from arduino
 def from_arduino(interface, msg):
+    _log.debug(f"Processing msg={msg}")
     if msg.startswith('m='):  # Text message
         interface._messages = msg[2:]
     elif msg.startswith('r='):  # Right limit
@@ -64,17 +71,17 @@ def from_arduino(interface, msg):
     elif msg.startswith('e='):
         interface._echo_status = int(msg[2:])
     else:
-        print(f"Unsupported message {msg}")
+        _log.error(f"Unsupported message {msg}")
         interface._messages = f"Unsupported message `{msg}`"
 
 
-class ArduinoInterface():
+class ArduinoInterface:
     def __init__(self):
         self._monitor_thread = threading.Thread(target=self.serial_monitor)
         self._monitor_thread.daemon = True
         self._check_interval = 0.2
         self._status_interval = 1000
-        self._running: bool = False
+        self._is_running: bool = False
 
         self._messages = ""
         self._port_limit = -1
@@ -86,14 +93,15 @@ class ArduinoInterface():
         self._clutch_status = 0
         self._echo_status = 0
 
+
     def start(self):
-        self._running = True
+        self._is_running = True
         self._monitor_thread.start()
 
     def stop(self):
         self.set_motor_speed(0.0)
-        self.set_status(0)
-        self._running = False
+        self.set_clutch(0)
+        self._is_running = False
 
     @property
     def check_interval_s(self):
@@ -110,7 +118,7 @@ class ArduinoInterface():
         """
         True if Web Server App has not been terminated.
         """
-        return self._running
+        return self._is_running
 
     def get_message(self) -> str:
         """
@@ -118,7 +126,7 @@ class ArduinoInterface():
         """
         return "Online" if self._messages == "REBOOTED" else self._messages
 
-    def get_rudder_limits(self):
+    def rudder_limits(self):
         """
         A tuple (port, stbd) representing Port and Starboard Rudder limits.
         Each limit is normalized to range from -1 <= limit <= 1.
@@ -129,25 +137,26 @@ class ArduinoInterface():
         self.write(f"l{_rudder_val_to_arduino(port_limit):04}")
         self.write(f"r{_rudder_val_to_arduino(stbd_limit):04}")
 
-    def get_rudder(self) -> int:
+    def rudder(self) -> int:
         """
         Rudder position. Sensed by Arduino. Not settable - to move rudder, operate the motor.
         Range is-1 <= rudder_position <= 1, where neg is to port, pos is to starboard.
         """
         return self._rudder_position
 
-    def get_rudder_fault(self):
+    def rudder_fault(self):
         """
         Rudder exceeded stops. Fault. Sent by Arduino. Read-only. Clears when rudder is back within specs.
         Value is 0 if no fault, -1 if rudder exceeded to port, 1 if rudder exceeded to starboard.
         """
         return self._rudder_fault
 
-    def get_motor_speed(self):
+    def motor_speed(self):
         """
         Motor Speed: -1 <= speed <= 1.  -1 is to port. 1 is to starboard.
         """
-        return self._motor_speed * self._direction
+        return self._direction
+        # return self._motor_speed * self._direction # For variable-voltage motors
 
     def set_motor_speed(self, motor_speed):
         """
@@ -159,17 +168,17 @@ class ArduinoInterface():
         self.write(f"d{1 if direction < -0 else 2 if direction > 0 else 0}")
         self.write(f"s{_motor_to_arduino(motor_speed):03}")
 
-    def get_status(self) -> int:
+    def clutch(self) -> int:
         """
         Status of autopilot.
         0 = disengaged, 1 = engaged
         """
         return self._clutch_status
 
-    def set_status(self, status: int):
+    def set_clutch(self, status: int):
         self.write(f"c{status}")
 
-    def get_status_interval_ms(self):
+    def status_interval_ms(self):
         """
         Milliseconds between status reports from Arduino. 4 digit int. 0 <= interval <= 9999
         """
@@ -178,7 +187,7 @@ class ArduinoInterface():
     def set_status_interval_ms(self, interval: int):
         self.write(f"i{interval:04}")
 
-    def get_echo_status(self):
+    def echo_status(self):
         return self._echo_status
 
     def set_echo_status(self, status: int):
