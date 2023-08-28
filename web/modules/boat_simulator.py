@@ -46,8 +46,8 @@ class BoatImpl(BoatInterface):
         rudder_adjustment = rudder_direction * ( \
             requested_rudder_adjustment if requested_rudder_adjustment <= max_rudder_adjustment \
                 else max_rudder_adjustment)
-        self.set_rudder(self.rudder() + rudder_adjustment)
-        self.set_rudder(1 if self.rudder() > 1 else -1 if self.rudder() < -1 else self.rudder())
+        new_rudder = self.rudder() + rudder_adjustment
+        self.set_rudder(1 if new_rudder > 1 else -1 if new_rudder < -1 else new_rudder)
         self.set_heading(
             normalize_angle(self.heading() + self.max_boat_turn_rate_dps() * elapsed_time * self.rudder()))
 

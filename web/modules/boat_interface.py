@@ -30,7 +30,7 @@ class BoatInterface:
     def set_target_course(self, course):
         self._target_course = course
 
-    def commanded_rudder(self):
+    def commanded_rudder(self):  # TODO Commanded Rudder shouldn't really be part of boat, but should be part of brain.
         """Desired rudder angle. Range is 0 <= commanded_rudder <= 1"""
         return self._commanded_rudder
 

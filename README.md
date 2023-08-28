@@ -8,7 +8,7 @@ This is a marine autopilot, with a web interface.
 
 ### PiCore Help
 
-See PiCore_Hints_and_Tips.txt
+See `PiCore_Hints_and_Tips.txt`
 
 ### Software
 Uses python3 for the brain and the web interface.  Run the web server using the `run_webserver.sh` script -- that starts everything.
@@ -81,8 +81,9 @@ IBT-2 pins 5 (R_IS) and 6 (L_IS) not connected
 
 ## Calibration of the IMU
 To calibrate the IMU (get bias values), run mpu9250-calibration.py
+Biases are configured in `configuration/config.yaml`
 
 ## Author
 ```
 Adrian Vrouwenvelder
-2022
+2023

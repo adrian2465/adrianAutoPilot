@@ -21,7 +21,7 @@ class Brain:
         self._boat_sampling_interval = int(cfg.boat["sampling_interval"])
         self._stop_requested = False
         self._controller = PID(cfg)
-        self._rudder_tolerance = int(cfg.boat["rudder_tolerance"])
+        self._rudder_tolerance = float(cfg.boat["rudder_tolerance"])
 
     def start(self):
         self._brain_thread.start()
@@ -34,32 +34,39 @@ class Brain:
     def daemon(self):
         # Brain should check on course, heading, and rudder, and compute a new commanded rudder based on that.
         # Brain also talks to the arduino (which is the hydraulic ram actuator) to effectuate changes
-        log.info("Brain started")
+        log.info(f"Brain started.")
         while not self._stop_requested:
-            self._controller.set_commanded_rudder(self._boat)
+            log.debug(f"boat rudder = {self._boat.rudder()} commanded rudder = {self._boat.commanded_rudder()}  delta = {abs(self._boat.rudder() - self._boat.commanded_rudder())}  tolerance = {self._rudder_tolerance}")
             desired_pump_motor_speed = 1 if self._boat.commanded_rudder() > 0 else -1
             desired_and_actual_pump_motor_same_direction = desired_pump_motor_speed == self._arduino_interface.motor_speed()
-            if self._arduino_interface.clutch() == 0 \
-                    or abs(self._boat.rudder() - self._boat.commanded_rudder()) <= self._rudder_tolerance:
+            if self._arduino_interface.clutch() == 0:
+                log.debug("Motor should be stopped....")
                 # Stop motor if it's running but either the clutch is off or the rudder is where we want it.
                 # The motor should be stopped if the clutch is off.
                 if self._arduino_interface.motor_speed() != 0:
-                    log.debug(f"Motor is being stopped due to {'clutch off' if self._arduino_interface.clutch() == 0 else 'rudder on station'}")
+                    log.debug(f"Motor is being stopped due to clutch off")
                     self._arduino_interface.set_motor_speed(0)
             else:
+                self._controller.set_commanded_rudder(self._boat)
                 # Clutch is on and boat is off course. Set pump motor direction according to need
                 if self._arduino_interface.motor_speed() != 0:
                     # Pump motor is already running.
-                    if desired_and_actual_pump_motor_same_direction:
+                    if abs(self._boat.rudder() - self._boat.commanded_rudder()) <= self._rudder_tolerance:
+                        log.debug(f"Actual and commanded rudder are within tolerance. Stopping motor.")
+                        self._arduino_interface.set_motor_speed(0)
+                    elif desired_and_actual_pump_motor_same_direction:
                         log.debug("Motor is already spinning in right direction")  # Motor is already running in the right direction, so leave it alone.
                     else:
                         # Motor is running, but in the wrong direction. Stop it. Start it again next loop.
-                        log.debug("Motor is spinning, but in wrong direction. Changing...")
+                        log.debug("Motor is spinning, but in wrong direction. Stopping it to reverse direction...")
                         self._arduino_interface.set_motor_speed(0)
                 else:
-                    # Motor is stopped, but needs to be running.
-                    log.debug(f"arduinoInterface = {self._arduino_interface}")
-                    log.debug(f"Motor (currently at {self._arduino_interface.motor_speed()}) is being set to spin in direction {desired_pump_motor_speed}")
+                    if abs(self._boat.rudder() - self._boat.commanded_rudder()) <= self._rudder_tolerance:
+                        log.debug(f"Actual and commanded rudder are within tolerance. Motor stopped and staying stopped.")
+                    else:
+                        # Motor is stopped, but needs to be running.
+                        log.debug(f"arduinoInterface = {self._arduino_interface}")
+                        log.debug(f"Motor (currently at {self._arduino_interface.motor_speed()}) is being set to spin in direction {desired_pump_motor_speed}")
                     self._arduino_interface.set_motor_speed(desired_pump_motor_speed)
             time.sleep(self._boat_sampling_interval/1000)
 
@@ -74,21 +81,25 @@ if __name__ == "__main__":
     config = Config("../../configuration/config.yaml")
     test_boat = BoatImpl(config)
     test_boat.set_target_course(10)
+    test_boat.set_commanded_rudder(0)
     arduino_interface = get_arduino_interface()
     log.debug(f"arduinoInterface in brain is {arduino_interface}")
     brain = Brain(arduino_interface, config, test_boat)
     brain._boat_sampling_interval = 1000
     brain.start()
-    ## LEFT OFF HERE 20230827-1243. See 'receive_status_from_arduino.sh'
-    ## Next to do, interface the brain test code with the simulated boat rudder to make course correction, and then
-    ## provide a way to enter the heading into the brain to let it know when it's done (again, simulated boat).
-    ## At that point, it should be possible to poke different values into the brain in for course course updates and
-    ## have it respond accordingly.  Or, have it drift off course with heading, and watch it respond.
+
+    ## LEFT OFF HERE 20230828-0832:
+    ## 1. I believe this test code obviates the need for pid_controller's run code. That code could perhaps be tested against online datasets (gains, outputs, etc)
+    ## without any boat reference at all.
+    ## 2. REFACTOR: The commanded rudder does not belong in 'boat'.  Nor does target_course, is_on_course.  These are properties of the brain, not the boat.
+    ## 3. For the simulated boat, add random course fluctuations based on some notion of sea state.
 
     try:
         log.info("ctrl-C to stop")
+        interval = 0.5
         while True:
-            time.sleep(1)
+            test_boat.update(interval)
+            time.sleep(interval)
 
     except KeyboardInterrupt:
         brain.stop()
