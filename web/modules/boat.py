@@ -10,15 +10,9 @@ class BoatImpl(BoatInterface):
 
     def __init__(self, config):
         super().__init__(config)
-        self._imu = get_mpu_interface(config)
         self._actuator = ArduinoInterface()
+        self._imu = get_mpu_interface(config)
         self._imu.start()
-
-    def imu(self):
-        return self._imu
-
-    def actuator(self):
-        return self._actuator
 
     def heading(self):
         """Boat's current heading."""

@@ -1,11 +1,3 @@
-NOTES:
-
-2023-08-26 11:13 - Tested the following on the RPi0:
- - mpu9250Interface.py
- - arduinoSerialInterface.py
- - send_to_arduino.py
- - read_from_arduino.py
-
 TODOs
 o Uninstall: 
   * make
@@ -14,9 +6,27 @@ o Uninstall:
   * python3-dev?
 which were needed for pip-based installation of smbus (pip install smbus)
 
-o 2023-05-27 - Code-Review the places that use the Config object.  Overhaul list:
-  - ./web/autopilotWebApp.py
-  - ./web/modules/brain.py
+o 2023-08-28 - See "LEFT OFF HERE" in Brain.  Finish writing brain code, and test.
+o 2023-08-28 - Add rudder sense device to board, and test and calibrate
+o 2023-08-28 - Add easy-to-find, interactive calibration program that finds rudder limits, allows setting of gains, etc. Persist (perhaps) in config.yaml, or overwrite with calibrations.yaml
+
+DONEs
+x 2023-08-24 - How will you translate rudder angle (-1 <= 0 <= 1) to motor speed and duration?  Figure the motor duration as a percentage of hard over angle vs rudder speed. NOTE: Will be handled by brain, which will check frequently and stop the motor when the angle is correct.
+x 2023-03-04 - Archive working configuration in $HOME. "home_date.tar"
+x 2023-03-04 - Get PI talking to Arduino via serial interface
+x 2023-03-04 - Migrate Python code for simulator to micropython
+x 2023-04-12 - Remove extra newline from write in arduinoInterface - shouldn't need it. If we do, why?
+DONE 2023-05-23 - In the middle of adding setters to the PID values.
+DONE 2023-04-12 - Make sure send_to_arduino and receive_from_arduino still work!!
+DONE 2023-04-12 - Re-flash arduino with updated C code.
+DONE 2023-04-12 - In arduinoInterface test.  Add 'debug' (e=1) to testing.
+DONE 2023-04-12 - I'm thinking that methods that are not simply internal properties should be named get_xxx and set_xxx.
+DONE 2023-08-24 - !! Push development branch from laptop to GIT
+DONE 2023-08-24 - pid_controller appears to be working. Push the development branch.
+DONE 2023-04-12 - Fix brain, etc., which broke overhauling the controller.
+DONE 2023-08-27 - Code-Review the places that use the Config object.  Overhaul list:
+  - SKIP ./web/autopilotWebApp.py - NOTE: Will need rewrite when brain is done.
+  - DONE ./web/modules/brain.py NOTE: Not done so much, but I'm rewriting the brain, so CR is now obsolete.
   - DONE (DELETED) ./web/modules/sensor.py
   - SKIP (DO WE NEED THIS?) ./web/modules/calibration/mpu9360-calibration.py
   - SKIP ./web/modules/imuInterface.py
@@ -38,20 +48,3 @@ o 2023-05-27 - Code-Review the places that use the Config object.  Overhaul list
   - DONE ./web/modules/test_boat.py  ## Test boat can get properties from local object, but real boat should read from sensor (heading, heel, ...) So, maybe revisit this.
   - DONE ./web/modules/boat.py
   - DONE ./web/modules/anglemath.py
-o 2023-08-24 - How will you translate rudder angle (-1 <= 0 <= 1) to motor speed and duration?  Figure the motor duration as a percentage of hard over angle vs rudder speed.
-o 2023-08-24 - pid_controller appears to be working. Push the development branch.
-o 2023-04-12 - Fix brain, etc., which broke overhauling the controller.
-
-o 2023-04-12 - MAYBE: I'm also thinking to change e= to mean debug mode. Major refactor, as it would mean maintaining state in the program instead of arduino. and that the only things reported in non-debug mode would be p and (exceptionally) m and x.
-
-DONEs
-x 2023-03-04 - Archive working configuration in $HOME. "home_date.tar"
-x 2023-03-04 - Get PI talking to Arduino via serial interface
-x 2023-03-04 - Migrate Python code for simulator to micropython
-x 2023-04-12 - Remove extra newline from write in arduinoInterface - shouldn't need it. If we do, why?
-DONE o 2023-05-23 - In the middle of adding setters to the PID values.
-DONE o 2023-04-12 - Make sure send_to_arduino and receive_from_arduino still work!!
-DONE o 2023-04-12 - Re-flash arduino with updated C code.
-DONE o 2023-04-12 - In arduinoInterface test.  Add 'debug' (e=1) to testing.
-DONE o 2023-04-12 - I'm thinking that methods that are not simply internal properties should be named get_xxx and set_xxx.
-DONE o 2023-08-24 - !! Push development branch from laptop to GIT

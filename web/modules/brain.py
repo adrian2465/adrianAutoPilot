@@ -11,6 +11,7 @@ import time
 from pid_controller import PID
 from file_logger import logger, INFO, DEBUG
 
+
 class Brain:
 
     def __init__(self, arduino_interface: ArduinoInterface, cfg: Config, boat: BoatInterface):
@@ -22,6 +23,26 @@ class Brain:
         self._stop_requested = False
         self._controller = PID(cfg)
         self._rudder_tolerance = float(cfg.boat["rudder_tolerance"])
+        self._target_course = None
+        self._commanded_rudder = None
+        self._course_tolerance_deg = float(cfg.boat['course_tolerance_deg'])
+
+    def target_course(self):
+        """Desired course for autopilot to steer"""
+        return self._target_course
+
+    def set_target_course(self, course):
+        self._target_course = course
+
+    def commanded_rudder(self):  # TODO Commanded Rudder shouldn't really be part of boat, but should be part of brain.
+        """Desired rudder angle. Range is 0 <= commanded_rudder <= 1"""
+        return self._commanded_rudder
+
+    def set_commanded_rudder(self, commanded_rudder):
+        self._commanded_rudder = commanded_rudder
+
+    def is_on_course(self):
+        return abs(self._target_course - self.heading()) <= self._course_tolerance_deg
 
     def start(self):
         self._brain_thread.start()
@@ -36,8 +57,8 @@ class Brain:
         # Brain also talks to the arduino (which is the hydraulic ram actuator) to effectuate changes
         log.info(f"Brain started.")
         while not self._stop_requested:
-            log.debug(f"boat rudder = {self._boat.rudder()} commanded rudder = {self._boat.commanded_rudder()}  delta = {abs(self._boat.rudder() - self._boat.commanded_rudder())}  tolerance = {self._rudder_tolerance}")
-            desired_pump_motor_speed = 1 if self._boat.commanded_rudder() > 0 else -1
+            log.debug(f"boat rudder = {self._boat.rudder()} commanded rudder = {self.commanded_rudder()}  delta = {abs(self._boat.rudder() - self.commanded_rudder())}  tolerance = {self._rudder_tolerance}")
+            desired_pump_motor_speed = 1 if self.commanded_rudder() > 0 else -1
             desired_and_actual_pump_motor_same_direction = desired_pump_motor_speed == self._arduino_interface.motor_speed()
             if self._arduino_interface.clutch() == 0:
                 log.debug("Motor should be stopped....")
@@ -47,11 +68,11 @@ class Brain:
                     log.debug(f"Motor is being stopped due to clutch off")
                     self._arduino_interface.set_motor_speed(0)
             else:
-                self._controller.set_commanded_rudder(self._boat)
+                self.set_commanded_rudder(self._controller.compute_commanded_rudder(self.target_course(), self._boat.heading()))
                 # Clutch is on and boat is off course. Set pump motor direction according to need
                 if self._arduino_interface.motor_speed() != 0:
                     # Pump motor is already running.
-                    if abs(self._boat.rudder() - self._boat.commanded_rudder()) <= self._rudder_tolerance:
+                    if abs(self._boat.rudder() - self.commanded_rudder()) <= self._rudder_tolerance:
                         log.debug(f"Actual and commanded rudder are within tolerance. Stopping motor.")
                         self._arduino_interface.set_motor_speed(0)
                     elif desired_and_actual_pump_motor_same_direction:
@@ -61,7 +82,7 @@ class Brain:
                         log.debug("Motor is spinning, but in wrong direction. Stopping it to reverse direction...")
                         self._arduino_interface.set_motor_speed(0)
                 else:
-                    if abs(self._boat.rudder() - self._boat.commanded_rudder()) <= self._rudder_tolerance:
+                    if abs(self._boat.rudder() - self.commanded_rudder()) <= self._rudder_tolerance:
                         log.debug(f"Actual and commanded rudder are within tolerance. Motor stopped and staying stopped.")
                     else:
                         # Motor is stopped, but needs to be running.
@@ -80,25 +101,26 @@ if __name__ == "__main__":
     log.set_level(DEBUG)
     config = Config("../../configuration/config.yaml")
     test_boat = BoatImpl(config)
-    test_boat.set_target_course(10)
-    test_boat.set_commanded_rudder(0)
+    target_course = 10
+
     arduino_interface = get_arduino_interface()
     log.debug(f"arduinoInterface in brain is {arduino_interface}")
     brain = Brain(arduino_interface, config, test_boat)
+    brain.set_commanded_rudder(0)
+    brain.set_target_course(10)
     brain._boat_sampling_interval = 1000
     brain.start()
 
     ## LEFT OFF HERE 20230828-0832:
+    ## 0. Running this code never settles on a course.  It oscillates. Is it gain?  Or a bug?  
     ## 1. I believe this test code obviates the need for pid_controller's run code. That code could perhaps be tested against online datasets (gains, outputs, etc)
     ## without any boat reference at all.
-    ## 2. REFACTOR: The commanded rudder does not belong in 'boat'.  Nor does target_course, is_on_course.  These are properties of the brain, not the boat.
-    ## 3. For the simulated boat, add random course fluctuations based on some notion of sea state.
 
     try:
         log.info("ctrl-C to stop")
         interval = 0.5
         while True:
-            test_boat.update(interval)
+            test_boat.update_rudder_and_heading(interval, 1 if brain.commanded_rudder() > 0 else -1 if brain.commanded_rudder() < 0 else 0)
             time.sleep(interval)
 
     except KeyboardInterrupt:
