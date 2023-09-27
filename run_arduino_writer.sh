@@ -1,4 +1,3 @@
-#!/bin/bash
 export BASEDIR=/mnt/mmcblk0p2/apps/adrianAutoPilot
 echo "Sending Commands to Arduino (interactively)"
 cd $BASEDIR/testing
