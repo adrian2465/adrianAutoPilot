@@ -111,8 +111,9 @@ ROOM_TEMP_OFFSET = 21.0
 TEMP_SENSITIVITY = 333.87
 X, Y, Z = 0, 1, 2
 
-log = logger(dest=None)
-log.set_level(DEBUG)
+log = logger(dest=None, who="mpu9250")
+_cfg = Config("../../configuration/config.yaml")
+if "log_level" in _cfg.mpu: log.set_level(_cfg.mpu["log_level"])
 
 
 def c_short_big_endian(msb, lsb):
@@ -124,7 +125,7 @@ def c_short_little_endian(msb, lsb):
 
 
 class mpu9250_interface(ImuInterface):
-    def __init__(self, config, bus):
+    def __init__(self, cfg, bus):
         """
         Initialize the IMU
         """
@@ -167,7 +168,7 @@ class mpu9250_interface(ImuInterface):
         self._temp_avg = 0
         self._turn_rate_dps = 0
 
-        mpu = config.mpu
+        mpu = cfg.mpu
         gyro = mpu['gyro']
         accel = mpu['accel']
         temp = mpu['temp']
@@ -237,12 +238,12 @@ class mpu9250_interface(ImuInterface):
         return subtr(self._temp_avg, self.temp_bias)
 
 
-def get_interface(config, bus=1):
-    return mpu9250_interface(config=config, bus=bus)
+def get_interface(cfg, bus=1):
+    return mpu9250_interface(config=cfg, bus=bus)
 
 
 if __name__ == "__main__":
-    imu = get_interface(Config("../../configuration/config.yaml"))
+    imu = get_interface(_cfg)
     imu.start()
     seconds_for_calibration = 10
     try:

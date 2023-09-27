@@ -2,9 +2,10 @@
 
 import threading
 from file_logger import logger, DEBUG
+from config import Config
 
-_log = logger(dest=None)
-_log.set_level(DEBUG)
+_log = logger(dest=None, who="arduinoInterface")
+_log.set_level(Config("../../configuration/config.yaml").arduino["log_level"])
 
 
 def _rudder_val_from_arduino(v):
@@ -100,7 +101,7 @@ class ArduinoInterface:
         self._monitor_thread.start()
 
     def stop(self):
-        self.set_motor_speed(0.0)
+        self.set_motor(0.0)
         self.set_clutch(0)
         self._is_running = False
 
@@ -135,6 +136,7 @@ class ArduinoInterface:
         return self._port_limit, self._stbd_limit
 
     def set_rudder_limits(self, port_limit, stbd_limit):
+        # self._ rudder limits are set when we receive confirmation response
         self.write(f"l{_rudder_val_to_arduino(port_limit):04}")
         self.write(f"r{_rudder_val_to_arduino(stbd_limit):04}")
 
@@ -152,21 +154,24 @@ class ArduinoInterface:
         """
         return self._rudder_fault
 
-    def motor_speed(self):
+    def motor(self):
         """
         Motor Speed: -1 <= speed <= 1.  -1 is to port. 1 is to starboard.
         """
-        return self._motor_speed * self._direction # For variable-voltage motors
+        return self._motor_speed * self._direction  # For variable-voltage motors
 
-    def set_motor_speed(self, motor_speed):
+    def set_motor(self, motor_speed):
         """
         Motor Speed: -1 <= speed <= 1.  -1 is to port. 1 is to starboard.
         Internally, also sets direction.
         """
         direction = 1 if motor_speed > 0 else -1 if motor_speed < 0 else 0
-        motor_speed = abs(motor_speed)
+        _log.debug(f"motor direction={'starboard' if direction > 0 else 'port' if direction < 0 else 'stopped'} speed={motor_speed}")
+        # self._direction and self._motor_speed are set when we receive confirmation response, but set them here for unit testing support
+        self._motor_speed = _motor_to_arduino(abs(motor_speed))
+        self._direction = direction
         self.write(f"d{1 if direction < -0 else 2 if direction > 0 else 0}")
-        self.write(f"s{_motor_to_arduino(motor_speed):03}")
+        self.write(f"s{self._motor_speed :03}")
 
     def clutch(self) -> int:
         """
@@ -176,6 +181,8 @@ class ArduinoInterface:
         return self._clutch_status
 
     def set_clutch(self, status: int):
+        # self._clutch_status is set when we receive confirmation response, but set it here for unit testing support
+        self._clutch_status = status
         self.write(f"c{status}")
 
     def status_interval_ms(self):
@@ -185,12 +192,14 @@ class ArduinoInterface:
         return self._status_interval
 
     def set_status_interval_ms(self, interval: int):
+        # self._status_interval is set when we receive confirmation response
         self.write(f"i{interval:04}")
 
     def echo_status(self):
         return self._echo_status
 
     def set_echo_status(self, status: int):
+        # self._echo_status is set when we receive confirmation response
         self.write(f"e{status:01}")
     # override this
     def serial_monitor(self) -> None: pass

@@ -2,18 +2,20 @@ from anglemath import normalize_angle
 from boat_interface import BoatInterface
 from config import Config
 from file_logger import logger, DEBUG
+import time
 
-log = logger(dest=None)
-log.set_level(DEBUG)
+log = logger(dest=None, who="boat_simulator")
+log.set_level(Config("../../configuration/config.yaml").boat["log_level"])
 
 
 class BoatImpl(BoatInterface):
 
-    def __init__(self, config):
-        super().__init__(config)
+    def __init__(self, cfg):
+        super().__init__(cfg)
         self._heading = 0
         self._heel = 0
         self._rudder = 0
+        self._prev_time = None
 
     def heading(self):
         """Boat's current heading."""
@@ -45,10 +47,23 @@ class BoatImpl(BoatInterface):
         log.debug(f"New rudder set on simulated boat={rudder}")
         self._rudder = rudder
 
-    def update_rudder_and_heading(self, elapsed_time, motor_direction):  # For Simulation. Normally, get this from sensor.
+    def update_heading(self, elapsed_time_s):
+        """Update heading based on the rudder angle and elapsed time.  motor_direction is -1 for port, 1 for starboard."""
+        log.debug(f"update_heading(t={elapsed_time_s}")
+        self.set_heading(normalize_angle(self.heading() + self.max_boat_turn_rate_dps() * elapsed_time_s * self.rudder()))
+
+    def update_rudder(self, elapsed_time_s, direction):
+        """Update rudder angle based on elapsed time and direction of autopilot motor"""
+        log.debug(f"update_rudder(t={elapsed_time_s}, dir={direction}")
+        self.set_rudder(self.rudder() + direction * max(1.0, elapsed_time_s / self.hard_over_time_s()))
+
+    def update_rudder_and_heading(self, motor_direction):  # For Simulation. Normally, get this from sensor.
         """Update rudder and heading based on what the rudder is doing.  motor_direction is -1 for left, 1 for right."""
+        elapsed_time = 0 if self._prev_time is None else (time.time() - self._prev_time)
+        self._prev_time = time.time()
+        log.debug(f"update_rudder_and_heading(t={elapsed_time}, md={motor_direction})")
         new_rudder = self.rudder() + motor_direction * (elapsed_time / self.hard_over_time_s())
-        self.set_rudder(1 if new_rudder > 1 else -1 if new_rudder < -1 else new_rudder)
+        self.set_rudder(new_rudder)
         self.set_heading(
             normalize_angle(self.heading() + self.max_boat_turn_rate_dps() * elapsed_time * self.rudder()))
 
@@ -64,10 +79,13 @@ if __name__ == "__main__":
         start_time = test_time.time()
         interval = 0.5
         motor_direction = 1
+        duration = 0
         while boat.rudder() < 1:
-            boat.update_rudder_and_heading(interval, motor_direction)
             test_time.sleep(interval)
-        duration = test_time.time() - start_time
+            duration = test_time.time() - start_time
+            boat.update_heading(duration)
+            boat.update_rudder(duration, motor_direction)
+
         if duration <= 0.1:
             raise Exception(f"Rudder hard-over took {duration} s which is implausibly fast.")
         if duration > boat.hard_over_time_s():
@@ -76,12 +94,15 @@ if __name__ == "__main__":
         log.info(f"Hardover completed in {duration} s")
 
     def test_boat_keeps_turning(boat):
+        start_time = test_time.time()
         interval = 0.5
         motor_direction = 0
         old_heading = boat.heading()
         for i in range(0, 20):
-            boat.update_rudder_and_heading(interval, motor_direction)
             test_time.sleep(interval)
+            duration = test_time.time() - start_time
+            boat.update_heading(duration)
+            boat.update_rudder(duration, motor_direction)
         new_heading = boat.heading()
         if new_heading - old_heading != boat.max_boat_turn_rate_dps() * interval * 20:
             raise Exception(f"Heading not expected. old={old_heading}, new={new_heading}, "
@@ -92,7 +113,9 @@ if __name__ == "__main__":
         log.info(f"Keeps-turning test completed ")
 
 
-    test_boat = BoatImpl(Config("../../configuration/config.yaml"))
+    cfg = Config("../../configuration/config.yaml")
+    if "log_level" in cfg.boat: log.set_level(cfg.log_level)
+    test_boat = BoatImpl(cfg)
     log.debug(f"Testing hardover time. Starting at rudder={test_boat.rudder()}")
     test_hard_over_time(test_boat)
     test_boat_keeps_turning(test_boat)

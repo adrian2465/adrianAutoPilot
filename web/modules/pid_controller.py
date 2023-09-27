@@ -31,71 +31,45 @@ from anglemath import calculate_angle_difference
 from time import time as real_time
 from file_logger import logger, DEBUG
 
-log = logger(dest=None)
-log.set_level(DEBUG)
-
+log = logger(dest=None, who="pid_controller")
 
 class PID:
 
     def __init__(self, cfg, time_fn=real_time):
-        self._target_value = None
-        self._gains = cfg.pid["gains"]["default"]
-        self._prev_timestamp = 0
+        gains = cfg.pid["gains"]["default"]
+        if "log_level" in cfg.pid: log.set_level(int(cfg.pid["log_level"]))
         self._time_fn = time_fn  # Supply island time to speed up testing
-        self._prev_err = 0  # Previous error
-        self._val = [0] * 3
-        self._err = None
+        self._p_gain = gains["P"]
+        self._i_gain = gains["I"]
+        self._d_gain = gains["D"]
+        self._p_val = 0
+        self._i_val = 0
+        self._d_val = 0
+        self._prev_err = 0
+        self._err = 0
+        self._prev_timestamp = self._time_fn()
 
-    @property
-    def p_gain(self):
-        return self._gains["P"]
+    def reset(self):
+        self._p_val = 0
+        self._i_val = 0
+        self._d_val = 0
+        self._prev_err = 0
+        self._err = 0
+        self._prev_timestamp = self._time_fn()
 
-    @property
-    def i_gain(self):
-        return self._gains["I"]
+    def get_gains_as_csv(self):
+        return f"{self._p_gain:5.3f},{self._i_gain:5.3f},{self._d_gain:5.3f}"
 
-    @property
-    def d_gain(self):
-        return self._gains["D"]
-
-    def p_val(self):
-        return self._val[0]
-
-    def set_p_val(self, v):
-        self._val[0] = v
-
-    def i_val(self):
-        return self._val[1]
-
-    def set_i_val(self, v):
-        self._val[1] = v
-
-    def d_val(self):
-        return self._val[2]
-
-    def set_d_val(self, v):
-        self._val[2] = v
-
-    def err(self):
-        return self._err
-
-    def set_err(self, v):
-        self._err = v
-
-    def set_target_value(self, target_value):  # Desired value
-        log.debug(f"New target value is {target_value}")
-        self._target_value = target_value
-        self._err = None
-
-    def compute_commanded_rudder(self, target_course: float, heading: float):  # Process using PID algorithm
+    def compute_commanded_rudder(self, target_course: float, heading: float):
+        """Calculate updated commanded rudder angle using PID controller"""
         dt = self._time_fn() - self._prev_timestamp
         self._prev_timestamp = self._time_fn()
-        self.set_err(calculate_angle_difference(target_course, heading))
-        self.set_p_val(self.p_gain * self.err())
-        self.set_i_val(self.i_val() + self.err() * self.i_gain * dt)
-        self.set_d_val(self.d_gain * (self._prev_err - self.err()) / dt)
-        self._prev_err = self.err()
-        rc = -(self.p_val() + self.i_val() + self.d_val()) / 180
+        self._err = calculate_angle_difference(target_course, heading)
+        self._p_val = self._p_gain * self._err
+        self._i_val = self._i_val + self._err * self._i_gain * dt
+        self._d_val = self._d_gain * (self._prev_err - self._err) / dt
+        rc = -(self._p_val + self._i_val + self._d_val) / 180
         commanded_rudder = 1 if rc > 1 else -1 if rc < -1 else rc  # Return desired correction.
         log.debug(f"hdg={heading} - tgt={target_course} => rdr={commanded_rudder}")
+        self._prev_err = self._err
         return commanded_rudder

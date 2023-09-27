@@ -50,7 +50,7 @@ void loop() {
 
   // Possibly emit position reports.
   if (now < latestStatusReportTime) latestStatusReportTime = 0; // Deal with rollover (about 50 days)
-  // Report motor position (limit) if it's time to do so.
+  // Report rudder position (limit) if it's time to do so.
   if ((now - latestStatusReportTime) >= getStatusInterval()) {
     reportPosition();
     latestStatusReportTime = now; // Update latest report time

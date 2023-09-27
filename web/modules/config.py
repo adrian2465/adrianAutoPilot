@@ -10,7 +10,9 @@ class Config:
             data = yaml.safe_load(stream)
             self._pid = data["pid"]
             self._boat = data["boat"]
+            self._brain = data["brain"]
             self._mpu = data["mpu9250"]
+            self._arduino = data["arduino"]
 
     @property
     def pid(self):
@@ -21,5 +23,13 @@ class Config:
         return self._boat
 
     @property
+    def brain(self):
+        return self._brain
+
+    @property
     def mpu(self):
         return self._mpu
+
+    @property
+    def arduino(self):
+        return self._arduino

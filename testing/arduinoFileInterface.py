@@ -5,11 +5,12 @@ from modules.arduinoInterface import ArduinoInterface, from_arduino
 from pathlib import Path
 from file_logger import logger, DEBUG
 import time
+from config import Config
 
 _from_arduino_filename = "/tmp/fromArduino.txt"
 _to_arduino_filename = "/tmp/toArduino.txt"
-_log = logger(dest=None)
-_log.set_level(DEBUG)
+_log = logger(dest=None, who="arduinoFileInterface")
+_log.set_level(Config("../../configuration/config.yaml").mpu["log_level"])
 
 
 class ArduinoFileInterface(ArduinoInterface):
@@ -21,7 +22,7 @@ class ArduinoFileInterface(ArduinoInterface):
             if my_file.is_file():
                 with open(_from_arduino_filename) as from_arduino_file:
                     for line in from_arduino_file:
-                        _log.debug(f"Processing line from arduino: {line}")
+                        _log.debug(f"Processing line from arduino: {line.strip()}")
                         from_arduino(interface=self, msg=line)
                 open(_from_arduino_filename, 'w').close()  # Delete contents
             time.sleep(self.check_interval_s)

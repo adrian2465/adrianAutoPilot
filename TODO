@@ -6,7 +6,6 @@ o Uninstall:
   * python3-dev?
 which were needed for pip-based installation of smbus (pip install smbus)
 
-o 2023-08-28 - See "LEFT OFF HERE" in Brain.  Finish writing brain code, and test.
 o 2023-08-28 - Add rudder sense device to board, and test and calibrate
 o 2023-08-28 - Add easy-to-find, interactive calibration program that finds rudder limits, allows setting of gains, etc. Persist (perhaps) in config.yaml, or overwrite with calibrations.yaml
 

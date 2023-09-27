@@ -4,8 +4,7 @@ from modules.arduinoInterface import ArduinoInterface, from_arduino
 import time
 import serial
 from file_logger import logger, INFO
-_log = logger(dest=None)
-_log.set_level(INFO)
+_log = logger(dest=None, who="arduinoSerialInterface")
 
 class ArduinoSerialInterface(ArduinoInterface):
 
@@ -14,6 +13,7 @@ class ArduinoSerialInterface(ArduinoInterface):
         self._usb = "/dev/ttyUSB0"
         self._baudrate = 115200
         self._debugging = False
+
         self._serial_out = serial.Serial(
                 port=self._usb,
                 timeout=1,
@@ -130,23 +130,23 @@ if __name__ == "__main__":
 
     def test_motor():
         _log.debug("test_motor full speed to starboard")
-        arduino.set_motor_speed(1.0)
+        arduino.set_motor(1.0)
         sleep(2)
-        verify_is_basically_equal(1, arduino.motor_speed(), "Motor did not engage to starboard")
+        verify_is_basically_equal(1, arduino.motor(), "Motor did not engage to starboard")
         _log.debug("test_motor half speed to starboard")
-        arduino.set_motor_speed(0.5)
+        arduino.set_motor(0.5)
         sleep(2)
-        verify_is_basically_equal(0.5, arduino.motor_speed(), "Motor did not engage to starboard at half speed")
-        arduino.set_motor_speed(0.0)  # Stop motor so it doesn't slam from starboard to port
+        verify_is_basically_equal(0.5, arduino.motor(), "Motor did not engage to starboard at half speed")
+        arduino.set_motor(0.0)  # Stop motor so it doesn't slam from starboard to port
         sleep(0.5)
         _log.debug("test_motor full speed to port")
-        arduino.set_motor_speed(-1.0)
+        arduino.set_motor(-1.0)
         sleep(2)
-        verify_is_basically_equal(-1, arduino.motor_speed(), "Motor did not engage to port")
+        verify_is_basically_equal(-1, arduino.motor(), "Motor did not engage to port")
         _log.debug("test_motor - stopping motor")
-        arduino.set_motor_speed(0)
+        arduino.set_motor(0)
         sleep(LAG)
-        verify_is_basically_equal(0, arduino.motor_speed(), "Motor did not disengage")
+        verify_is_basically_equal(0, arduino.motor(), "Motor did not disengage")
         _log.debug("test_motor successful")
 
     def test_limits():
@@ -171,7 +171,7 @@ if __name__ == "__main__":
 
     def test_rudder_fault():
         _log.debug("test_rudder_fault start")
-        arduino.set_motor_speed(1.0)
+        arduino.set_motor(1.0)
         sleep(2)
         f = arduino.rudder_fault()
         verify_equals(0, f, f"Rudder fault {f} without limit constraint")
@@ -192,7 +192,7 @@ if __name__ == "__main__":
         verify_equals(0, f, f"Rudder fault {f} without limit constraint after reset")
         sleep(2)
         _log.debug("test_rudder_fault - Stopping motor after rudder fault test.")
-        arduino.set_motor_speed(0.0)
+        arduino.set_motor(0.0)
         sleep(LAG)
         _log.debug("test_rudder_fault successful")
 

@@ -14,10 +14,11 @@ PI_CONSOLE = '/dev/tty0'
 
 class logger:
 
-    def __init__(self, lvl=INFO, dest=None):
+    def __init__(self, lvl=INFO, dest=None, who=None):
         self._filedesc = None
         self._dest = dest
         self._lvl = lvl
+        self._who = who
         if dest is not None:
             if dest.startswith('/dev'):
                 self._mode = 'w'
@@ -46,13 +47,14 @@ class logger:
             print(msg)
 
     def write_with_level(self, lvl, msg):
+        who_str = self._who if self._who is not None else "?????"
         if lvl <= self._lvl:
             lvl_msg = "DEBUG" if lvl == DEBUG \
-                else  "INFO " if lvl == INFO  \
-                else  "WARN " if lvl == WARNING  \
-                else  "ERROR" if lvl == ERROR \
-                else  "UNKWN"
-            self.write(f'{timestamp()} - {lvl_msg}: {msg}')
+                else "INFO " if lvl == INFO  \
+                else "WARN " if lvl == WARNING  \
+                else "ERROR" if lvl == ERROR \
+                else "UNKWN"
+            self.write(f'{timestamp()} - {lvl_msg} - {who_str}: {msg}')
 
     def info(self, msg):
         self.write_with_level(INFO, msg)

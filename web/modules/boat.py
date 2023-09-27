@@ -8,10 +8,10 @@ from config import Config
 
 class BoatImpl(BoatInterface):
 
-    def __init__(self, config):
-        super().__init__(config)
+    def __init__(self, cfg):
+        super().__init__(cfg)
         self._actuator = ArduinoInterface()
-        self._imu = get_mpu_interface(config)
+        self._imu = get_mpu_interface(cfg)
         self._imu.start()
 
     def heading(self):
@@ -30,11 +30,12 @@ class BoatImpl(BoatInterface):
 if __name__ == "__main__":
     from file_logger import logger, DEBUG
     from time import sleep
-    log = logger(dest=None)
-    log.set_level(DEBUG)
+    cfg = Config("../../configuration/config.yaml")
+    log = logger(dest=None, who="boat")
+    if "log_level" in cfg.boat: log.set_level(cfg.boat["log_level"])
 
     log.info("Monitoring Boat. Hit ^C to terminate")
-    boat = BoatImpl(Config("../../configuration/config.yaml"))
+    boat = BoatImpl(cfg)
 
     while True:
         log.info(f"Heading is {boat.heading()}, Heel is {boat.heel()}, Rudder is {boat.rudder()}")
