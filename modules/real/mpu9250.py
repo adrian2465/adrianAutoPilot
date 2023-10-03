@@ -4,12 +4,12 @@ import smbus2 as smbus
 from time import sleep, time
 from ctypes import c_short  # for signed int. c_short is 16 bits, signed (-32768 to 32767)
 
-from config import Config
-from modules.imuInterface import ImuInterface
-from vectormath import moving_average_vector, moving_average_scalar, subtr, mult, vector_from_data
-from file_logger import logger, DEBUG
-from vectormath import v_op
+from modules.common.file_logger import Logger
+from modules.interfaces.imu_interface import ImuInterface
+from modules.common.vectormath import moving_average_vector, moving_average_scalar, subtr, mult, vector_from_data
+from modules.common.vectormath import v_op
 
+_log = Logger("mpu9250")
 
 # Enabling the i2c interface for reading the mpu9250
 # Manually create the i2c device:
@@ -111,10 +111,6 @@ ROOM_TEMP_OFFSET = 21.0
 TEMP_SENSITIVITY = 333.87
 X, Y, Z = 0, 1, 2
 
-log = logger(dest=None, who="mpu9250")
-_cfg = Config("../../configuration/config.yaml")
-if "log_level" in _cfg.mpu: log.set_level(_cfg.mpu["log_level"])
-
 
 def c_short_big_endian(msb, lsb):
     return c_short(lsb | (msb << 8)).value
@@ -124,7 +120,7 @@ def c_short_little_endian(msb, lsb):
     return c_short(msb | (lsb << 8)).value
 
 
-class mpu9250_interface(ImuInterface):
+class Mpu9250(ImuInterface):
     def __init__(self, cfg, bus):
         """
         Initialize the IMU
@@ -137,7 +133,7 @@ class mpu9250_interface(ImuInterface):
         try:
             self.bus = smbus.SMBus(bus)
         except FileNotFoundError as e:
-            log.error(f"Cannot create MPU interface. Reason = {e}. Make sure you're running on RPi0")
+            _log.error(f"Cannot create MPU interface. Reason = {e}. Make sure you're running on RPi0")
             self.bus = None
             exit(1)
 
@@ -239,24 +235,4 @@ class mpu9250_interface(ImuInterface):
 
 
 def get_interface(cfg, bus=1):
-    return mpu9250_interface(config=cfg, bus=bus)
-
-
-if __name__ == "__main__":
-    imu = get_interface(_cfg)
-    imu.start()
-    seconds_for_calibration = 10
-    try:
-        while True:
-            print(f'sample_freq={imu.sample_rate_hz} hz')
-            print(f'g = {imu.gyro()} dps')
-            print(f'a = {imu.accel()} G')
-            print(f't = {imu.temp()} C')
-            print(f'm = {imu.mag()} uT')
-            print(f'Heel = {imu.heel_deg()} deg')
-            print(f'Compass = {imu.compass_deg()}')
-            sleep(1)
-
-    except KeyboardInterrupt:
-        imu.stop()
-        print('Bye')
+    return Mpu9250(cfg=cfg, bus=bus)

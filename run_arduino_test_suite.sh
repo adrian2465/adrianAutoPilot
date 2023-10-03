@@ -1,6 +1,6 @@
 export BASEDIR=/mnt/mmcblk0p2/apps/adrianAutoPilot
-export PYTHONPATH=$BASEDIR/web
-cd $PYTHONPATH/modules
+export PYTHONPATH=$BASEDIR
+cd $PYTHONPATH
 #
 echo "Running arduinoSerialInterface test suite"
-python arduinoSerialInterface.py
+python testing/arduino_tests.py

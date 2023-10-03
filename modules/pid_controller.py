@@ -27,17 +27,17 @@
 # - Kc is the critical gain value
 # - i_gain = 0.5*Pc
 # - d_gain = Pc/8
-from anglemath import calculate_angle_difference
+from modules.common.anglemath import calculate_angle_difference
 from time import time as real_time
-from file_logger import logger, DEBUG
+from modules.common.file_logger import Logger
 
-log = logger(dest=None, who="pid_controller")
+_log = Logger(config_path="pid", dest=None, who="pid_controller")
 
 class PID:
 
     def __init__(self, cfg, time_fn=real_time):
         gains = cfg.pid["gains"]["default"]
-        if "log_level" in cfg.pid: log.set_level(int(cfg.pid["log_level"]))
+
         self._time_fn = time_fn  # Supply island time to speed up testing
         self._p_gain = gains["P"]
         self._i_gain = gains["I"]
@@ -70,6 +70,6 @@ class PID:
         self._d_val = self._d_gain * (self._prev_err - self._err) / dt
         rc = -(self._p_val + self._i_val + self._d_val) / 180
         commanded_rudder = 1 if rc > 1 else -1 if rc < -1 else rc  # Return desired correction.
-        log.debug(f"hdg={heading} - tgt={target_course} => rdr={commanded_rudder}")
+        _log.debug(f"hdg={heading} - tgt={target_course} => rdr={commanded_rudder}")
         self._prev_err = self._err
         return commanded_rudder

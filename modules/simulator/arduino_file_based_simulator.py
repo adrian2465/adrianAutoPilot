@@ -1,32 +1,28 @@
 ## Adrian Vrouwenvelder
 ## December 1, 2022
 
-from modules.arduinoInterface import ArduinoInterface, from_arduino
-from pathlib import Path
-from file_logger import logger, DEBUG
+from modules.interfaces.arduino_interface import ArduinoInterface, from_arduino
+from modules.common.file_logger import Logger
 import time
-from config import Config
+from pathlib import Path
 
 _from_arduino_filename = "/tmp/fromArduino.txt"
 _to_arduino_filename = "/tmp/toArduino.txt"
-_log = logger(dest=None, who="arduinoFileInterface")
-_log.set_level(Config("../../configuration/config.yaml").mpu["log_level"])
+_log = Logger(config_path="arduino", dest=None, who="arduinoSimulator")
 
-
-class ArduinoFileInterface(ArduinoInterface):
+class ArduinoFileBasedSimulator(ArduinoInterface):
     # override
     def serial_monitor(self) -> str:
-        _log.info(f"arduinoFileInterface ({self}) serial monitor is alive")
+        _log.info(f"arduinoSimulator({self}) serial monitor is alive")
         while self.is_running:
             my_file = Path(_from_arduino_filename)
             if my_file.is_file():
                 with open(_from_arduino_filename) as from_arduino_file:
                     for line in from_arduino_file:
-                        _log.debug(f"Processing line from arduino: {line.strip()}")
                         from_arduino(interface=self, msg=line)
                 open(_from_arduino_filename, 'w').close()  # Delete contents
             time.sleep(self.check_interval_s)
-        _log.info(f"arduinoFileInterface serial monitor terminated")
+        _log.info(f"arduinoSimulator serial monitor terminated")
 
     # override
     def write(self, msg: str) -> None:
@@ -39,17 +35,17 @@ class ArduinoFileInterface(ArduinoInterface):
 
 
 def get_interface():
-    _log.info("ArduinoFileInterface - used for simulation")
+    _log.info("ArduinoSimulator - used for simulation")
     _log.info(f"BRAIN <===  ARDUINO: echo -n \"c=1\" >> {_from_arduino_filename}")
     _log.info(f"BRAIN  ===> ARDUINO: tail -f {_to_arduino_filename}")
-    return ArduinoFileInterface()
+    return ArduinoFileBasedSimulator()
 
 
 if __name__ == "__main__":
+
     # Sample class for subscribing to arduino events.
     def from_arduino(interface, msg):
         _log.info(f"Received from Arduino: '{msg}' on interface {interface}")
-
 
     arduino = get_interface()  # Create monitor and writer.
     arduino.start()  # Start monitor thread

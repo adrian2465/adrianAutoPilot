@@ -1,7 +1,7 @@
 from time import sleep, time
 
-from config import Config
-from modules.mpu9250Interface import get_interface
+from modules.common.config import Config
+from modules.real.mpu9250 import get_interface
 
 
 def current_milli_time():
@@ -10,7 +10,7 @@ def current_milli_time():
 
 if __name__ == "__main__":
 
-    imu = get_interface(Config("../../../configuration/config.yaml"))
+    imu = get_interface(Config("configuration/config.yaml"))
     imu.start()
     try:
         start_time = current_milli_time()

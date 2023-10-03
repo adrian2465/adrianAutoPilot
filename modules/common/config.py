@@ -13,6 +13,7 @@ class Config:
             self._brain = data["brain"]
             self._mpu = data["mpu9250"]
             self._arduino = data["arduino"]
+            self._root = data
 
     @property
     def pid(self):
@@ -33,3 +34,7 @@ class Config:
     @property
     def arduino(self):
         return self._arduino
+
+    @property
+    def root(self):
+        return self._root

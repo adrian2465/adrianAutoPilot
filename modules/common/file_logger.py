@@ -1,5 +1,7 @@
 import datetime
 
+from modules.common.config import Config
+
 
 def timestamp():
     return datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f')
@@ -12,12 +14,26 @@ DEBUG = 3
 PI_CONSOLE = '/dev/tty0'
 
 
-class logger:
+cfg = Config("configuration/config.yaml")
 
-    def __init__(self, lvl=INFO, dest=None, who=None):
+
+class Logger:
+
+    def __init__(self, config_path, dest=None, who=None):
+        component_config = cfg.boat if config_path == "boat" else \
+            cfg.mpu if config_path == "mpu9250" else \
+            cfg.pid if config_path == "pid" else \
+            cfg.brain if config_path == "brain" else \
+            cfg.arduino if config_path == "arduino" else \
+            cfg.root
+
+        if "log_level" in component_config:
+            self._lvl = (component_config["log_level"])
+        else:
+            self._lvl = 2
+
         self._filedesc = None
         self._dest = dest
-        self._lvl = lvl
         self._who = who
         if dest is not None:
             if dest.startswith('/dev'):

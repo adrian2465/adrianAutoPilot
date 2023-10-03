@@ -1,12 +1,10 @@
 # Adrian Vrouwenvelder
 
 import threading
-from file_logger import logger, DEBUG
-from config import Config
 
-_log = logger(dest=None, who="arduinoInterface")
-_log.set_level(Config("../../configuration/config.yaml").arduino["log_level"])
+from modules.common.file_logger import Logger
 
+_log = Logger("arduino")
 
 def _rudder_val_from_arduino(v):
     """

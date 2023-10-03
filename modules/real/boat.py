@@ -1,9 +1,12 @@
 # Author: Adrian Vrouwenvelder  August 2023
 
-from boat_interface import BoatInterface
-from arduinoInterface import ArduinoInterface
-from modules.mpu9250Interface import get_interface as get_mpu_interface
-from config import Config
+from modules.interfaces.boat_interface import BoatInterface
+from modules.interfaces.arduino_interface import ArduinoInterface
+from modules.real.mpu9250 import get_interface as get_mpu_interface
+from modules.common.config import Config
+from modules.common.file_logger import Logger
+
+_log = Logger("boat")
 
 
 class BoatImpl(BoatInterface):
@@ -28,15 +31,13 @@ class BoatImpl(BoatInterface):
 
 
 if __name__ == "__main__":
-    from file_logger import logger, DEBUG
+    from modules.common.file_logger import Logger
     from time import sleep
     cfg = Config("../../configuration/config.yaml")
-    log = logger(dest=None, who="boat")
-    if "log_level" in cfg.boat: log.set_level(cfg.boat["log_level"])
 
-    log.info("Monitoring Boat. Hit ^C to terminate")
+    _log.info("Monitoring Boat. Hit ^C to terminate")
     boat = BoatImpl(cfg)
 
     while True:
-        log.info(f"Heading is {boat.heading()}, Heel is {boat.heel()}, Rudder is {boat.rudder()}")
+        _log.info(f"Heading is {boat.heading()}, Heel is {boat.heel()}, Rudder is {boat.rudder()}")
         sleep(1)
