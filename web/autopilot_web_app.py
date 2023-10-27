@@ -2,59 +2,70 @@
 ## December 1, 2022
 ## March 2023
 from flask import Flask, jsonify, render_template
-import logging
 from modules.brain import Brain
 from modules.common.config import Config
-from modules.real.arduino_serial import get_interface as get_arduino_interface
 from modules.real.boat import BoatImpl
 
 app = Flask("Adrian's Autopilot")
 
+brain = None
+is_debug = True
 
-# LEFT OFF HERE
-# What will this really do?  Why does this code create an arduino interface, and the boat, too? Seems like if the boat does it,
-# then we don't need to pass one to the brain, since the brain can get it from the boat.  And why does the real boat create an
-# arduino interface instead of a arduino_serial?  That seems wrong.
-def setup_app(app):
+
+def setup(app):
     global brain
-    cfg = Config("configuration/config.yaml")
-    arduino_interface = get_arduino_interface()
-    brain = Brain(arduino_interface, cfg, BoatImpl())
-    log = logging.getLogger('werkzeug')
-    log.setLevel(logging.ERROR)
+    if is_debug: print("brain.setup()")
+    cfg = Config("../configuration/config.yaml")
+    boat = BoatImpl(cfg)
+    brain = Brain(cfg, boat)
+    brain.set_commanded_rudder(0)
+    brain.set_target_course(boat.heading())
+    brain._boat_sampling_interval = 1000
     brain.start()
     print("Note: Web interface is on http://127.0.0.1:5000 (unless otherwise configured)")
+
 
 @app.route("/")
 def index():
     global brain
+    if is_debug: print("brain.index()")
     return render_template('mainNav.html')
 
-@app.route("/adjust_course/<courseAdjustment>")
-def adjust_course(courseAdjustment: str):
+
+@app.route("/adjust_course/<course_adjustment>")
+def adjust_course(course_adjustment: str):
     global brain
-    brain.adjust_course(int(courseAdjustment))
+    if is_debug: print(f"brain.adjust_course({course_adjustment})")
+    brain.adjust_course(int(course_adjustment))
     return ""
 
-@app.route("/set_status/<newStatus>")
-def set_status(newStatus: str):
+
+@app.route("/set_status/<new_status>")
+def set_status(new_status: str):
     global brain
-    if newStatus == 'enabled':
+    if is_debug: print(f"brain.set_status({new_status})")
+    if new_status == 'enabled':
         brain.engage_autopilot()
-        brain.set_target_course(brain.heading())
+        brain.set_target_course(brain.boat.heading())
     else:
         brain.disengage_autopilot()
     return ""
 
+
 @app.route("/get_course")
 def get_course():
     global brain
-    return jsonify(course=f"{brain.target_course():03.0f}")
+    course = brain.target_course()
+    if is_debug: print(f"brain.get_course() => {course}")
+    return jsonify(course=f"{course:03.0f}")
+
 
 @app.route("/get_heading")
 def get_heading():
     global brain
-    return jsonify(heading=f"{brain.boat.heading():03.0f}")
+    heading = brain.boat.heading()
+    if is_debug: print(f"get_heading() => {heading}")
+    return jsonify(heading=f"{heading:03.0f}")
 
 
 @app.route("/get_heel")
@@ -62,6 +73,7 @@ def get_heel():
     global brain
     heel = brain.boat.heel()
     heel_str = "LEVEL"
+    if is_debug: print(f"get_heel() => {heel}")
     if heel >= 1.5:
         heel_str = f'{heel:03.0f} STBD'
     elif heel <= -1.5:
@@ -73,19 +85,22 @@ def get_heel():
 def get_interface_params():
     global brain
     port_limit, stbd_limit = brain.arduino.rudder_limits()
+    if is_debug: print(f"get_interface_params() => p={port_limit}, s={stbd_limit}, rudder={brain.arduino.rudder()}")
     return jsonify(clutch_status=brain.is_clutch_engaged(),
                    starboard_limit=stbd_limit,
                    port_limit=port_limit,
-                   motor_direction=brain.arduino.get_motor_direction(),
-                   rudder_position=brain.arduino.rudder())
+                   motor=brain.boat.motor(),
+                   rudder_position=brain.boat.rudder())
 
 @app.route("/get_messages")
 def get_messages():
     global brain
-    return jsonify(messages=brain.arduio.get_message())
+    messages = brain.arduino.get_message()
+    if is_debug: print(f"get_messages => {messages}")
+    return jsonify(messages=messages)
 
 
-setup_app(app)
+setup(app)
 
 if __name__ == "__main__":
     try:

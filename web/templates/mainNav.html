@@ -87,8 +87,8 @@
         let interfaceMessageArea = $("#interfaceMessageArea");
         // Click handler definition
         function onOffHandler() {
-            if (onOffInput.prop("value") == "Enabled") fetch($SCRIPT_ROOT + '/set_status/disable');
-            else fetch($SCRIPT_ROOT + '/set_status/enable');
+            if (onOffInput.prop("value") == "Enabled") fetch($SCRIPT_ROOT + '/set_status/disabled');
+            else fetch($SCRIPT_ROOT + '/set_status/enabled');
         }
         function bigDecHandler() { if (onOffInput.prop("value") == "Enabled") fetch($SCRIPT_ROOT + '/adjust_course/-{{ bigDegrees }}'); }
         function bigIncHandler() { if (onOffInput.prop("value") == "Enabled") fetch($SCRIPT_ROOT + '/adjust_course/+{{ bigDegrees }}'); }
@@ -113,7 +113,7 @@
                     else messages.prop('style', 'color:blue');
                     messages.text(data.messages);
                 }
-            ).fail(function() {alert("CONNECTION ERROR")});
+            ).fail(function() {messages.prop('style', 'color:red'); messages.text("!! CONNECTION ERROR !!")});
             $.getJSON(
                 $SCRIPT_ROOT + "/get_course",
                 function (data) {

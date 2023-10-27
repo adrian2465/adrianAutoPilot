@@ -1,7 +1,6 @@
 # Author: Adrian Vrouwenvelder  August 2023
-
+from modules.real.arduino_serial import get_interface as get_arduinno_interface
 from modules.interfaces.boat_interface import BoatInterface
-from modules.interfaces.arduino_interface import ArduinoInterface
 from modules.real.mpu9250 import get_interface as get_mpu_interface
 from modules.common.config import Config
 from modules.common.file_logger import Logger
@@ -13,9 +12,8 @@ class BoatImpl(BoatInterface):
 
     def __init__(self, cfg):
         super().__init__(cfg)
-        self._actuator = ArduinoInterface()
+        self._arduino_interface = get_arduinno_interface()
         self._imu = get_mpu_interface(cfg)
-        self._imu.start()
 
     def heading(self):
         """Boat's current heading."""
@@ -27,7 +25,37 @@ class BoatImpl(BoatInterface):
 
     def rudder(self):
         """Returns normalized rudder (-1 for full port, 1 for full starboard, 0 for centered)"""
-        return self._actuator.rudder()
+        return self._arduino_interface.rudder()
+
+    def is_clutch_engaged(self):
+        return self._arduino_interface.clutch() == 1
+
+    def engage_autopilot(self):
+        self._arduino_interface.set_clutch(1)
+
+    def disengage_autopilot(self):
+        self._arduino_interface.set_motor(0)
+        self._arduino_interface.set_clutch(0)
+
+    def motor(self):
+        self._arduino_interface.motor()
+
+    def set_motor(self, m):
+        self._arduino_interface.set_motor(m)
+
+    def start(self):
+        self._arduino_interface.start()  # Create monitor and writer.
+        self._imu.start()
+
+    def stop(self):
+        pass
+
+    def get_message(self):
+        return self._arduino_interface.get_message()
+
+    @property
+    def arduino(self):
+        return self._arduino_interface
 
 
 if __name__ == "__main__":

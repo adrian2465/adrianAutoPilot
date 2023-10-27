@@ -8,8 +8,8 @@ _log = Logger(config_path="brain", dest=None, who="brain")
 
 def test_motor_direction(cfg):
     test_boat = BoatImpl(cfg)
-    brain = Brain(arduino_interface, cfg, test_boat)
-    brain._arduino_interface.set_clutch(1)
+    brain = Brain(cfg, test_boat)
+    test_boat.engage_autopilot(1)
     brain._commanded_rudder = 0.5
     brain._boat.set_rudder(0.5)
     if brain.get_recommended_motor_direction() != 0:
@@ -34,7 +34,7 @@ def test_motor_direction(cfg):
     brain._boat.set_rudder(0.5)
     if brain.get_recommended_motor_direction() != -1:
         raise Exception("Recommended motor direction is not port 2")
-    brain._arduino_interface.set_clutch(0)
+    brain._boat.cl
     brain._commanded_rudder = 1
     brain._boat.set_rudder(0.5)
     if brain.get_recommended_motor_direction() != 0:
@@ -44,16 +44,13 @@ def test_motor_direction(cfg):
 
 if __name__ == "__main__":
     from modules.simulator.boat_simulator import BoatImpl
-    from modules.simulator.arduino_file_based_simulator import get_interface as get_arduino_interface
     cfg = Config("configuration/config.yaml")
     log = Logger(config_path="brain", dest=None, who="brain")
     if "log_level" in cfg.boat: _log.set_level(cfg.boat["log_level"])
-    arduino_interface = get_arduino_interface()
-    _log.debug(f"arduinoInterface in brain is {arduino_interface}")
     test_motor_direction(cfg)
 
     test_boat = BoatImpl(cfg)
-    brain = Brain(arduino_interface, cfg, test_boat)
+    brain = Brain(cfg, test_boat)
     brain.set_commanded_rudder(0)
     course = 10
     brain.set_target_course(course)

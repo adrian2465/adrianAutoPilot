@@ -77,6 +77,7 @@ def from_arduino(interface, msg):
 
 class ArduinoInterface:
     def __init__(self):
+        _log.info("ArduinoInterface interface")
         self._monitor_thread = threading.Thread(target=self.serial_monitor)
         self._monitor_thread.daemon = True
         self._check_interval = 0.2
@@ -199,13 +200,10 @@ class ArduinoInterface:
     def set_echo_status(self, status: int):
         # self._echo_status is set when we receive confirmation response
         self.write(f"e{status:01}")
-    # override this
+
     def serial_monitor(self) -> None: pass
 
-    # override this
     def write(self, msg: str) -> None: pass
 
 
-# override factory method
-def get_interface():
-    return ArduinoInterface()
+def get_interface(): pass

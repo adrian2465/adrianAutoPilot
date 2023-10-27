@@ -13,9 +13,10 @@ INFO = 2
 DEBUG = 3
 PI_CONSOLE = '/dev/tty0'
 
-
-cfg = Config("configuration/config.yaml")
-
+try:
+    cfg = Config("configuration/config.yaml") # TODO Refactor to remove this dependency, or pass in cfg
+except FileNotFoundError as e:
+    cfg = Config("../configuration/config.yaml") # TODO Refactor to remove this dependency, or pass in cfg
 
 class Logger:
 

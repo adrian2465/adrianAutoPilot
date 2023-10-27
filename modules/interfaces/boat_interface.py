@@ -24,6 +24,24 @@ class BoatInterface:
         """Returns normalized rudder (-1 for full port, 1 for full starboard, 0 for centered)"""
         pass
 
+    def is_clutch_engaged(self):
+        pass
+
+    def engage_autopilot(self):
+        pass
+
+    def disengage_autopilot(self):
+        pass
+
+    def set_motor(self, m):
+        pass
+
+    def start(self):
+        pass
+
+    def stop(self):
+        pass
+
     def __str__(self):
         """
         Boat rudder angle displayed as:

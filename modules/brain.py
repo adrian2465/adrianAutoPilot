@@ -3,7 +3,6 @@
 ## March 2023
 ## April 2023
 from modules.common.anglemath import normalize_angle
-from modules.interfaces.arduino_interface import ArduinoInterface
 from modules.interfaces.boat_interface import BoatInterface
 from modules.common.config import Config
 
@@ -14,11 +13,11 @@ from modules.common.file_logger import Logger
 
 _log = Logger(config_path="brain", dest=None, who="brain")
 
+
 class Brain:
 
-    def __init__(self, arduino_interface: ArduinoInterface, cfg: Config, boat: BoatInterface):
+    def __init__(self, cfg: Config, boat: BoatInterface):
         self._boat = boat
-        self._arduino_interface = arduino_interface
         self._brain_thread = threading.Thread(target=self.motor_manager_daemon)
         self._brain_thread.daemon = True
         self._boat_sampling_interval = int(cfg.boat["sampling_interval"])
@@ -40,7 +39,7 @@ class Brain:
     def adjust_course(self, delta):
         self.set_target_course(self._target_course + delta)
 
-    def commanded_rudder(self):  # TODO Commanded Rudder shouldn't really be part of boat, but should be part of brain.
+    def commanded_rudder(self):
         """Desired rudder angle. Range is 0 <= commanded_rudder <= 1"""
         return self._commanded_rudder
 
@@ -52,18 +51,17 @@ class Brain:
         return abs(self._target_course - self._boat.heading()) <= self._course_tolerance_deg
 
     def is_clutch_engaged(self):
-        return self._arduino_interface.clutch() == 1
+        return self._boat.is_clutch_engaged()
 
     def engage_autopilot(self):
-        self._arduino_interface.set_clutch(1)
+        self._boat.engage_autopilot()
 
     def disengage_autopilot(self):
-        self._arduino_interface.set_motor(0)
-        self._arduino_interface.set_clutch(0)
+        self._boat.disengage_autopilot()
 
     def start(self):
+        self._boat.start()  # Create monitor and writer.
         self._brain_thread.start()
-        self._arduino_interface.start()  # Create monitor and writer.
 
     def stop(self):
         self._stop_requested = True
@@ -82,26 +80,32 @@ class Brain:
 
         _log.info(f"motor_manager_daemon started.")
         while not self._stop_requested:
-            _log.debug(f"boat rudder={self._boat.rudder()} commanded rudder={self.commanded_rudder()}  (diff={abs(self._boat.rudder() - self.commanded_rudder())})  tolerance={self._rudder_tolerance} motor={self._arduino_interface.motor()}")
-            if self.get_recommended_motor_direction() == 1:
-                _log.debug(f"Need more starboard rudder")
-            elif self.get_recommended_motor_direction() == -1:
-                _log.debug(f"Need more port rudder")
-            else:
-                _log.debug(f"Need to keep rudder where it is")
-                self._arduino_interface.set_motor(0)
-            self._arduino_interface.set_motor(self.get_recommended_motor_direction())
+            if self.is_clutch_engaged():
+                _recommended_direction = self.get_recommended_motor_direction()
+                _log.debug(f"boat rudder={self._boat.rudder()} "
+                           f"commanded rudder={self.commanded_rudder()}  "
+                           f"rudder diff={abs(self._boat.rudder() - self.commanded_rudder())}  "
+                           f"tolerance={self._rudder_tolerance} "
+                           f"recommended direction={_recommended_direction}")
+                if _recommended_direction == 1:
+                    _log.debug(f"Applying more starboard rudder (set_motor to 1)")
+                elif _recommended_direction == -1:
+                    _log.debug(f"Applying more port rudder (set_motor to -1)")
+                else:
+                    _log.debug(f"Keeping rudder where it is (set_motor to 0)")
+                    _recommended_direction = 0
+                self._boat.set_motor(_recommended_direction)
             time.sleep(self._boat_sampling_interval/1000)
 
         _log.info("motor_manager_daemon stopped")
 
     @property
     def boat(self):
-        return self.boat
+        return self._boat
 
     @property
     def arduino(self):
-        return self.boat
+        return self._boat.arduino
 
     @property
     def controller(self):

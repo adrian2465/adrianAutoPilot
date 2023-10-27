@@ -1,4 +1,18 @@
 TODOs
+o LEFT OFF HERE. Not moving the motor even though off course
+   192.168.86.28 - - [24/Oct/2023 01:52:41] "GET /get_heading HTTP/1.1" 200 -
+   192.168.86.28 - - [24/Oct/2023 01:52:41] "GET /get_heel HTTP/1.1" 200 -
+   get_interface_params() => p--1, s=1, rudder=0
+   192.168.86.28 - - [24/Oct/2023 01:52:41] "GET /get_interface_params HTTP/1.1" 200 -
+   get_messages =>
+   2023-10-24T01:52:41.225480 - DEBUG - brain: boat rudder=0 commanded rudder=0  (diff=0)  tolerance=0.01
+   192.168.86.28 - - [24/Oct/2023 01:52:41] "GET /get_messages HTTP/1.1" 200 -
+   2023-10-24T01:52:41.253958 - DEBUG - brain: Need to keep rudder where it is
+   brain.get_course() => 359.77907776939935
+   192.168.86.28 - - [24/Oct/2023 01:52:41] "GET /get_course HTTP/1.1" 200 -
+   get_heading() => 226.5896169874078
+   get_heel() => 0.15911022362229232
+Also, interface status is showing r=1, l=-1, s=undefined, d=undefined, x=undefined on web page.
 o Uninstall: 
   * make
   * gcc 
@@ -6,10 +20,10 @@ o Uninstall:
   * python3-dev?
 which were needed for pip-based installation of smbus (pip install smbus)
 
-o 2023-08-28 - Add rudder sense device to board, and test and calibrate
 o 2023-08-28 - Add easy-to-find, interactive calibration program that finds rudder limits, allows setting of gains, etc. Persist (perhaps) in config.yaml, or overwrite with calibrations.yaml
 
 DONEs
+DONE o 2023-08-28 - Add rudder sense device to board, and test and calibrate
 x 2023-08-24 - How will you translate rudder angle (-1 <= 0 <= 1) to motor speed and duration?  Figure the motor duration as a percentage of hard over angle vs rudder speed. NOTE: Will be handled by brain, which will check frequently and stop the motor when the angle is correct.
 x 2023-03-04 - Archive working configuration in $HOME. "home_date.tar"
 x 2023-03-04 - Get PI talking to Arduino via serial interface

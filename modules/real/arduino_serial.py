@@ -23,7 +23,7 @@ class ArduinoSerial(ArduinoInterface):
             raise Exception(f'ERROR: __init__: Port is not open: ' + self._usb)
 
         self._serial_out.reset_output_buffer()
-        _log.info(f'__init__: {self._serial_out.port} Connected for sending commands at {str(self._serial_out.baudrate)}!')
+        _log.info(f'__init__: {self._serial_out.port} ArcuinoInterface (real serial) Connected for sending commands at {str(self._serial_out.baudrate)}!')
 
     def is_debugging(self):
         return self._debugging

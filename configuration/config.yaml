@@ -13,7 +13,7 @@
 log_level: 2
 
 pid:
-  log_level: 2
+  log_level: 3
   gains:
     default:
 #      P: 8.170 - 9.8s
@@ -40,7 +40,7 @@ brain:
   log_level: 3
 
 boat:
-  log_level: 2
+  log_level: 3
   # How long rudder takes to go from stop to stop
   rudder_hardover_time_s: 4 # From centered to stop
   # Degrees per second
@@ -53,7 +53,7 @@ boat:
   course_tolerance_deg: 0.2
 
 arduino:
-  log_level: 2
+  log_level: 3
 
 mpu9250:
   log_level: 2

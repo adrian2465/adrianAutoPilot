@@ -1,3 +1,12 @@
 **/*.swp
 **/*~
 **/__pycache__/*
+**/*.tar
+**/*.tgz
+**/*.tar.gz
+**/*.iml
+gitpushtags
+removetag
+out
+output
+.idea

@@ -16,6 +16,8 @@ class BoatImpl(BoatInterface):
         self._heel = 0
         self._rudder = 0
         self._prev_time = None
+        self._clutch = 0
+        self._motor = 0
 
     def heading(self):
         """Boat's current heading."""
@@ -28,6 +30,25 @@ class BoatImpl(BoatInterface):
     def rudder(self):
         """Returns normalized rudder (-1 for full port, 1 for full starboard, 0 for centered)"""
         return self._rudder
+
+    def is_clutch_engaged(self):
+        return self._clutch == 1
+
+    def engage_autopilot(self):
+        self._clutch = 1
+
+    def disengage_autopilot(self):
+        self._motor = 0
+        self._clutch = 0
+
+    def set_motor(self, m):
+        self._motor = m
+
+    def start(self):
+        pass
+
+    def stop(self):
+        pass
 
     def set_heading(self, heading):
         if heading == self._heading:
