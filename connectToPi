@@ -1,0 +1,5 @@
+#!/bin/bash
+ADDR="192.168.86.31" # 31 FOR 3.1[41592] (PI)
+echo "Use ~. to disconnect."
+echo "Using address $ADDR"
+ssh tc@$ADDR

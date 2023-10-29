@@ -1,5 +1,5 @@
 # Author: Adrian Vrouwenvelder  August 2023
-from modules.real.arduino_serial import get_interface as get_arduinno_interface
+from modules.real.rudder_interface import get_interface as get_arduinno_interface
 from modules.interfaces.boat_interface import BoatInterface
 from modules.real.mpu9250 import get_interface as get_mpu_interface
 from modules.common.config import Config
@@ -25,7 +25,7 @@ class BoatImpl(BoatInterface):
 
     def rudder(self):
         """Returns normalized rudder (-1 for full port, 1 for full starboard, 0 for centered)"""
-        return self._arduino_interface.rudder()
+        return self._arduino_interface.get_rudder_position()
 
     def is_clutch_engaged(self):
         return self._arduino_interface.clutch() == 1
@@ -34,18 +34,18 @@ class BoatImpl(BoatInterface):
         self._arduino_interface.set_clutch(1)
 
     def disengage_autopilot(self):
-        self._arduino_interface.set_motor(0)
+        self._arduino_interface.set_motor_speed(0)
         self._arduino_interface.set_clutch(0)
 
     def motor(self):
-        self._arduino_interface.motor()
+        self._arduino_interface.get_motor_speed()
 
     def set_motor(self, m):
-        self._arduino_interface.set_motor(m)
+        self._arduino_interface.set_motor_speed(m)
 
     def start(self):
-        self._arduino_interface.start()  # Create monitor and writer.
-        self._imu.start()
+        self._arduino_interface.start_daemon()  # Create monitor and writer.
+        self._imu.start_daemon()
 
     def stop(self):
         pass

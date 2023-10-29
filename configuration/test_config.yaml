@@ -1,0 +1,8 @@
+# Adrian Vrouwenvelder
+# October 2023
+# TEST CONFIGURATION
+test_value: 100
+test_array: [10, 20]
+nested_config:
+    config1: 'A'
+    config2: 'B'

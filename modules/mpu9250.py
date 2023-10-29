@@ -2,12 +2,10 @@ from __future__ import print_function
 from __future__ import division
 import smbus2 as smbus
 from time import sleep, time
-from ctypes import c_short  # for signed int. c_short is 16 bits, signed (-32768 to 32767)
 
-from modules.common.file_logger import Logger
+from modules.common import angle_math
 from modules.interfaces.imu_interface import ImuInterface
-from modules.common.vectormath import moving_average_vector, moving_average_scalar, subtr, mult, vector_from_data
-from modules.common.vectormath import v_op
+from modules.common.angle_math import apply_operation, vector_from, WeightedAverageVector
 
 _log = Logger("mpu9250")
 
@@ -112,12 +110,6 @@ TEMP_SENSITIVITY = 333.87
 X, Y, Z = 0, 1, 2
 
 
-def c_short_big_endian(msb, lsb):
-    return c_short(lsb | (msb << 8)).value
-
-
-def c_short_little_endian(msb, lsb):
-    return c_short(msb | (lsb << 8)).value
 
 
 class Mpu9250(ImuInterface):
@@ -158,12 +150,13 @@ class Mpu9250(ImuInterface):
         self.bus.write_byte_data(AK8963_ADDRESS, MAG_CNTL1_REG, (MAG_CNTL1_16BIT | MAG_CNTL1_8HZ))  # cont mode 1
         self.bus.write_byte_data(AK8963_ADDRESS, MAG_SELF_TEST_REG, 0)
 
-        self._mag_avg = [0] * 3
-        self._gyro_avg = [0] * 3
-        self._accel_avg = [0] * 3
-        self._temp_avg = 0
+        self._mag = [0] * 3
+        self._gyro = [0] * 3
+        self._accel = [0] * 3
+        self._temp = 0
         self._turn_rate_dps = 0
 
+        # LEFT OFF HERE - All this is changed due to config changes.
         mpu = cfg.mpu
         gyro = mpu['gyro']
         accel = mpu['accel']
@@ -192,27 +185,20 @@ class Mpu9250(ImuInterface):
         print("INFO: imu9250 monitor running")
         iterations = 0
         start_time_s = time()
-        first_gyro_reading = True
-        first_accel_reading = True
-        first_temp_reading = True
-        first_mag_reading = True
+        self._gyro = WeightedAverageVector(self.moving_average_window_size_gyro)
+        self._accel = WeightedAverageVector(self.moving_average_window_size_accel)
+        self._mag = WeightedAverageVector(self.moving_average_window_size_mag)
+        self._temp = WeightedAverageVector(self.moving_average_window_size_temp)
         while self.is_running():
             iterations += 1
             data = self.bus.read_i2c_block_data(MPU9250_ADDRESS, ACCEL_DATA_REG, 14)  # Read Accel, Temp, and Gyro
-            self._gyro = vector_from_data(data, GYRO_OFFSET, GYRO_RANGE_CONV, c_short_fn=c_short_big_endian)
-            self._gyro_avg = self._gyro if first_gyro_reading else moving_average_vector(self._gyro_avg, self._gyro, self.moving_average_window_size_gyro)
-            first_gyro_reading = False
-            self._accel = vector_from_data(data, ACCEL_OFFSET, ACCEL_RANGE_CONV, c_short_fn=c_short_big_endian)
-            self._accel_avg = self._accel if first_accel_reading else moving_average_vector(self._accel_avg, self._accel, self.moving_average_window_size_accel)
-            first_accel_reading = False
-            self._temp = (c_short_big_endian(data[TEMP_OFFSET], data[TEMP_OFFSET + 1]) - ROOM_TEMP_OFFSET) / TEMP_SENSITIVITY + 21.0
-            self._temp_avg = self._temp if first_temp_reading else moving_average_scalar(self._temp_avg, self._temp, self.moving_average_window_size_temp)
-            first_temp_reading = False
+            self._gyro.add(vector_from(data, GYRO_OFFSET, GYRO_RANGE_CONV, endian_transformer_fn=math.c_short_to_big_endian))
+            self._accel.add(vector_from(data, ACCEL_OFFSET, ACCEL_RANGE_CONV, endian_transformer_fn=math.c_short_to_big_endian))
+            self._temp.add([(math.c_short_to_big_endian(data[TEMP_OFFSET], data[TEMP_OFFSET + 1]) -
+                             ROOM_TEMP_OFFSET) / TEMP_SENSITIVITY + 21.0])
             data = self.bus.read_i2c_block_data(AK8963_ADDRESS, MAG_DATA_REG, 7)  # Read Magnetometer and ST2
             if not MAG_ST2_MAG_OVERFLOW & data[6]:  # data[6] is MAG_ST2_REGISTER. Ignore magnetic overflows.
-                self._mag = vector_from_data(data, 0, MAG_RANGE_CONV, c_short_fn=c_short_little_endian)
-                self._mag_avg = self._mag if first_mag_reading else moving_average_vector(self._mag_avg, self._mag, self.moving_average_window_size_mag)
-                first_mag_reading = False
+                self._mag.add(vector_from(data, 0, MAG_RANGE_CONV, endian_transformer_fn=math.c_short_to_little_endian))
             self.sample_rate_hz = iterations / (time() - start_time_s)
             if iterations > 1000:
                 # Occasionally reset start time and iterations to avoid sample_rate_hz getting too heavily based on the past.
@@ -221,17 +207,27 @@ class Mpu9250(ImuInterface):
         print("INFO: imu9250 monitor exited")
 
     def accel(self):
-        return v_op(subtr, self._accel_avg, self.accel_bias)
+        return apply_operation(lambda x, y: x - y,
+                               self._accel.value,
+                               self.accel_bias)
 
     def gyro(self):
-        return v_op(subtr, self._gyro_avg, self.gyro_bias)
+        return apply_operation(lambda x, y: x - y,
+                               self._gyro.value,
+                               self.gyro_bias)
 
     def mag(self):
         # (mag_avg * mag_calib - mag_bias) * mag_scale
-        return v_op(mult, v_op(subtr, v_op(mult, self._mag_avg, self.mag_calib), self.mag_bias), self.mag_scale)
+        return apply_operation(lambda x, y: x * y,
+                               apply_operation(lambda x, y: x - y,
+                                               apply_operation(lambda x, y: x * y,
+                                                               self._mag.value,
+                                                               self.mag_calib),
+                                               self.mag_bias),
+                               self.mag_scale)
 
     def temp(self):
-        return subtr(self._temp_avg, self.temp_bias)
+        return self._temp.value[0] - self.temp_bias
 
 
 def get_interface(cfg, bus=1):

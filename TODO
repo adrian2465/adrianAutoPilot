@@ -1,18 +1,9 @@
-TODOs
-o LEFT OFF HERE. Not moving the motor even though off course
-   192.168.86.28 - - [24/Oct/2023 01:52:41] "GET /get_heading HTTP/1.1" 200 -
-   192.168.86.28 - - [24/Oct/2023 01:52:41] "GET /get_heel HTTP/1.1" 200 -
-   get_interface_params() => p--1, s=1, rudder=0
-   192.168.86.28 - - [24/Oct/2023 01:52:41] "GET /get_interface_params HTTP/1.1" 200 -
-   get_messages =>
-   2023-10-24T01:52:41.225480 - DEBUG - brain: boat rudder=0 commanded rudder=0  (diff=0)  tolerance=0.01
-   192.168.86.28 - - [24/Oct/2023 01:52:41] "GET /get_messages HTTP/1.1" 200 -
-   2023-10-24T01:52:41.253958 - DEBUG - brain: Need to keep rudder where it is
-   brain.get_course() => 359.77907776939935
-   192.168.86.28 - - [24/Oct/2023 01:52:41] "GET /get_course HTTP/1.1" 200 -
-   get_heading() => 226.5896169874078
-   get_heel() => 0.15911022362229232
-Also, interface status is showing r=1, l=-1, s=undefined, d=undefined, x=undefined on web page.
+TODOs:
+o LEFT OFF HERE. REWRITING.
+  * Continue refactoring starting with MPU interface
+  * Rewrite PID controller. Needs a way to test on a bench, so needs some inputs. This may indeed require a fake boat for testing.
+  * Rewrite the Brain - probably from scratch - do we even need a brain, or is the PID controller the brain?
+
 o Uninstall: 
   * make
   * gcc 
