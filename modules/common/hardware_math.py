@@ -57,7 +57,7 @@ def c_short_from_little_endian(msb, lsb):
 
 
 if __name__ == "__main__":
-    Config.init("config.yaml")
+    Config.init()
     logger = logging.getLogger("hardware_math_test")
 
     test_equals(1, round(rudder_val_from_arduino(1023), 2))

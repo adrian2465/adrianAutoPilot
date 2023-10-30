@@ -7,4 +7,4 @@ sudo modprobe i2c-dev
 sudo i2cdetect -y 1
 
 echo "Reading from MPU 9250"
-sudo PYTHONPATH=$PYTHONPATH python testing/mpu9250_monitor_to_console.py
+sudo PYTHONPATH=$PYTHONPATH python modules/imu_interface.py

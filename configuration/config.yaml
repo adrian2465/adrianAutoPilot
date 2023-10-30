@@ -15,7 +15,8 @@ course_tolerance_deg: 0.5
 # 6. Increase the I gain until it brings you to the setpoint with the number of oscillations desired (normally zero but
 #    a quicker response can be had if you don't mind a couple oscillations of overshoot)
 pid_gains:
-    calm: [17, 0, 0]
+#    calm: [0.2, 0.0105, 0.0000]  # Overshoots starting at 0600
+   calm: [0.0500, 0.0001, 0.0000]  # Overshoots starting at 0600
 
 # Inertial Measurement Unit (IMU)
 imu_sampling_interval_ms: 100
@@ -38,5 +39,6 @@ imu_magnetometer_bias: [ 33.30, 0.13, 10.6 ]
 imu_magnetometer_scale: [ 0.731, 0.722, 4.000 ]
 imu_magnetometer_moving_average_window_size: 100
 
-hw_echo_status: 1
-hw_reporting_interval_ms: 100
+# Rudder interface settings
+rudder_echo_status: 1
+rudder_reporting_interval_ms: 100

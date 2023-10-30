@@ -49,10 +49,10 @@ class RudderInterface:
 
     def _initialize_hw(self):
         config = Config.getConfig()
-        self.set_echo_status(config.get('hw_echo_status', 0))
+        self.set_echo_status(config.get('rudder_echo_status', 0))
         self.set_port_rudder_limit(config.get('port_rudder_limit', -1))
         self.set_starboard_rudder_limit(config.get('port_rudder_limit', 1))
-        self.set_hw_reporting_interval_ms(config.get('hw_reporting_interval_ms', 1000))
+        self.set_hw_reporting_interval_ms(config.get('rudder_reporting_interval_ms', 1000))
         self.set_motor_speed(0)
         self.set_clutch(0)
 
@@ -126,15 +126,15 @@ class RudderInterface:
 
     def start_daemon(self):
         _log = self._logger
-        _log.info("Starting monitor daemon...")
+        _log.info("Starting rudder daemon...")
         self._monitor_thread.start()
-        _log.info("Waiting for hardware readiness")
+        _log.info("Waiting for rudder readiness")
         while not self._is_ready:
             time.sleep(self._monitor_read_interval_s)
-        _log.info("Hardware is ready - Sending hardware settings")
+        _log.info("Rudder is ready - Sending hardware settings")
         self._initialize_hw()
         self.trigger_status_report()  # Force hardware to report status so all our values get set.
-        _log.info("Daemon is ready for commands")
+        _log.info("Rudder Daemon is ready for commands")
 
     def stop_daemon(self):
         _log = self._logger
@@ -265,7 +265,7 @@ class RudderInterface:
 
 if __name__ == "__main__":
     log = logging.getLogger("RudderController.main")
-    Config.init("config.yaml")
+    Config.init()
     rudder = None
     rc = 0
     try:

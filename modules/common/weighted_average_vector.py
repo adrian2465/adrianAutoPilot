@@ -29,15 +29,15 @@ class WeightedAverageVector:
 
 
 if __name__ == "__main__":
-    Config.init("test_config.yaml")
+    Config.init()
     logger = logging.getLogger("wav_test")
-    mav = WeightedAverageVector(5)
-    mav.add([2, 4, 6])
-    mav.add([2, 4, 6])
-    mav.add([2, 4, 6])
-    mav.add([2, 4, 6])
-    mav.add([2, 4, 6])
-    mav.add([2, 4, 6])
+    mav = WeightedAverageVector(5)\
+        .add([2, 4, 6])\
+        .add([2, 4, 6])\
+        .add([2, 4, 6])\
+        .add([2, 4, 6])\
+        .add([2, 4, 6])\
+        .add([2, 4, 6])
     test_vectors_equal([2, 4, 6], mav.value)
     mav.add([4, 8, 12])
     test_vectors_equal([2.4, 4.8, 7.2], mav.value)

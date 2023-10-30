@@ -45,7 +45,7 @@ def apply_operation(operation, vector1, vector2):
 
 
 if __name__ == "__main__":
-    Config.init("config.yaml")
+    Config.init()
     logger = logging.getLogger("angle_math_test")
     logger.info("Testing angle normalizer")
     test_equals(5, normalize_angle(365))

@@ -11,6 +11,8 @@ from modules.common.test_methods import test_equals
 
 CONFIG_DIR_NAME='configuration'
 LOGGING_CONF_FILE_NAME= "logging.conf"
+DEFAULT_CONFIG_FILE = "config.yaml"
+
 
 class Config:
     _data_lock = threading.Lock()
@@ -20,7 +22,7 @@ class Config:
     _logger = None
 
     @staticmethod
-    def init(file_name):
+    def init(file_name=DEFAULT_CONFIG_FILE):
         if Config._config_file is None:
             Config._config_dir = Path("configuration")
             log_conf_file = Path(Config._config_dir, LOGGING_CONF_FILE_NAME)
@@ -80,5 +82,5 @@ if __name__ == "__main__":
     test_equals(100, Config.get('bogus', 100))
     test_equals(100, Config.get('test_value', 0))
     logger.info("All tests passed ONLY IF this is the last message!")
-    Config.init("../../configuration/test_config.yaml")  # Should be no-op
+    Config.init("fubar")  # Should be no-op
     Config.getConfig()  # Should be no-op
