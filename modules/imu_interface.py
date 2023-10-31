@@ -1,3 +1,5 @@
+# Adrian Vrouwenvelder
+# August 2023
 from __future__ import print_function
 from __future__ import division
 
@@ -192,29 +194,36 @@ class Imu:
         self._temp = WeightedAverageVector(self._moving_average_window_size_temp)
         while not self._is_killed:
             # Read Gyroscope, Accelerometer and Thermometer from MPU9250
-            data = self._smbus.read_i2c_block_data(Imu.MPU9250_ADDRESS, Imu.ACCEL_DATA_REG, 14)
-            self._gyro.add(vector_from(data, Imu.GYRO_OFFSET, Imu.GYRO_RANGE_CONV,
-                                       endian_transformer_fn=hardware_math.c_short_from_big_endian))
-            self._accel.add(vector_from(data, Imu.ACCEL_OFFSET, Imu.ACCEL_RANGE_CONV,
-                                        endian_transformer_fn=hardware_math.c_short_from_big_endian))
-            self._temp.add([(hardware_math.c_short_from_big_endian(data[Imu.TEMP_OFFSET],
-                                                                   data[Imu.TEMP_OFFSET + 1]) -
-                             Imu.ROOM_TEMP_OFFSET) / Imu.TEMP_SENSITIVITY + 21.0])
-            # Read Magnetometer from AK8963
-            data = self._smbus.read_i2c_block_data(Imu.AK8963_ADDRESS, Imu.MAG_DATA_REG, 7)
-            if not Imu.MAG_ST2_MAG_OVERFLOW & data[6]:  # data[6] is MAG_ST2_REGISTER. Ignore magnetic overflows.
-                self._mag.add(vector_from(data, 0, Imu.MAG_RANGE_CONV,
-                                          endian_transformer_fn=hardware_math.c_short_from_little_endian))
-            self._is_initialized = True
-        self._is_initialized = False
+            try:
+                data = self._smbus.read_i2c_block_data(Imu.MPU9250_ADDRESS, Imu.ACCEL_DATA_REG, 14)
+                self._gyro.add(vector_from(data, Imu.GYRO_OFFSET, Imu.GYRO_RANGE_CONV,
+                                           endian_transformer_fn=hardware_math.c_short_from_big_endian))
+                self._accel.add(vector_from(data, Imu.ACCEL_OFFSET, Imu.ACCEL_RANGE_CONV,
+                                            endian_transformer_fn=hardware_math.c_short_from_big_endian))
+                self._temp.add([(hardware_math.c_short_from_big_endian(data[Imu.TEMP_OFFSET],
+                                                                       data[Imu.TEMP_OFFSET + 1]) -
+                                 Imu.ROOM_TEMP_OFFSET) / Imu.TEMP_SENSITIVITY + 21.0])
+                # Read Magnetometer from AK8963
+                data = self._smbus.read_i2c_block_data(Imu.AK8963_ADDRESS, Imu.MAG_DATA_REG, 7)
+                if not Imu.MAG_ST2_MAG_OVERFLOW & data[6]:  # data[6] is MAG_ST2_REGISTER. Ignore magnetic overflows.
+                    self._mag.add(vector_from(data, 0, Imu.MAG_RANGE_CONV,
+                                              endian_transformer_fn=hardware_math.c_short_from_little_endian))
+                self._is_initialized = True
+            except OSError:
+                self._log.warning(f"MPU9250 got an OS error. {traceback.format_exc()}. Carrying on.")
+                continue
         self._log.debug("MPU9250 monitor daemon exited")
+        self._is_initialized = False
 
+    @property
     def accel(self):
         return apply_operation(lambda v, b: v - b, self._accel.value, self._accel_bias)
 
+    @property
     def gyro(self):
         return apply_operation(lambda v, b: v - b, self._gyro.value, self._gyro_bias)
 
+    @property
     def mag(self):
         # (mag_val * mag_calib - mag_bias) * mag_scale
         return apply_operation(lambda vc_b, s: vc_b * s, apply_operation(lambda vc, b: vc - b,
@@ -223,19 +232,23 @@ class Imu:
                                                                                          self._mag_calib),
                                                                          self._mag_bias), self._mag_scale)
 
+    @property
     def temp(self):
         return self._temp.value[0] - self._temp_bias
 
+    @property
     def compass_deg(self):
-        mag = self.mag()
+        mag = self.mag
         return (atan2(mag[0], mag[1]) * (180 / pi) + 90 + 360) % 360
 
+    @property
     def heel_deg(self):
-        accel = self.accel()
+        accel = self.accel
         return 180 - (atan2(accel[2], accel[0]) * (180 / pi) + 90 + 360) % 360
 
+    @property
     def turn_rate_dps(self):
-        return self.gyro()[2]
+        return self.gyro[2]
 
     def start_daemon(self):
         self._log.debug("Starting MPU9250 daemon...")
@@ -255,6 +268,7 @@ class Imu:
         self._temp = None
         self._mag = None
 
+    @property
     def is_running(self):
         return self._is_initialized
 
@@ -272,18 +286,17 @@ if __name__ == "__main__":
     try:
         while not stopped:
             try:
-                log.info(f'Compass = {imu.compass_deg():6.2f} deg, '
-                         f'Heel = {imu.heel_deg():6.2f} deg, '
-                         f'Temp = {imu.temp():3.0f} C')
-                log.debug(f'- gyro = {imu.gyro()} dps')
-                log.debug(f'- accel = {imu.accel()} G')
-                log.debug(f'- mag = {imu.mag()} uT')
+                log.info(f'Compass = {imu.compass_deg:6.2f} deg, '
+                         f'Heel = {imu.heel_deg:6.2f} deg, '
+                         f'Temp = {imu.temp:3.0f} C')
+                log.debug(f'- gyro = {imu.gyro} dps')
+                log.debug(f'- accel = {imu.accel} G')
+                log.debug(f'- mag = {imu.mag} uT')
                 sleep(sleep_time)
             except KeyboardInterrupt:
                 stopped = True
     except Exception as e:
         log.fatal(f"Got exception {e}. Stacktrace:\n{traceback.format_exc()}")
-        log.fatal(f"")
         exit(1)
     finally:
         imu.stop_daemon()

@@ -1,5 +1,5 @@
-# Author: Adrian Vrouwenvelder
-# October 2023
+# Adrian Vrouwenvelder
+# August 2023
 import logging
 from ctypes import c_short  # for signed int. c_short is 16 bits, signed (-32768 to 32767)
 

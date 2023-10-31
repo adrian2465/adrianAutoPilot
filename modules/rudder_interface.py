@@ -1,9 +1,10 @@
 # Adrian Vrouwenvelder
 # August 2023
 import logging
-import os
 import threading
 import time
+from pathlib import Path
+
 import serial
 
 from modules.common.config import Config
@@ -19,6 +20,9 @@ class RudderInterface:
     def __init__(self):
         config = Config.getConfig()
         self._logger = logging.getLogger("RudderController")
+        if not Path(usb_device).exists():
+            self._logger.fatal(f"Device '{usb_device}' was not found. Are you on the Pi?")
+            exit(1)
         self._serial = serial.Serial(
             port=usb_device,
             timeout=1,
@@ -79,8 +83,8 @@ class RudderInterface:
                 _log.error(f"Value error! {e}")
             except serial.SerialException as e:
                 _log.error(f"Serial Exception {str(e)}")
-        self._is_ready = False
         _log.info("Arduino monitor exited")
+        self._is_ready = False
 
     def _write(self, msg: str) -> None:
         _log = self._logger
@@ -140,20 +144,23 @@ class RudderInterface:
         _log = self._logger
         self._is_killed = True
         _log.debug(f"Stop requested")
-        rudder.set_clutch(0)
-        rudder.set_motor_speed(0)
+        self.set_clutch(0)
+        self.set_motor_speed(0)
         _log.debug(f"Waiting for death of daemon")
         while self._monitor_thread.is_alive():
             time.sleep(self._monitor_read_interval_s)
         _log.debug(f"Monitor daemon terminated")
 
     def set_clutch(self, status: int):
+        _log = self._logger
         self._write(f"c{status}")
 
     def set_port_rudder_limit(self, limit):
+        _log = self._logger
         self._write(f"l{rudder_val_to_arduino(limit):04}")
 
     def set_starboard_rudder_limit(self, limit):
+        _log = self._logger
         self._write(f"r{rudder_val_to_arduino(limit):04}")
 
     def trigger_status_report(self):
@@ -165,15 +172,21 @@ class RudderInterface:
 
     def set_motor_speed(self, normalized_motor_speed):
         """
-        Motor Speed: -1 <= speed <= 1.  -1 is to port. 1 is to starboard.
-        Internally, also sets direction.
+        Motor Speed: -1 <= speed <= 1.  -1 is to port. 1 is to starboard. If motor is turning to port and stbd is
+        requested, or vice versa, the motor is first stopped briefly.
         """
         _log = self._logger
-        direction = 1 if normalized_motor_speed > 0 else -1 if normalized_motor_speed < 0 else 0
-        self._write(f"d{1 if direction < 0 else 2 if direction > 0 else 0}")
+        _log.debug(f"Set motor to {normalized_motor_speed}")
+
+        new_direction = 1 if normalized_motor_speed > 0 else -1 if normalized_motor_speed < 0 else 0
+        if self._hw_raw_motor_direction != new_direction and self._hw_raw_motor_direction != 0:
+            self._write(f"s000")
+        self._write(f"d{1 if new_direction < 0 else 2 if new_direction > 0 else 0}")
         self._write(f"s{motor_to_arduino(normalized_motor_speed) :03}")
 
     def set_hw_reporting_interval_ms(self, v):
+        _log = self._logger
+        _log.debug(f"Set set_hw_reporting_interval_ms to {v}")
         self._write(f"i{int(v):04}")
 
     @property
@@ -216,10 +229,10 @@ class RudderInterface:
         Motor Speed: -1 <= speed <= 1.  -1 is to port. 1 is to starboard.
         None if not ready.
         """
-        if self._hw_raw_motor_direction is None or self._hw_raw_motor_direction is None:
+        if self._hw_raw_motor_direction is None or self._hw_raw_motor_speed is None:
             return None
         else:
-            return self._hw_raw_motor_direction * self._hw_raw_motor_direction
+            return self._hw_raw_motor_direction * self._hw_raw_motor_speed
 
     @property
     def hw_clutch_status(self) -> int:
@@ -310,5 +323,4 @@ if __name__ == "__main__":
     if rudder is not None:
         rudder.stop_daemon()
     log.info("Terminated")
-    time.sleep(0.5)
     exit(rc)

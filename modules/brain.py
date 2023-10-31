@@ -1,112 +1,156 @@
-## Adrian Vrouwenvelder
-## December 1, 2022
-## March 2023
-## April 2023
-from modules.common.anglemath import normalize_angle
-from modules.interfaces.boat_interface import BoatInterface
+# Adrian Vrouwenvelder
+# October 2023
+import logging
+import traceback
+
+from modules.common.angle_math import normalize_angle, is_on_course as _is_on_course
 from modules.common.config import Config
 
 import threading
 import time
-from modules.pid_controller import PID
-from modules.common.file_logger import Logger
 
-_log = Logger(config_path="brain", dest=None, who="brain")
+from modules.imu_interface import Imu
+from modules.pid_controller import PID
+from modules.rudder_interface import RudderInterface
 
 
 class Brain:
+    _course_lock = threading.Lock()  # To prevent toggling None / val during brain loop
 
-    def __init__(self, cfg: Config, boat: BoatInterface):
-        self._boat = boat
-        self._brain_thread = threading.Thread(target=self.motor_manager_daemon)
-        self._brain_thread.daemon = True
-        self._boat_sampling_interval = int(cfg.boat["sampling_interval"])
-        self._stop_requested = False
-        self._controller = PID(cfg)
-        self._rudder_tolerance = float(cfg.boat["rudder_tolerance"])
-        self._target_course = None
-        self._commanded_rudder = None
-        self._course_tolerance_deg = float(cfg.boat['course_tolerance_deg'])
+    def __init__(self, rudder, imu):
+        cfg = Config.getConfig()
+        self._log = logging.getLogger('brain')
+        self._rudder = rudder
+        self._imu = imu
+        self._rudder_turn_rate_ups = 1000 / float(cfg['rudder_hard_over_time_ms'])
+        self._rudder_tolerance = float(cfg['rudder_position_tolerance'])
+        self._course_tolerance_deg = float(cfg['course_tolerance_deg'])
+        imu_sampling_interval_ms = float(cfg['imu_sampling_interval_ms'])
+        rudder_reporting_interval_ms = float(cfg['rudder_reporting_interval_ms'])
+        self._loop_interval_s = min(rudder_reporting_interval_ms, imu_sampling_interval_ms)/1000.0
+        self._actuator_manager_thread = threading.Thread(target=self._actuator_manager_daemon)
+        self._actuator_manager_thread.daemon = True
+        self._is_killed = False
+        self._is_initialized = False
+        self._course = None
+        self._heading = None
+        self._controller = None
+        self.gains_selector = 'calm'
 
-    def target_course(self):
-        """Desired course for autopilot to steer"""
-        return self._target_course
+    @property
+    def course(self):
+        """Desired course for autopilot to steer. Set to None to disengage pilot"""
+        return self._course
 
-    def set_target_course(self, course):
-        _log.debug(f"Setting target_course to {course}")
-        self._target_course = normalize_angle(course)
-
-    def adjust_course(self, delta):
-        self.set_target_course(self._target_course + delta)
-
-    def commanded_rudder(self):
-        """Desired rudder angle. Range is 0 <= commanded_rudder <= 1"""
-        return self._commanded_rudder
-
-    def set_commanded_rudder(self, commanded_rudder):
-        _log.debug(f"Setting commanded rudder to {'starboard' if commanded_rudder > 0 else 'port' if commanded_rudder < 0 else 'center'} ({commanded_rudder})")
-        self._commanded_rudder = commanded_rudder
-
-    def is_on_course(self):
-        return abs(self._target_course - self._boat.heading()) <= self._course_tolerance_deg
-
-    def is_clutch_engaged(self):
-        return self._boat.is_clutch_engaged()
-
-    def engage_autopilot(self):
-        self._boat.engage_autopilot()
-
-    def disengage_autopilot(self):
-        self._boat.disengage_autopilot()
-
-    def start(self):
-        self._boat.start()  # Create monitor and writer.
-        self._brain_thread.start()
-
-    def stop(self):
-        self._stop_requested = True
-        self.disengage_autopilot()
-        _log.info("Brain stop requested")
-
-    def get_recommended_motor_direction(self):
-        return 0 if not self.is_clutch_engaged()\
-            else 0 if abs(self._commanded_rudder - self._boat.rudder()) <= self._rudder_tolerance \
-            else 1 if (self._commanded_rudder > 0 and self._commanded_rudder > self._boat.rudder()) \
-            else -1
-
-    def motor_manager_daemon(self):
-        # Brain should check on course, heading, and rudder, and compute a new commanded rudder based on that.
-        # Brain also talks to the arduino (which is the hydraulic ram actuator) to effectuate changes
-
-        _log.info(f"motor_manager_daemon started.")
-        while not self._stop_requested:
-            if self.is_clutch_engaged():
-                _recommended_direction = self.get_recommended_motor_direction()
-                _log.debug(f"boat rudder={self._boat.rudder()} "
-                           f"commanded rudder={self.commanded_rudder()}  "
-                           f"rudder diff={abs(self._boat.rudder() - self.commanded_rudder())}  "
-                           f"tolerance={self._rudder_tolerance} "
-                           f"recommended direction={_recommended_direction}")
-                if _recommended_direction == 1:
-                    _log.debug(f"Applying more starboard rudder (set_motor to 1)")
-                elif _recommended_direction == -1:
-                    _log.debug(f"Applying more port rudder (set_motor to -1)")
+    @course.setter
+    def course(self, course):
+        """Desired course for autopilot to steer.None if pilot is disengaged"""
+        self._rudder.set_motor_speed(0)
+        with Brain._course_lock:
+            if course is not None:
+                new_course = normalize_angle(course)
+                if self._course is None:
+                    msg = f"Autopilot enabled with course = {new_course}"
+                    new_clutch = 1
+                    self._controller = PID(gains=self.gains_selector)
                 else:
-                    _log.debug(f"Keeping rudder where it is (set_motor to 0)")
-                    _recommended_direction = 0
-                self._boat.set_motor(_recommended_direction)
-            time.sleep(self._boat_sampling_interval/1000)
-
-        _log.info("motor_manager_daemon stopped")
-
-    @property
-    def boat(self):
-        return self._boat
-
-    @property
-    def arduino(self):
-        return self._boat.arduino
+                    msg = f"New course: {new_course}"
+                self._course = new_course
+            else:
+                msg = "Autopilot disabled" if self._course is not None else "Autopilot is already disabled"
+                self._controller = None
+                new_clutch = 0  # Disable whether enabled or not, as a safety.
+                self._course = None
+        if new_clutch is not None:
+            self._rudder.set_clutch(new_clutch)
+        self._log.info(msg)
 
     @property
-    def controller(self):
-        return self._controller
+    def is_on_course(self):
+        return True if self.course is None else _is_on_course(self._course, self._heading, self._course_tolerance_deg)
+
+    @property
+    def is_engaged(self):
+        return self._rudder.hw_clutch_status == 1 and self._course is not None
+
+    def start_daemon(self):
+        self._log.debug("Starting Actuator Manager daemon...")
+        self._actuator_manager_thread.start()
+        self._log.debug("Waiting for Actuator Manager daemon to initialize...")
+        while not self._is_initialized:
+            time.sleep(0.1)
+        self._log.info("Actuator Manager is ready for queries")
+
+    def stop_daemon(self):
+        self._log.debug("Disabling autopilot")
+        self._course = None
+        self._log.debug("Killing Actuator Manager daemon...")
+        self._is_killed = True
+        while self._is_initialized:
+            time.sleep(0.1)  # wait for daemon to die.
+        self._log.info("Actuator Manager daemon terminated")
+        self._course = None
+        self._heading = None
+
+    def _get_desired_rudder(self):
+        with Brain._course_lock:
+            if self.is_engaged:
+                return self._controller.compute(self._course, normalize_angle(self._imu.compass_deg))
+            else:
+                return None
+
+    def _actuator_manager_daemon(self):
+        self._log.info("Actuator Manager daemon started")
+        rudder_movement_per_iteration = self._rudder_turn_rate_ups * self._loop_interval_s
+        rudder_tolerance = max(rudder_movement_per_iteration, self._rudder_tolerance)
+        self._log.debug(f"rudder units per iteration: {rudder_movement_per_iteration}. Tolerance: {rudder_tolerance}")
+        while not self._is_killed:
+            desired_rudder = self._get_desired_rudder()
+            if desired_rudder is not None:
+                self._log.debug(f"Heading: {self._imu.compass_deg:6.2f} Rudder: Desired: {desired_rudder:6.4f} actual: {self._rudder.hw_rudder_position:6.4f}")
+                desired_motor = \
+                    0 if abs(desired_rudder - self._rudder.hw_rudder_position) < rudder_tolerance \
+                    else 1 if desired_rudder > self._rudder.hw_rudder_position \
+                    else -1
+                self._rudder.set_motor_speed(desired_motor)
+            self._is_initialized = True
+            time.sleep(self._loop_interval_s)
+        self._log.info("Actuator Manager daemon exited")
+        self._is_initialized = False
+
+
+if __name__ == "__main__":
+    import sys
+    Config.init()
+    log = logging.getLogger("brain")
+    if len(sys.argv) != 2:
+        log.error(f"Supply course")
+        exit(1)
+    rudder = None
+    imu = None
+    brain = None
+    try:
+        rudder = RudderInterface()
+        rudder.start_daemon()
+        imu = Imu(bus=1)
+        imu.start_daemon()
+        brain = Brain(rudder, imu)
+        brain.start_daemon()
+        log.info("^C to stop")
+        while True:
+            input_str = input("Enter course (OFF for Disable): ").lower()
+            try:
+                brain.course = int(input_str)
+            except ValueError:
+                brain.course = None
+            except KeyboardInterrupt:
+                break
+            except Exception:
+                exit(1)
+    except Exception as e:
+        log.fatal(f"Got exception {e}. Stacktrace:\n{traceback.format_exc()}")
+    finally:
+        if brain is not None: brain.stop_daemon()
+        if rudder is not None: rudder.stop_daemon()
+        if imu is not None: imu.stop_daemon()
+        log.info("Terminated")

@@ -1,5 +1,5 @@
-# Author: Adrian Vrouwenvelder
-# October 2023
+# Adrian Vrouwenvelder
+# August 2023
 import logging
 
 from modules.common.config import Config
