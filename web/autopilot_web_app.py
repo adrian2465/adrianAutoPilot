@@ -4,7 +4,7 @@
 from flask import Flask, jsonify, render_template
 from modules.brain import Brain
 from modules.common.config import Config
-from modules.real.boat import BoatImpl
+from modules.boat import BoatImpl
 
 app = Flask("Adrian's Autopilot")
 
@@ -21,7 +21,7 @@ def setup(app):
     brain.set_commanded_rudder(0)
     brain.set_target_course(boat.heading())
     brain._boat_sampling_interval = 1000
-    brain.start()
+    brain.start_daemon()
     print("Note: Web interface is on http://127.0.0.1:5000 (unless otherwise configured)")
 
 
@@ -85,12 +85,12 @@ def get_heel():
 def get_interface_params():
     global brain
     port_limit, stbd_limit = brain.arduino.rudder_limits()
-    if is_debug: print(f"get_interface_params() => p={port_limit}, s={stbd_limit}, rudder={brain.arduino.rudder()}")
+    if is_debug: print(f"get_interface_params() => p={port_limit}, s={stbd_limit}, rudder={brain.arduino.get_rudder_position()}")
     return jsonify(clutch_status=brain.is_clutch_engaged(),
                    starboard_limit=stbd_limit,
                    port_limit=port_limit,
-                   motor=brain.boat.motor(),
-                   rudder_position=brain.boat.rudder())
+                   motor=brain.boat.get_motor_speed(),
+                   rudder_position=brain.boat.get_rudder_position())
 
 @app.route("/get_messages")
 def get_messages():

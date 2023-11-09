@@ -1,7 +1,7 @@
 from time import sleep, time
 
 from modules.common.config import Config
-from modules.real.mpu9250 import get_interface
+from modules.imu_interface import get_interface
 
 
 def current_milli_time():
@@ -11,7 +11,7 @@ def current_milli_time():
 if __name__ == "__main__":
 
     imu = get_interface(Config("configuration/config.yaml"))
-    imu.start()
+    imu.start_daemon()
     try:
         start_time = current_milli_time()
         print ("time, gx, gy, gz, mx, my, mz, ax, ay, az, comp")
@@ -26,5 +26,5 @@ if __name__ == "__main__":
                   f'{imu.compass_deg(): .3f} ')
             sleep(0.01)
     except KeyboardInterrupt:
-        imu.stop()
+        imu.stop_daemon()
         print('imu9250 main loop terminated')

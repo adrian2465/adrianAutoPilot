@@ -3,7 +3,7 @@
 import logging
 
 from modules.common.config import Config
-from modules.common.test_methods import test_vectors_equal
+from modules.common.test_methods import test_equals
 
 
 class WeightedAverageVector:
@@ -38,9 +38,9 @@ if __name__ == "__main__":
         .add([2, 4, 6])\
         .add([2, 4, 6])\
         .add([2, 4, 6])
-    test_vectors_equal([2, 4, 6], mav.value)
+    test_equals([2, 4, 6], mav.value)
     mav.add([4, 8, 12])
-    test_vectors_equal([2.4, 4.8, 7.2], mav.value)
+    test_equals([2.4, 4.8, 7.2], mav.value)
     try:
         mav.add([1])
         raise Exception("Test failed - expected exception")

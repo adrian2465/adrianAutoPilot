@@ -4,7 +4,7 @@
 import logging
 
 from modules.common.config import Config
-from modules.common.test_methods import test_vectors_equal, test_equals, test_true
+from modules.common.test_methods import test_equals, test_true
 
 
 def is_on_course(course, heading, course_tolerance_deg):
@@ -72,18 +72,18 @@ if __name__ == "__main__":
     test_equals(212, celsius_to_fahrenheit(100))
     logger.info("Testing vector-from-data extractor")
     data = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-    test_vectors_equal([3.0, 7.0, 11.0],
-                       vector_from(data=data,
-                                   address=0,
-                                   bias=1.0,
-                                   endian_transformer_fn=lambda x, y: x + y))
-    test_vectors_equal([30.0, 38.0, 46.0],
-                       vector_from(data=data,
-                                   address=6,
-                                   bias=2.0,
-                                   endian_transformer_fn=lambda x, y: x + y))
+    test_equals([3.0, 7.0, 11.0],
+                vector_from(data=data,
+                            address=0,
+                            bias=1.0,
+                            endian_transformer_fn=lambda x, y: x + y))
+    test_equals([30.0, 38.0, 46.0],
+                vector_from(data=data,
+                            address=6,
+                            bias=2.0,
+                            endian_transformer_fn=lambda x, y: x + y))
     logger.info("Testing vector operation applier")
-    test_vectors_equal([5, 7, 9], apply_operation(lambda a, b: a + b, [1, 2, 3], [4, 5, 6]))
+    test_equals([5, 7, 9], apply_operation(lambda a, b: a + b, [1, 2, 3], [4, 5, 6]))
     try:
         apply_operation(lambda a, b: a + b, [1, 2, 3], [4, 6])
         raise Exception("Vectors of different length did not raise exception")

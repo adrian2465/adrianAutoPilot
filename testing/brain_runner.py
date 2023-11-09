@@ -56,7 +56,7 @@ if __name__ == "__main__":
     brain.set_target_course(course)
     brain._boat_sampling_interval = 1000
 
-    brain.start()
+    brain.start_daemon()
 
     try:
         controller = brain._controller
@@ -64,7 +64,7 @@ if __name__ == "__main__":
         with open(f"output/brain_simulator_output_crs{course:03d}_hdg{test_boat.heading():03d}_p{gains_file_suffix}.csv", 'a') as outfile:
             # outfile.write("elapsed_time, p_gain, i_gain, d_gain, course, heading, rudder, motor_direction, on/off course\n")
             _log.info("ctrl-C to stop")
-            brain.engage_autopilot()
+            brain.engage()
             interval = 0.1
             start_time = time.time()
             while True:
@@ -79,6 +79,6 @@ if __name__ == "__main__":
             _log.info(f"Elapsed time {time.time()-start_time:0.1f}s")
 
     except KeyboardInterrupt:
-        brain.disengage_autopilot()
-        brain.stop()
+        brain.disengage()
+        brain.stop_daemon()
         _log.info('Bye')

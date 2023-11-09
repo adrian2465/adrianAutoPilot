@@ -1,4 +1,4 @@
-from modules.common.anglemath import normalize_angle
+from modules.common.angle_math import normalize_angle
 from modules.interfaces.boat_interface import BoatInterface
 from modules.common.config import Config
 from modules.common.file_logger import Logger
@@ -103,7 +103,7 @@ if __name__ == "__main__":
         boat.set_rudder(0)
         motor_direction = 1
         duration = 0
-        while boat.rudder() < 1:
+        while boat.get_rudder_position() < 1:
             test_time.sleep(interval)
             duration = test_time.time() - prev_time
             prev_time = test_time.time()
@@ -134,7 +134,7 @@ if __name__ == "__main__":
             raise Exception(f"Heading not expected. old={old_heading}, new={boat.heading()}, "
                             f"expected={old_heading + boat.max_boat_turn_rate_dps() * 20 * interval} "
                             f"turnrate={boat.max_boat_turn_rate_dps()}")
-        if boat.rudder() != 1:
+        if boat.get_rudder_position() != 1:
             raise Exception("Rudder moved without motor action")
         _log.info(f"Keeps-turning test completed ")
 

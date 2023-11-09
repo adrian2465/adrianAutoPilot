@@ -8,8 +8,8 @@ from pathlib import Path
 import serial
 
 from modules.common.config import Config
-from modules.common.hardware_math import motor_to_arduino, rudder_val_to_arduino, rudder_val_from_arduino, \
-    motor_from_arduino
+from modules.common.hardware_math import motor_to_raw, normalize_rudder, normalize_motor
+from modules.common.test_methods import test_equals, test_true
 
 usb_device = "/dev/ttyUSB0"
 usb_baud_rate = 115200
@@ -21,42 +21,81 @@ class RudderInterface:
         config = Config.getConfig()
         self._logger = logging.getLogger("RudderController")
         if not Path(usb_device).exists():
-            self._logger.fatal(f"Device '{usb_device}' was not found. Are you on the Pi?")
-            exit(1)
-        self._serial = serial.Serial(
-            port=usb_device,
-            timeout=1,
-            baudrate=usb_baud_rate)
-        time.sleep(0.2)  # Wait for serial to open
-        if not self._serial.is_open:
-            raise ConnectionError(f'Port is not open: {usb_device}')
-        self._serial.reset_output_buffer()
-        self._serial.flushOutput()
-        self._logger.info(f'Connected to {usb_device} for sending. Baud={str(self._serial.baudrate)}!')
-        self._monitor_thread = threading.Thread(target=self._serial_monitor_daemon)
-        self._monitor_thread.daemon = True
-        self._is_ready = False
-        self._is_killed = False
-        self._monitor_read_interval_s = config.get('monitor_read_interval_s', 0.2)
-        self._status_report_complete_duration_ms = config.get('status_report_complete_duration_ms', 500)
-        self._hw_messages = None
-        self._hw_rudder_position = None
-        self._hw_rudder_fault = None
-        self._hw_motor_speed = None
-        self._hw_raw_motor_direction = None
-        self._hw_raw_motor_speed = None
-        self._hw_clutch_status = None
-        self._hw_echo_status = None
-        self._hw_port_limit = None
-        self._hw_stbd_limit = None
-        self._hw_reporting_interval_ms = None
+            self.is_unit_test = True
+            self._logger.info(f"Running unit tests since {usb_device} is unavailable")
+        else:
+            self.is_unit_test = False
+            self._logger.info(f"Running system tests since {usb_device} is available")
+            self._serial = serial.Serial(
+                port=usb_device,
+                timeout=1,
+                baudrate=usb_baud_rate)
+            time.sleep(0.2)  # Wait for serial to open
+            if not self._serial.is_open:
+                raise ConnectionError(f'Port is not open: {usb_device}')
+            self._serial.reset_output_buffer()
+            self._serial.flushOutput()
+            self._logger.info(f'Connected to {usb_device} for sending. Baud={str(self._serial.baudrate)}!')
+            self._monitor_thread = threading.Thread(target=self._serial_monitor_daemon)
+            self._monitor_thread.daemon = True
+            self._is_ready = False
+            self._is_killed = False
+            self._monitor_read_interval_s = config.get('monitor_read_interval_s', 0.2)
+            self._status_report_complete_duration_ms = config.get('status_report_complete_duration_ms', 500)
+        self.hw_messages = None
+        self.hw_raw_rudder_position = None
+        self.hw_rudder_fault = None
+        self.hw_raw_motor_direction = None
+        self.hw_raw_motor_speed = None
+        self.hw_clutch_status = None
+        self.hw_echo_status = None
+        # Hard stop limit.  Rudder position should always return -1 to 1 despite limits
+        self.hw_port_limit = None
+        self.hw_stbd_limit = None
+        self.hw_reporting_interval_ms = None
+
+    def __str__(self):
+        return f"{__class__}(port={self._serial.port} baud={str(self._serial.baudrate)})"
+
+    def __exit__(self):
+        _log = self._logger
+        self.set_motor_speed(0.0)
+        self.set_clutch(0)
+        _log.debug("Closing serial interface")
+        self._serial.close()
+        _log.info("Terminated")
+
+    def _process_message_from_arduino(self, msg):
+        _log = self._logger
+        if msg.startswith('m='):  # Text message
+            self.hw_messages = msg[2:]
+        elif msg.startswith('r='):  # Right limit
+            self.hw_stbd_limit = int(msg[2:])
+        elif msg.startswith('l='):  # Left limit
+            self.hw_port_limit = int(msg[2:])
+        elif msg.startswith('p='):  # Rudder position magnitude
+            self.hw_raw_rudder_position = int(msg[2:])
+        elif msg.startswith('x='):  # Rudder position exception (out of bounds)
+            self.hw_rudder_fault = int(msg[2:])
+        elif msg.startswith('s='):  # Raw Motor speed
+            self.hw_raw_motor_speed = int(msg[2:])
+        elif msg.startswith('d='):  # Motor direction
+            self.hw_raw_motor_direction = int(msg[2:])
+        elif msg.startswith('c='):  # Clutch disposition
+            self.hw_clutch_status = int(msg[2:])
+        elif msg.startswith('i='):
+            self.hw_reporting_interval_ms = int(msg[2:])
+        elif msg.startswith('e='):
+            self.hw_echo_status = int(msg[2:])
+        else:
+            _log.error(f"Received unsupported message from hardware: '{msg}'")
 
     def _initialize_hw(self):
         config = Config.getConfig()
         self.set_echo_status(config.get('rudder_echo_status', 0))
-        self.set_port_rudder_limit(config.get('port_rudder_limit', -1))
-        self.set_starboard_rudder_limit(config.get('port_rudder_limit', 1))
-        self.set_hw_reporting_interval_ms(config.get('rudder_reporting_interval_ms', 1000))
+        self.set_port_raw_rudder_limit(config.get('rudder_port_limit', 0))
+        self.set_starboard_raw_rudder_limit(config.get('rudder_starboard_limit', 1023))
+        self._set_hw_reporting_interval_ms(config.get('rudder_reporting_interval_ms', 1000))
         self.set_motor_speed(0)
         self.set_clutch(0)
 
@@ -75,7 +114,7 @@ class RudderInterface:
                 while self._serial.in_waiting > 0:
                     message = self._serial.readline().decode('utf-8').strip()
                     if message != '':
-                        _log.debug(f'received: {message}')
+                        _log.debug(f"Processing msg from HW: '{message}'")
                         if message == 'm=REBOOTED':
                             self._is_ready = True
                         self._process_message_from_arduino(msg=message)
@@ -101,34 +140,30 @@ class RudderInterface:
         except KeyboardInterrupt as e:
             _log.error(f"Keyboard Interrupt {str(e)}")
 
-    def _process_message_from_arduino(self, msg):
-        _log = self._logger
-        _log.debug(f"Processing msg={msg}")
-        if msg.startswith('m='):  # Text message
-            self._hw_messages = msg[2:]
-        elif msg.startswith('r='):  # Right limit
-            self._hw_stbd_limit = rudder_val_from_arduino(int(msg[2:]))
-        elif msg.startswith('l='):  # Left limit
-            self._hw_port_limit = rudder_val_from_arduino(int(msg[2:]))
-        elif msg.startswith('p='):  # Rudder position magnitude
-            self._hw_rudder_position = rudder_val_from_arduino(int(msg[2:]))
-        elif msg.startswith('x='):  # Rudder position exception (out of bounds)
-            v = int(msg[2:])
-            self._hw_rudder_fault = 1 if v == 2 else -1 if v == 1 else 0
-        elif msg.startswith('s='):  # Motor speed
-            self._hw_raw_motor_speed = motor_from_arduino(int(msg[2:]))
-        elif msg.startswith('d='):  # Motor direction
-            self._hw_raw_motor_direction = -1 if int(msg[2:]) == 1 else 1 if int(msg[2:]) == 2 else 0
-        elif msg.startswith('c='):  # Clutch disposition
-            self._hw_clutch_status = int(msg[2:])
-        elif msg.startswith('i='):
-            self._hw_reporting_interval_ms = int(msg[2:])
-        elif msg.startswith('e='):
-            self._hw_echo_status = int(msg[2:])
-        else:
-            _log.error(f"Received unsupported message from hardware: '{msg}'")
+    def _trigger_status_report(self) -> None:
+        self._write("?")
 
-    def start_daemon(self):
+    def _set_hw_reporting_interval_ms(self, v) -> None:
+        _log = self._logger
+        _log.debug(f"Set set_hw_reporting_interval_ms to {v}")
+        self._write(f"i{int(v):04}")
+
+    def _print_status(self) -> None:
+        _log = self._logger
+        _log.info(f"* Messages: {self.hw_messages}")
+        _log.info(f"* Port limit: {self.hw_port_limit}")
+        _log.info(f"* Starboard limit: {self.hw_stbd_limit}")
+        _log.info(f"* HW Rudder position: {self.hw_raw_rudder_position}")
+        _log.info(f"* Normalized Rudder position: {self.rudder_position}")
+        _log.info(f"* Rudder fault: {self.hw_rudder_fault}")
+        _log.info(f"* Raw Motor Speed: {self.hw_raw_motor_speed}")
+        _log.info(f"* Raw Motor Direction: {self.hw_raw_motor_direction}")
+        _log.info(f"* Normalized motor direction: {self.motor_speed}")
+        _log.info(f"* Clutch status: {self.hw_clutch_status}")
+        _log.info(f"* HW Reporting interval (ms): {self.hw_reporting_interval_ms}")
+        _log.info(f"* Echo Status: {self.hw_echo_status}")
+
+    def start_daemon(self) -> None:
         _log = self._logger
         _log.info("Starting rudder daemon...")
         self._monitor_thread.start()
@@ -137,10 +172,10 @@ class RudderInterface:
             time.sleep(self._monitor_read_interval_s)
         _log.info("Rudder is ready - Sending hardware settings")
         self._initialize_hw()
-        self.trigger_status_report()  # Force hardware to report status so all our values get set.
+        self._trigger_status_report()  # Force hardware to report status so all our values get set.
         _log.info("Rudder Daemon is ready for commands")
 
-    def stop_daemon(self):
+    def stop_daemon(self) -> None:
         _log = self._logger
         self._is_killed = True
         _log.debug(f"Stop requested")
@@ -151,26 +186,31 @@ class RudderInterface:
             time.sleep(self._monitor_read_interval_s)
         _log.debug(f"Monitor daemon terminated")
 
-    def set_clutch(self, status: int):
+    def set_clutch(self, status: int) -> None:
         _log = self._logger
         self._write(f"c{status}")
 
-    def set_port_rudder_limit(self, limit):
+    def set_port_raw_rudder_limit(self, raw_limit: int = None) -> None:
+        """Set the port raw limit. 0 <= limit <= 1023. This can be set by turning the rudder to its port limit (minus a bit)
+        and then calling this without parameters after waiting a short period to ensure that the hw_raw_rudder_position
+        has been registered."""
         _log = self._logger
-        self._write(f"l{rudder_val_to_arduino(limit):04}")
+        if raw_limit is None: raw_limit = self.hw_raw_rudder_position
+        self._write(f"l{raw_limit:04}")
 
-    def set_starboard_rudder_limit(self, limit):
+    def set_starboard_raw_rudder_limit(self, raw_limit: int = None) -> None:
+        """Set the port raw limit. 0 <= limit <= 1023. This can be set by turning the rudder to its stbd limit (minus a bit)
+        and then calling this without parameters after waiting a short period to ensure that the hw_raw_rudder_position
+        has been registered."""
         _log = self._logger
-        self._write(f"r{rudder_val_to_arduino(limit):04}")
+        if raw_limit is None: raw_limit = self.hw_raw_rudder_position
+        self._write(f"r{raw_limit:04}")
 
-    def trigger_status_report(self):
-        self._write("?")
-
-    def set_echo_status(self, status):
+    def set_echo_status(self, status) -> None:
         _log = self._logger
         self._write(f"e{status}")
 
-    def set_motor_speed(self, normalized_motor_speed):
+    def set_motor_speed(self, normalized_motor_speed) -> None:
         """
         Motor Speed: -1 <= speed <= 1.  -1 is to port. 1 is to starboard. If motor is turning to port and stbd is
         requested, or vice versa, the motor is first stopped briefly.
@@ -178,102 +218,75 @@ class RudderInterface:
         _log = self._logger
         _log.debug(f"Set motor to {normalized_motor_speed}")
 
-        new_direction = 1 if normalized_motor_speed > 0 else -1 if normalized_motor_speed < 0 else 0
-        if self._hw_raw_motor_direction != new_direction and self._hw_raw_motor_direction != 0:
-            self._write(f"s000")
-        self._write(f"d{1 if new_direction < 0 else 2 if new_direction > 0 else 0}")
-        self._write(f"s{motor_to_arduino(normalized_motor_speed) :03}")
-
-    def set_hw_reporting_interval_ms(self, v):
-        _log = self._logger
-        _log.debug(f"Set set_hw_reporting_interval_ms to {v}")
-        self._write(f"i{int(v):04}")
+        new_raw_direction = 2 if normalized_motor_speed > 0 else 1 if normalized_motor_speed < 0 else 0
+        self._write(f"d{new_raw_direction}")
+        self._write(f"s{motor_to_raw(normalized_motor_speed) :03}")
 
     @property
-    def hw_messages(self) -> str:
-        """
-        Messages from arduino
-        None if not ready.
-        """
-        return self._hw_messages
-
-    @property
-    def hw_port_rudder_limit(self):
-        return self._hw_port_limit
-
-    @property
-    def hw_starboard_rudder_limit(self):
-        return self._hw_stbd_limit
-
-    @property
-    def hw_rudder_position(self) -> int:
-        """
-        Rudder position. Sensed by Arduino. Not settable - to move rudder, operate the motor.
-        Range is-1 <= rudder_position <= 1, where neg is to port, pos is to starboard.
-        None if not ready.
-        """
-        return self._hw_rudder_position
-
-    @property
-    def hw_rudder_fault(self):
-        """
-        Rudder exceeded stops. Fault. Sent by Arduino. Read-only. Clears when rudder is back within specs.
-        Value is 0 if no fault, -1 if rudder exceeded to port, 1 if rudder exceeded to starboard.
-        None if not ready.
-        """
-        return self._hw_rudder_fault
-
-    @property
-    def hw_motor_speed(self):
+    def motor_speed(self) -> float:
         """
         Motor Speed: -1 <= speed <= 1.  -1 is to port. 1 is to starboard.
         None if not ready.
         """
-        if self._hw_raw_motor_direction is None or self._hw_raw_motor_speed is None:
+        if self.hw_raw_motor_direction is None or self.hw_raw_motor_speed is None:
             return None
         else:
-            return self._hw_raw_motor_direction * self._hw_raw_motor_speed
+            normalized_motor_direction = -1 if self.hw_raw_motor_direction == 1 \
+                else 1 if self.hw_raw_motor_direction == 2 \
+                else 0
+            return normalized_motor_direction * normalize_motor(self.hw_raw_motor_speed)
 
     @property
-    def hw_clutch_status(self) -> int:
-        """
-        Status of autopilot.
-        0 = disengaged, 1 = engaged
-        """
-        return self._hw_clutch_status
+    def rudder_position(self) -> float:
+        """Normalized rudder position.  -1<=N<=1.  -1 indicates all the way to port rudder limit, 1 indicates
+        all the way to starboard rudder limit.  NOTE: If the starboard rudder limit is 500, then a raw rudder position
+        of 500 will yield a normalized rudder position of 1."""
+        return normalize_rudder(self.hw_port_limit, self.hw_stbd_limit, self.hw_raw_rudder_position)
 
-    @property
-    def hw_echo_status(self):
-        return self._hw_echo_status
 
-    @property
-    def hw_reporting_interval_ms(self):
-        return self._hw_reporting_interval_ms
+def _test_rudder_position_normalization(rudder: RudderInterface) -> None:
+    rudder.hw_port_limit = 0
+    rudder.hw_stbd_limit = 1023
+    rudder.hw_raw_rudder_position = 0
+    test_equals(-1.0, rudder.rudder_position)
+    rudder.hw_raw_rudder_position = 1023
+    test_equals(1.0, rudder.rudder_position)
+    rudder.hw_raw_rudder_position = 511.5
+    test_equals(0, rudder.rudder_position)
+    rudder.hw_port_limit = 100
+    rudder.hw_stbd_limit = 923
+    rudder.hw_raw_rudder_position = 100
+    test_equals(-1.0, rudder.rudder_position)
+    rudder.hw_raw_rudder_position = 923
+    test_equals(1.0, rudder.rudder_position)
+    rudder.hw_raw_rudder_position = 511.5
+    test_equals(0, rudder.rudder_position)
+    rudder.hw_port_limit = 200
+    rudder.hw_raw_rudder_position = 200
+    test_equals(-1.0, rudder.rudder_position)
+    rudder.hw_raw_rudder_position = 923
+    test_equals(1.0, rudder.rudder_position)
+    rudder.hw_raw_rudder_position = 525.35
+    test_true(abs(-0.09999999 - rudder.rudder_position) < 0.00001, "Failed expected off-center rudder")
+    rudder.hw_raw_rudder_position = 561.5
+    test_equals(0, rudder.rudder_position)
 
-    def __str__(self):
-        return f"{__class__}(port={self._serial.port} baud={str(self._serial.baudrate)})"
 
-    def __exit__(self):
-        _log = self._logger
-        self.set_motor_speed(0.0)
-        self.set_clutch(0)
-        _log.debug("Closing serial interface")
-        self._serial.close()
-        _log.info("Terminated")
-
-    def print_status(self):
-        _log = self._logger
-        _log.info(f"* Messages: {self._hw_messages}")
-        _log.info(f"* Port limit: {self._hw_port_limit}")
-        _log.info(f"* Starboard limit: {self._hw_stbd_limit}")
-        _log.info(f"* Rudder position: {self._hw_rudder_position}")
-        _log.info(f"* Rudder fault: {self._hw_rudder_fault}")
-        _log.info(f"* Raw Motor Speed: {self._hw_raw_motor_speed}")
-        _log.info(f"* Raw Motor Direction: {self._hw_raw_motor_direction}")
-        _log.info(f"* Motor speed: {self.hw_motor_speed}")
-        _log.info(f"* Clutch status: {self._hw_clutch_status}")
-        _log.info(f"* HW Reporting interval (ms): {self._hw_reporting_interval_ms}")
-        _log.info(f"* Echo Status: {self._hw_echo_status}")
+def _test_motor_speed(rudder: RudderInterface) -> None:
+    rudder.hw_raw_motor_speed = 255
+    rudder.hw_raw_motor_direction = 0
+    test_equals(0, rudder.motor_speed)
+    rudder.hw_raw_motor_direction = 1
+    test_equals(-1, rudder.motor_speed)
+    rudder.hw_raw_motor_direction = 2
+    test_equals(1, rudder.motor_speed)
+    rudder.hw_raw_motor_speed = 0
+    rudder.hw_raw_motor_direction = 2
+    test_equals(0, rudder.motor_speed)
+    rudder.hw_raw_motor_direction = 1
+    test_equals(0, rudder.motor_speed)
+    rudder.hw_raw_motor_direction = 0
+    test_equals(0, rudder.motor_speed)
 
 
 if __name__ == "__main__":
@@ -283,44 +296,49 @@ if __name__ == "__main__":
     rc = 0
     try:
         rudder = RudderInterface()
-        rudder.start_daemon()
-        log.setLevel(logging.ERROR)
-        while True:
-            rudder.print_status()
-            input_str = input("Enter commands (semicolon-separated):\n"
-                              "  Sn = Motor speed. n = {-1, 0, 1}\n"
-                              "  Cn = Clutch. n={0, 1}\n"
-                              "  En = HW echo. n={0, 1}\n"
-                              "  Lnnnn = Left rudder limit. -1 <= n <= 1; typically negative. e.g. L-0.5\n"
-                              "  Rnnnn = Right rudder limit. -1 <= n <= 1; typically positive. e.g. R0.5\n"
-                              "  Innnn = Status reporting interval in milliseconds. 0 <= n <= 9999\n"
-                              "  <enter> = status\n>>> ")
-            cmds = input_str.lower().split(";")
-            for cmd in cmds:
-                if cmd.startswith('s'):
-                    rudder.set_motor_speed(int(cmd[1:]))
-                elif cmd.startswith('c'):
-                    rudder.set_clutch(int(cmd[1:]))
-                elif cmd.startswith('e'):
-                    rudder.set_echo_status(int(cmd[1:]))
-                elif cmd.startswith('l'):
-                    rudder.set_port_rudder_limit(float(cmd[1:]))
-                elif cmd.startswith('r'):
-                    rudder.set_starboard_rudder_limit(float(cmd[1:]))
-                elif cmd.startswith('i'):
-                    rudder.set_hw_reporting_interval_ms(int(cmd[1:]))
-                else:
-                    rudder.trigger_status_report()
-
+        if rudder.is_unit_test:
+            _test_rudder_position_normalization(rudder)
+            _test_motor_speed(rudder)
+        else:
+            rudder.start_daemon()
+            log.setLevel(logging.ERROR)
+            while True:
+                try:
+                    rudder._print_status()
+                    input_str = input("Enter commands (semicolon-separated):\n"
+                                      "  Sn = Normalized Motor speed. n = {-1, 0, 1}\n"
+                                      "  Cn = Clutch. n={0, 1}\n"
+                                      "  En = HW echo. n={0, 1}\n"
+                                      "  Lnnnn = Left rudder limit. 0000 <= n <= 1023; Usually less than 512. e.g. L0010\n"
+                                      "  Rnnnn = Right rudder limit. 0000 <= n <= 1023; Usually more than 512. e.g. R0923\n"
+                                      "  Innnn = Status reporting interval in milliseconds. 0 <= n <= 9999\n"
+                                      "  <enter> = status\n>>> ")
+                    cmds = input_str.lower().split(";")
+                    for cmd in cmds:
+                        if cmd.startswith('s'):
+                            rudder.set_motor_speed(int(cmd[1:]))
+                        elif cmd.startswith('c'):
+                            rudder.set_clutch(int(cmd[1:]))
+                        elif cmd.startswith('e'):
+                            rudder.set_echo_status(int(cmd[1:]))
+                        elif cmd.startswith('l'):
+                            rudder.set_port_raw_rudder_limit(float(cmd[1:]))
+                        elif cmd.startswith('r'):
+                            rudder.set_starboard_raw_rudder_limit(float(cmd[1:]))
+                        elif cmd.startswith('i'):
+                            rudder._set_hw_reporting_interval_ms(int(cmd[1:]))
+                        else:
+                            rudder._trigger_status_report()
+                except KeyboardInterrupt:
+                    log.info("Keyboard interrupt")
+                    rudder.stop_daemon()
+                    rc = 0
+                    break
     except ValueError as e:
         log.error(f"Value error! {e}")
         rc = 1
     except serial.SerialException as e:
         log.error(f"Serial Exception! {e}")
         rc = 1
-    except KeyboardInterrupt:
-        log.info("Keyboard interrupt")
-    if rudder is not None:
-        rudder.stop_daemon()
     log.info("Terminated")
     exit(rc)
