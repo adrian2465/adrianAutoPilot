@@ -138,12 +138,11 @@
                 function (data) {
                     if (interfaceCheckbox.checked) {
                         interfaceMessageArea.text(
-                            "r=" + data.starboard_limit +
-                            " l=" + data.port_limit +
-                            " s=" + data.motor_speed +
-                            " d=" + data.motor_direction +
-                            " p=" + data.rudder_position +
-                            " x=" + data.rudder_direction)
+                            "plim=" + data.port_limit +
+                            " slim=" + data.starboard_limit +
+                            " motor=" + data.motor +
+                            " rudder=" + data.rudder_position +
+                            " turn_rate=" + data.turn_rate)
                     } else {
                         interfaceMessageArea.text("")
                     }

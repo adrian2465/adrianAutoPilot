@@ -7,8 +7,8 @@ from modules.common.angle_math import normalize_angle, is_on_course as _is_on_co
 from modules.common.config import Config
 
 import threading
-import time
 
+import time
 from modules.imu_interface import Imu
 from modules.pid_controller import PID
 from modules.rudder_interface import RudderInterface
@@ -23,10 +23,11 @@ class Brain:
         self._rudder = rudder
         self._imu = imu
         self._rudder_turn_rate_ups = 1000 / float(cfg['rudder_hard_over_time_ms'])
-        self._rudder_tolerance = float(cfg['rudder_position_tolerance'])
+        self._metric_tolerance = float(cfg['metric_tolerance'])
         self._course_tolerance_deg = float(cfg['course_tolerance_deg'])
         imu_sampling_interval_ms = float(cfg['imu_sampling_interval_ms'])
         rudder_reporting_interval_ms = float(cfg['rudder_reporting_interval_ms'])
+        self._max_turn_rate_dps = cfg['boat_max_turn_rate_dps']
         self._loop_interval_s = min(rudder_reporting_interval_ms, imu_sampling_interval_ms)/1000.0
         self._actuator_manager_thread = threading.Thread(target=self._actuator_manager_daemon)
         self._actuator_manager_thread.daemon = True
@@ -36,32 +37,6 @@ class Brain:
         self._heading = None
         self._controller = None
         self.gains_selector = 'calm'
-
-    def _get_desired_rudder(self):
-        with Brain._course_lock:
-            if self.is_engaged:
-                return self._controller.compute(self._course, normalize_angle(self._imu.compass_deg))
-            else:
-                return None
-
-    def _actuator_manager_daemon(self):
-        self._log.info("Actuator Manager daemon started")
-        rudder_movement_per_iteration = self._rudder_turn_rate_ups * self._loop_interval_s
-        rudder_tolerance = max(rudder_movement_per_iteration, self._rudder_tolerance)
-        self._log.debug(f"rudder units per iteration: {rudder_movement_per_iteration}. Tolerance: {rudder_tolerance}")
-        while not self._is_killed:
-            desired_rudder = self._get_desired_rudder()
-            if desired_rudder is not None:
-                self._log.debug(f"Heading: {self._imu.compass_deg:6.2f} Rudder: Desired: {desired_rudder:6.4f} actual: {self._rudder.rudder_position:6.4f}")
-                desired_motor = \
-                    0 if abs(desired_rudder - self._rudder.rudder_position) < rudder_tolerance \
-                    else 1 if desired_rudder > self._rudder.rudder_position \
-                    else -1
-                self._rudder.set_motor_speed(desired_motor)
-            self._is_initialized = True
-            time.sleep(self._loop_interval_s)
-        self._log.info("Actuator Manager daemon exited")
-        self._is_initialized = False
 
     def start_daemon(self):
         self._log.debug("Starting Actuator Manager daemon...")
@@ -117,6 +92,42 @@ class Brain:
     @property
     def is_engaged(self):
         return self._rudder.hw_clutch_status == 1 and self._course is not None
+
+    def _get_control(self):
+        with Brain._course_lock:
+            if self.is_engaged:
+                self._log.debug(f"Querying controller. Inputs = {self._course}, "
+                                f"{normalize_angle(self._imu.compass_deg)}")
+                return self._controller.compute(self._course, normalize_angle(self._imu.compass_deg))
+            else:
+                return None
+
+    def _get_controlled_metric(self):
+        """This is the item we're attempting to control in our attempts to steer a course."""
+        # Rudder Position is one such potential value, but suffers from the fact that if the course error is 0, the
+        # rudder position (without an offset correction) will also be made to converge on zero; however, in a real
+        # environment there will always be weather helm offset and so there will practically always be non-zero rudder
+        # when on course. Perhaps a more direct controllable value is turn rate, which be zero when the error is zero,
+        # regardless of rudder position.
+        return self._imu.turn_rate_dps / self._max_turn_rate_dps
+
+    def _actuator_manager_daemon(self):
+        self._log.info("Actuator Manager daemon started")
+        while not self._is_killed:
+            control = self._get_control()
+            self._log.debug(f"looping with control = {control}")
+            if control is not None:
+                metric = self._get_controlled_metric()
+                self._log.debug(f"Control: {control:6.4f} Metric: {metric:6.4f}")
+                desired_motor = \
+                    0 if abs(control - metric) < self._metric_tolerance else \
+                    1 if control > metric else \
+                    -1
+                self._rudder.set_motor_speed(desired_motor)
+            self._is_initialized = True
+            time.sleep(self._loop_interval_s)
+        self._log.info("Actuator Manager daemon exited")
+        self._is_initialized = False
 
 
 if __name__ == "__main__":

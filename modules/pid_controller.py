@@ -30,32 +30,8 @@
 # - i_gain = 0.5*Pc
 # - d_gain = Pc/8
 import time
-
 from modules.common.angle_math import calculate_acute_angle, normalize_angle, is_on_course
 from modules.common.config import Config
-
-
-class RealTime:
-
-    @staticmethod
-    def time():
-        return time.time()
-
-    @staticmethod
-    def sleep(secs):
-        return time.sleep(secs)
-
-
-class TestTime:
-    _time_s = time.time()
-
-    @staticmethod
-    def time():
-        return TestTime._time_s
-
-    @staticmethod
-    def sleep(secs):
-        TestTime._time_s += secs
 
 
 class PID:
@@ -63,17 +39,16 @@ class PID:
     I_idx = 1
     D_idx = 2
 
-    def __init__(self, time_provider=RealTime, gains='calm'):
+    def __init__(self, gains='calm'):
         self._cfg = Config.getConfig()
         self._gains = self._cfg['pid_gains'][gains]
-        self._time_provider = time_provider
         self._prev_err = 0
         self._err_sum = 0
-        self._prev_timestamp = time_provider.time()
+        self._prev_timestamp = time.time()
 
     def compute(self, course: float, heading: float):
         """Calculate updated commanded rudder angle using SIMPLE PID controller."""
-        now = self._time_provider.time()
+        now = time.time()
         d_time = now - self._prev_timestamp
         error = calculate_acute_angle(heading, course)
         self._err_sum += error * d_time
@@ -98,19 +73,19 @@ if __name__ == "__main__":
     heading, course, rudder = [float(sys.argv[i]) for i in range(1, len(sys.argv))]
     hard_over_time_ms = cfg['rudder_hard_over_time_ms']
     rudder_turn_rate_ups = 1000 / hard_over_time_ms  # ups = unit per second. 1 unit is centered-to-hardover.
-    boat_turn_rate_dps = cfg['boat_turn_rate_dps']
+    boat_turn_rate_dps = cfg['boat_max_turn_rate_dps']
     rudder_position_tolerance = cfg['rudder_position_tolerance']
     course_tolerance_deg = cfg['course_tolerance_deg']
-    pid = PID(time_provider=TestTime)
+    pid = PID()
     interval_s = 0.25
-    previous_time = TestTime.time()
+    previous_time = time()
     max_iterations = 1000
     elapsed_s = 0
     time_between_iterations = 0.5
     data = []
     while not is_on_course(course, heading, course_tolerance_deg) and max_iterations > 0:
         max_iterations -= 1
-        now = TestTime.time()
+        now = time()
         delta_t = now - previous_time
         previous_time = now
         desired_rudder = pid.compute(course, heading)
@@ -119,10 +94,10 @@ if __name__ == "__main__":
         elif (rudder - desired_rudder) > rudder_position_tolerance:
             rudder = max(-1.0, rudder - rudder_turn_rate_ups * delta_t)
         heading = normalize_angle(heading + boat_turn_rate_dps * rudder * delta_t)
-        print(f"{time.ctime(now)}: Desired Rudder: {desired_rudder}, Actual Rudder: {rudder}, Heading: {heading}")
-        TestTime.sleep(time_between_iterations)
+        print(f"Desired Rudder: {desired_rudder}, Actual Rudder: {rudder}, Heading: {heading}")
+        time.sleep(time_between_iterations)
         elapsed_s += time_between_iterations
     if max_iterations == 0:
         print("Did not converge")
     else:
-        print(f"{time.ctime(now)}: On course with tolerance of {course_tolerance_deg} deg in {elapsed_s} seconds")
+        print(f"On course with tolerance of {course_tolerance_deg} deg in {elapsed_s} seconds")

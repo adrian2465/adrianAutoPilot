@@ -43,7 +43,7 @@ def test_motor_direction(cfg):
 
 
 if __name__ == "__main__":
-    from modules.simulator.boat_simulator import BoatImpl
+    from modules.boat_simulator import BoatImpl
     cfg = Config("configuration/config.yaml")
     log = Logger(config_path="brain", dest=None, who="brain")
     if "log_level" in cfg.boat: _log.set_level(cfg.boat["log_level"])

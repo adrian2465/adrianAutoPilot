@@ -217,14 +217,17 @@ class Imu:
 
     @property
     def accel(self):
+        """Return IMU's accelerometer vector. Z=-1 is normal gravity. X and Y should be zero when still."""
         return apply_operation(lambda v, b: v - b, self._accel.value, self._accel_bias)
 
     @property
     def gyro(self):
+        """Return IMU's gyroscopic vector (rate of turn)"""
         return apply_operation(lambda v, b: v - b, self._gyro.value, self._gyro_bias)
 
     @property
     def mag(self):
+        """Return IMU's magnetic vector"""
         # (mag_val * mag_calib - mag_bias) * mag_scale
         return apply_operation(lambda vc_b, s: vc_b * s, apply_operation(lambda vc, b: vc - b,
                                                                          apply_operation(lambda a, c: a * c,
@@ -234,15 +237,18 @@ class Imu:
 
     @property
     def temp(self):
+        """Return temperature in Fahrenheit"""
         return self._temp.value[0] - self._temp_bias
 
     @property
     def compass_deg(self):
+        """Return heading: 0-359.9999"""
         mag = self.mag
         return (atan2(mag[0], mag[1]) * (180 / pi) + 90 + 360) % 360
 
     @property
     def heel_deg(self):
+        """Return heel angle. Positive to starboard, negative to port."""
         accel = self.accel
         return 180 - (atan2(accel[2], accel[0]) * (180 / pi) + 90 + 360) % 360
 
