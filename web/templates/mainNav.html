@@ -1,189 +1,79 @@
 <!doctype html>
 
-{% set smallDegrees = '2' %}
-{% set bigDegrees   = '10' %}
-{% set tackDegrees  = '100' %}
 {% set courseButtonWidthPx = '50' %}
+{% set courseFontSize = '50' %}
+{% set buttonFontSize = '20' %}
+{% set buttonSize = '50' %}
 {% set tackButtonWidthPx = '150' %}
-{% set update_frequency_ms   = 100 %}
+<script>
+    var smallDegrees = '2';
+    var bigDegrees = '10';
+    var tackDegrees = '100';
+    var update_frequency_ms = 100;
+</script>
 
-<style>
-    .button {
-        border: none;
-        color: black;
-        padding: 10px;
-        text-align: center;
-        text-decoration: none;
-        display: inline-block;
-        font-size: 16px;
-        margin: 4px 2px;
-        cursor: pointer;
-        width: 100px;
-        height: 100px;
-        box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
-        text-align: center;
-    }
-
-    .enabledButton {
-        font-size: 20px;
-        width: 125px;
-        height: 125px;
-        background-color: green;
-        border-radius: 50%;
-    }
-
-    .disabledButton {
-        font-size: 20px;
-        width: 125px;
-        height: 125px;
-        background-color: red;
-        border-radius: 50%;
-    }
-
-</style>
+<link href="/static/simple-switch.min.css" rel="stylesheet" />
+<link href="/static/autopilot.css" rel="stylesheet" />
 
 <html>
 
-<script src="https://code.jquery.com/jquery-3.6.4.min.js"
-        integrity="sha256-oP6HI9z1XaZNBrJURtCoUT5SUnxFr8s3BzRl+cbzUq8="
-        crossorigin="anonymous">
-</script>
-
 <title>Autopilot</title>
 <body>
+
 <div style="text-align: center;">
-    <input id='onOffInput' type='button' class='' value=''/>
-    <h2>Course: <span id="course">Disconnected</span>&nbsp;&nbsp;Heading: <span id="heading">Disconnected</span></h2>
-    <h2>Heel: <span id="heel">Disconnected</span></h2>
+    <p><input id='onOffInput' type="checkbox" class="mybox" onclick="onOffHandler()"></p>
     <p>
-        <input id='bigDec'    type='button' style="font-size : 20px; width: {{ courseButtonWidthPx }}px; height: 50px; border-radius: 6px" class='button' value='Disconnected'/>
-        <input id='smallDec'  type='button' style="font-size : 20px; width: {{ courseButtonWidthPx }}px; height: 50px; border-radius: 6px" class='button' value='Disconnected'/>
-        <input id='smallInc'  type='button' style="font-size : 20px; width: {{ courseButtonWidthPx }}px; height: 50px; border-radius: 6px" class='button' value='Disconnected'/>
-        <input id='bigInc'    type='button' style="font-size : 20px; width: {{ courseButtonWidthPx }}px; height: 50px; border-radius: 6px" class='button' value='Disconnected'/>
+        <span id="course"
+              style="font-family: monospace, sans-serif Bold; font-style: normal; font-variant: normal; font-size : {{courseFontSize}}px;">
+         Disconnected</span>
     </p>
     <p>
-        <input id='tackDec'   type='button' style="font-size : 20px; width: {{ tackButtonWidthPx }}px; height: 50px; border-radius: 6px" class='button' value='Disconnected'/>
-        <input id='tackInc'   type='button' style="font-size : 20px; width: {{ tackButtonWidthPx }}px; height: 50px; border-radius: 6px" class='button' value='Disconnected'/>
+        <input id='bigDec'
+               type='button'
+               style="font-size : {{buttonFontSize}}px; width: {{ courseButtonWidthPx }}px; height: {{buttonSize}}px; border-radius: 6px"
+               class='autopilot_control_button' value='Disconnected' onclick='bigDecHandler()'/>
+        <input id='smallDec'
+               type='button'
+               style="font-size : {{buttonFontSize}}px; width: {{ courseButtonWidthPx }}px; height: {{buttonSize}}px; border-radius: 6px"
+               class='autopilot_control_button' value='Disconnected' onclick='smallDecHandler()'/>
+        <input id='smallInc'
+               type='button'
+               style="font-size : {{buttonFontSize}}px; width: {{ courseButtonWidthPx }}px; height: {{buttonSize}}px; border-radius: 6px"
+               class='autopilot_control_button' value='Disconnected' onclick='smallIncHandler()'/>
+        <input id='bigInc'
+               type='button'
+               style="font-size : {{buttonFontSize}}px; width: {{ courseButtonWidthPx }}px; height: {{buttonSize}}px; border-radius: 6px"
+               class='autopilot_control_button' value='Disconnected' onclick='bigIncHandler()'/>
     </p>
-    <p>&nbsp;<span id="messages" style='jquery'>Disconnected</span></p>
+    <p>
+        <input id='tackDec'
+               type='button'
+               style="font-size : {{buttonFontSize}}px; width: {{ tackButtonWidthPx }}px; height: {{buttonSize}}px; border-radius: 6px"
+               class='autopilot_control_button' value='Disconnected' onclick='tackDecHandler()'/>
+        <input id='tackInc'
+               type='button'
+               style="font-size : {{buttonFontSize}}px; width: {{ tackButtonWidthPx }}px; height: {{buttonSize}}px; border-radius: 6px"
+               class='autopilot_control_button' value='Disconnected' onclick='tackIncHandler()'/>
+    </p>
+    <p>
+        <h2>COMPASS: <span id="heading">Disconnected</span></h2>
+        <h2>HEEL: <span id="heel">Disconnected</span></h2>
+    </p>
+    <p>&nbsp<span id="messages">Disconnected</span></p>
     <p>
         <label for="interfaceCheckbox"><input id='interfaceCheckbox' type='checkbox' name='Debug'/>Show interface status</label>
         <br/><span id="interfaceMessageArea">Disconnected</span>
     </p>
+
     <script>
-        $SCRIPT_ROOT = {{ request.script_root | tojson | safe }};
-        let onOffInput = $("#onOffInput");
-        let courseIndicator = $("#course");
-        let headingIndicator = $("#heading");
-        let heelIndicator = $("#heel");
-        let bigDecButton = $("#bigDec");
-        let bigIncButton = $("#bigInc");
-        let smallDecButton = $("#smallDec");
-        let smallIncButton = $("#smallInc");
-        let tackDecButton = $("#tackDec");
-        let tackIncButton = $("#tackInc");
-        let messages = $("#messages");
-        const interfaceCheckbox = document.querySelector('#interfaceCheckbox');
-        let interfaceMessageArea = $("#interfaceMessageArea");
-        // Click handler definition
-        function onOffHandler() {
-            if (onOffInput.prop("value") == "Enabled") fetch($SCRIPT_ROOT + '/set_status/disabled');
-            else fetch($SCRIPT_ROOT + '/set_status/enabled');
-        }
-        function bigDecHandler() { if (onOffInput.prop("value") == "Enabled") fetch($SCRIPT_ROOT + '/adjust_course/-{{ bigDegrees }}'); }
-        function bigIncHandler() { if (onOffInput.prop("value") == "Enabled") fetch($SCRIPT_ROOT + '/adjust_course/+{{ bigDegrees }}'); }
-        function smallDecHandler() { if (onOffInput.prop("value") == "Enabled") fetch($SCRIPT_ROOT + '/adjust_course/-{{ smallDegrees }}'); }
-        function smallIncHandler() { if (onOffInput.prop("value") == "Enabled") fetch($SCRIPT_ROOT + '/adjust_course/+{{ smallDegrees }}'); }
-        function tackDecHandler() { if (onOffInput.prop("value") == "Enabled") fetch($SCRIPT_ROOT + '/adjust_course/-{{ tackDegrees }}'); }
-        function tackIncHandler() { if (onOffInput.prop("value") == "Enabled") fetch($SCRIPT_ROOT + '/adjust_course/+{{ tackDegrees }}'); }
-        // Click handler registration
-        onOffInput.on("click", function(){onOffHandler();});
-        bigDecButton.on("click", function(){bigDecHandler();});
-        bigIncButton.on("click", function(){bigIncHandler();});
-        smallDecButton.on("click", function(){smallDecHandler();});
-        smallIncButton.on("click", function(){smallIncHandler();});
-        tackDecButton.on("click", function(){tackDecHandler();});
-        tackIncButton.on("click", function(){tackIncHandler();});
-        // Periodic status monitoring
-        (function () {
-            $.getJSON(
-                $SCRIPT_ROOT + "/get_messages",
-                function (data) {
-                    if (data.messages.startsWith("ERROR")) messages.prop('style', 'color:red');
-                    else messages.prop('style', 'color:blue');
-                    // messages.text(data.messages);  // Add a monitor / debug page for this more raw output
-                    messages.txt("Online")
-                }
-            ).fail(function() {messages.prop('style', 'color:red'); messages.text("Disconnected")});
-            $.getJSON(
-                $SCRIPT_ROOT + "/get_course",
-                function (data) {
-                    if (onOffInput.prop('value') == 'Enabled') courseIndicator.text(data.course);
-                    else courseIndicator.text("---")
-                }
-            );
-            $.getJSON(
-                $SCRIPT_ROOT + "/get_heading",
-                function (data) {
-                    headingIndicator.text(data.heading);
-                }
-            );
-            $.getJSON(
-                $SCRIPT_ROOT + "/get_heel",
-                function (data) {
-                    heelIndicator.text(data.heel);
-                }
-            );
-            $.getJSON(
-                $SCRIPT_ROOT + "/get_interface_params",
-                function (data) {
-                    if (interfaceCheckbox.checked) {
-                        interfaceMessageArea.text(
-                            "plim=" + data.port_limit +
-                            " slim=" + data.starboard_limit +
-                            " motor=" + data.motor +
-                            " rudder=" + data.rudder_position +
-                            " turn_rate=" + data.turn_rate)
-                    } else {
-                        interfaceMessageArea.text("")
-                    }
-                    if (data.clutch_status == "1") {
-                        onOffInput.prop("value", "Enabled");
-                        onOffInput.prop("class", "button enabledButton");
-                        bigDecButton.prop("value", "-{{ bigDegrees }}");
-                        bigIncButton.prop("value", "+{{ bigDegrees }}");
-                        smallDecButton.prop("value", "-{{ smallDegrees }}");
-                        smallIncButton.prop("value", "+{{ smallDegrees }}");
-                        tackDecButton.prop("value", "TACK PORT");
-                        tackIncButton.prop("value", "TACK STBD");
-                        bigDecButton.removeAttr("disabled");
-                        bigIncButton.removeAttr("disabled");
-                        smallDecButton.removeAttr("disabled");
-                        smallIncButton.removeAttr("disabled");
-                        tackDecButton.removeAttr("disabled");
-                        tackIncButton.removeAttr("disabled");
-                    } else {
-                        onOffInput.prop("value", "Disabled");
-                        onOffInput.prop("class", "button disabledButton");
-                        bigDecButton.prop("value", "---");
-                        bigIncButton.prop("value", "---");
-                        smallDecButton.prop("value", "---");
-                        smallIncButton.prop("value", "---");
-                        tackDecButton.prop("value", "---- ----");
-                        tackIncButton.prop("value", "---- ----");
-                        bigDecButton.prop("disabled", "true");
-                        bigIncButton.prop("disabled", "true");
-                        smallDecButton.prop("disabled", "true");
-                        smallIncButton.prop("disabled", "true");
-                        tackDecButton.prop("disabled", "true");
-                        tackIncButton.prop("disabled", "true");
-                    }
-                }
-            );
-            setTimeout(arguments.callee, {{ update_frequency_ms }}); // Update every so often
-        })();
+        var $SCRIPT_ROOT = {{request.script_root | tojson | safe }};
+        var timeout_ms = update_frequency_ms;
     </script>
+    <script src="/static/jquery-3.6.4.min.js"></script>
+    <script src="/static/jquery.simpleswitch.min.js"></script>
+    <script src="/static/main_interface.js"></script>
+
 </div>
+
 </body>
 </html>
-

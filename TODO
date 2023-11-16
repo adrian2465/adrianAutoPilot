@@ -1,19 +1,20 @@
 TODOs:
-o LEFT OFF HERE. REWRITING.
-  * Continue refactoring starting with MPU interface
-  * Rewrite PID controller. Needs a way to test on a bench, so needs some inputs. This may indeed require a fake boat for testing.
-  * Rewrite the Brain - probably from scratch - do we even need a brain, or is the PID controller the brain?
 
+# 2023-11-12 @ 10:27:51 : TODO LEFT OFF HERE
+o Add easy-to-find, interactive calibration program that finds rudder limits, allows setting of gains, etc. Persist (perhaps) in config.yaml, or overwrite with calibrations.yaml
+o Apply corrections (biases) for each of the IMU stats. Gyro turn rate is always -1.7 or -1.8
+o Adjust the course or turn rate tolerance so the motor doesn't cycle so much.
+o Flask Not catching control C keyboard interrupt
 o Uninstall: 
   * make
   * gcc 
   * compiletc
   * python3-dev?
-which were needed for pip-based installation of smbus (pip install smbus)
-
-o 2023-08-28 - Add easy-to-find, interactive calibration program that finds rudder limits, allows setting of gains, etc. Persist (perhaps) in config.yaml, or overwrite with calibrations.yaml
+which were needed for pip-based installation of smbus (pip install smbus) but not anymore.
 
 DONEs
+DONE * Fix all hw getters and setters. All "hw" numbers from arduino should just be raw numbers, and don't need getters.
+DONE * Fix motor normalization and write unit tests.
 DONE o 2023-08-28 - Add rudder sense device to board, and test and calibrate
 x 2023-08-24 - How will you translate rudder angle (-1 <= 0 <= 1) to motor speed and duration?  Figure the motor duration as a percentage of hard over angle vs rudder speed. NOTE: Will be handled by brain, which will check frequently and stop the motor when the angle is correct.
 x 2023-03-04 - Archive working configuration in $HOME. "home_date.tar"
@@ -52,3 +53,10 @@ DONE 2023-08-27 - Code-Review the places that use the Config object.  Overhaul l
   - DONE ./web/modules/test_boat.py  ## Test boat can get properties from local object, but real boat should read from sensor (heading, heel, ...) So, maybe revisit this.
   - DONE ./web/modules/boat.py
   - DONE ./web/modules/anglemath.py
+DONE: * Note that we got d=2 and s=255, but no motor.  * .0000 actual: 1035.0000
+DONE # 2023-11-09 @ 08:22:33 : Rewrite brain to set desired turn rate instead of rudder angle.
+DONE # 2023-11-09 @ 09:03:57 : You just rewrote the brain to use the turn rate as the metric.  Now test to see if it can work.
+DONE  - Running run_webserver, can't find the templates.
+DONE  - Getting out of synch with reads from run_webserver, but seems fine with reads from run_brain_test. Is failure (not finding templates) causing this problem? Or because running as Flask?
+DONE  - Explain THAT -- where's the re-enablement (clutch-off) coming from?
+DONE o mainNav showing big square checkbox instead of "simple" slider button.
