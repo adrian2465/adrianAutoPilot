@@ -63,35 +63,36 @@ class Brain:
         return self._course
 
     @course.setter
-    def course(self, course):
-        """Desired course for autopilot to steer.None if pilot is disengaged"""
-        self._rudder.set_motor_speed(0)
+    def course(self, new_course):
+        """Desired course for autopilot to steer. None if pilot is disengaged"""
+        new_course = normalize_angle(new_course) if new_course is not None else None
         with Brain._course_lock:
-            if course is not None:
-                new_course = normalize_angle(course)
-                if self._course is None:
-                    msg = f"Autopilot enabled with course = {new_course}"
-                    new_clutch = 1
-                    self._controller = PID(gains=self.gains_selector)
-                else:
-                    msg = f"New course: {new_course}"
+            if new_course is not None and self._course is None:  # Switched disabled to enabled
+                msg = f"Autopilot enabled with course = {new_course}"
+                self._controller = PID(gains=self.gains_selector)
                 self._course = new_course
-            else:
-                msg = "Autopilot disabled" if self._course is not None else "Autopilot is already disabled"
-                self._controller = None
-                new_clutch = 0  # Disable whether enabled or not, as a safety.
+                self._rudder.set_clutch(1)
+            elif new_course is not None and self._course is not None:  # Switched enabled to enabled (new course?)
+                msg = f"New course: {new_course}"
+                self._course = new_course
+            elif new_course is None and self._course is None:  # Switched disabled to disabled
+                msg = "Autopilot is already disabled. No action."
+                pass
+            else:  # Switched enabled to disabled
+                msg = "Autopilot disabled"
+                self._rudder.set_clutch(0)
+                self._rudder.set_motor_speed(0)
                 self._course = None
-        if new_clutch is not None:
-            self._rudder.set_clutch(new_clutch)
+                self._controller = None
         self._log.info(msg)
 
     @property
     def is_on_course(self):
-        return True if self.course is None else _is_on_course(self._course, self._heading, self._course_tolerance_deg)
+        return self.course is None or _is_on_course(self._course, self._heading, self._course_tolerance_deg)
 
     @property
     def is_engaged(self):
-        return self._rudder.hw_clutch_status == 1 and self._course is not None
+        return self._rudder.hw_clutch_status == 1
 
     def _get_control(self):
         with Brain._course_lock:
@@ -112,21 +113,25 @@ class Brain:
         return self._imu.turn_rate_dps / self._max_turn_rate_dps
 
     def _actuator_manager_daemon(self):
-        self._log.info("Actuator Manager daemon started")
+        _log = logging.getLogger("Brain Daemon")
+        _log.info("started")
         while not self._is_killed:
-            control = self._get_control()
-            self._log.debug(f"looping with control = {control}")
-            if control is not None:
-                metric = self._get_controlled_metric()
-                self._log.debug(f"Control: {control:6.4f} Metric: {metric:6.4f}")
-                desired_motor = \
-                    0 if abs(control - metric) < self._metric_tolerance else \
-                    1 if control > metric else \
-                    -1
-                self._rudder.set_motor_speed(desired_motor)
+            if self.is_engaged:
+                control = self._get_control()
+                _log.debug(f"looping with control = {control}")
+                if control is not None:
+                    metric = self._get_controlled_metric()
+                    _log.debug(f"Control: {control:6.4f} Metric: {metric:6.4f}")
+                    desired_motor = \
+                        0 if abs(control - metric) < self._metric_tolerance else \
+                        1 if control > metric else \
+                        -1
+                    if self._rudder.motor_speed != desired_motor:
+                        _log.debug(f"Existing motor speed = {self._rudder.motor_speed} (raw = {self._rudder.hw_raw_motor_speed}), desired_motor={desired_motor}")
+                        self._rudder.set_motor_speed(desired_motor)
             self._is_initialized = True
             time.sleep(self._loop_interval_s)
-        self._log.info("Actuator Manager daemon exited")
+        _log.info("exited")
         self._is_initialized = False
 
 

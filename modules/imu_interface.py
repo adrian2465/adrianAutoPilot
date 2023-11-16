@@ -187,7 +187,8 @@ class Imu:
         self._log.debug("SMBus closed.")
 
     def _monitor_daemon(self):
-        self._log.debug("MPU9250 monitor daemon started")
+        _log = logging.getLogger("IMU Daemon")
+        _log.debug("MPU9250 monitor daemon started")
         self._gyro = WeightedAverageVector(self._moving_average_window_size_gyro)
         self._accel = WeightedAverageVector(self._moving_average_window_size_accel)
         self._mag = WeightedAverageVector(self._moving_average_window_size_mag)
@@ -210,9 +211,9 @@ class Imu:
                                               endian_transformer_fn=hardware_math.c_short_from_little_endian))
                 self._is_initialized = True
             except OSError:
-                self._log.warning(f"MPU9250 got an OS error. {traceback.format_exc()}. Carrying on.")
+                _log.warning(f"MPU9250 got an OS error. {traceback.format_exc()}. Carrying on.")
                 continue
-        self._log.debug("MPU9250 monitor daemon exited")
+        _log.debug("MPU9250 monitor daemon exited")
         self._is_initialized = False
 
     @property
@@ -294,10 +295,10 @@ if __name__ == "__main__":
             try:
                 log.info(f'Compass = {imu.compass_deg:6.2f} deg, '
                          f'Heel = {imu.heel_deg:6.2f} deg, '
-                         f'Temp = {imu.temp:3.0f} C')
-                log.debug(f'- gyro = {imu.gyro} dps')
-                log.debug(f'- accel = {imu.accel} G')
-                log.debug(f'- mag = {imu.mag} uT')
+                         f'Temp = {imu.temp:3.0f} C'
+                         f'gyro = {imu.gyro} dps '
+                         f'accel = {imu.accel} G '
+                         f'mag = {imu.mag} uT ')
                 sleep(sleep_time)
             except KeyboardInterrupt:
                 stopped = True

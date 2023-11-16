@@ -35,7 +35,7 @@ def direction_to_raw(v_norm: float) -> int:
     return 0 if is_within(v_norm, 0.0, 0.0001) else 1 if v_norm < 0.0 else 2
 
 
-def normalize_motor(raw_v: int) -> float:
+def normalize_motor(raw_v: int) -> int:
     """
     Normalize a motor speed value received from the arduino
     Mapping: 0 <= v <= 255 :: 0 <= rc <= 1
@@ -43,7 +43,7 @@ def normalize_motor(raw_v: int) -> float:
     :return: normalized value 0 to 1
     """
     # return v / 255 # For variable voltage motor
-    return 1.0if raw_v >= 127 else 0.0
+    return 1 if raw_v >= 127 else 0
 
 
 def motor_to_raw(norm_v: float) -> int:
@@ -53,7 +53,7 @@ def motor_to_raw(norm_v: float) -> int:
     :return: 0 - 255 motor speed to send to arduino
     """
     # return int(255 * v)  # For variable voltage motor
-    return 0 if is_within(norm_v, 0.0, 0.0001) else 255
+    return 0 if is_within(norm_v, 0.0, 0.1) else 255
 
 
 def c_short_from_big_endian(msb: int, lsb: int) -> int:

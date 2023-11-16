@@ -53,22 +53,22 @@
 <body>
 <div style="text-align: center;">
     <input id='onOffInput' type='button' class='' value=''/>
-    <h2>Course: <span id="course">Supplied by jQuery</span>&nbsp;&nbsp;Heading: <span id="heading">Supplied by jQuery</span></h2>
-    <h2>Heel: <span id="heel">Supplied by jQuery</span></h2>
+    <h2>Course: <span id="course">Disconnected</span>&nbsp;&nbsp;Heading: <span id="heading">Disconnected</span></h2>
+    <h2>Heel: <span id="heel">Disconnected</span></h2>
     <p>
-        <input id='bigDec'    type='button' style="font-size : 20px; width: {{ courseButtonWidthPx }}px; height: 50px; border-radius: 6px" class='button' value='Supplied by jQuery'/>
-        <input id='smallDec'  type='button' style="font-size : 20px; width: {{ courseButtonWidthPx }}px; height: 50px; border-radius: 6px" class='button' value='Supplied by jQuery'/>
-        <input id='smallInc'  type='button' style="font-size : 20px; width: {{ courseButtonWidthPx }}px; height: 50px; border-radius: 6px" class='button' value='Supplied by jQuery'/>
-        <input id='bigInc'    type='button' style="font-size : 20px; width: {{ courseButtonWidthPx }}px; height: 50px; border-radius: 6px" class='button' value='Supplied by jQuery'/>
+        <input id='bigDec'    type='button' style="font-size : 20px; width: {{ courseButtonWidthPx }}px; height: 50px; border-radius: 6px" class='button' value='Disconnected'/>
+        <input id='smallDec'  type='button' style="font-size : 20px; width: {{ courseButtonWidthPx }}px; height: 50px; border-radius: 6px" class='button' value='Disconnected'/>
+        <input id='smallInc'  type='button' style="font-size : 20px; width: {{ courseButtonWidthPx }}px; height: 50px; border-radius: 6px" class='button' value='Disconnected'/>
+        <input id='bigInc'    type='button' style="font-size : 20px; width: {{ courseButtonWidthPx }}px; height: 50px; border-radius: 6px" class='button' value='Disconnected'/>
     </p>
     <p>
-        <input id='tackDec'   type='button' style="font-size : 20px; width: {{ tackButtonWidthPx }}px; height: 50px; border-radius: 6px" class='button' value='Supplied by jQuery'/>
-        <input id='tackInc'   type='button' style="font-size : 20px; width: {{ tackButtonWidthPx }}px; height: 50px; border-radius: 6px" class='button' value='Supplied by jQuery'/>
+        <input id='tackDec'   type='button' style="font-size : 20px; width: {{ tackButtonWidthPx }}px; height: 50px; border-radius: 6px" class='button' value='Disconnected'/>
+        <input id='tackInc'   type='button' style="font-size : 20px; width: {{ tackButtonWidthPx }}px; height: 50px; border-radius: 6px" class='button' value='Disconnected'/>
     </p>
-    <p>&nbsp;<span id="messages" style='jquery'>Supplied by jQuery</span></p>
+    <p>&nbsp;<span id="messages" style='jquery'>Disconnected</span></p>
     <p>
         <label for="interfaceCheckbox"><input id='interfaceCheckbox' type='checkbox' name='Debug'/>Show interface status</label>
-        <br/><span id="interfaceMessageArea">Supplied by jQuery</span>
+        <br/><span id="interfaceMessageArea">Disconnected</span>
     </p>
     <script>
         $SCRIPT_ROOT = {{ request.script_root | tojson | safe }};
@@ -111,9 +111,10 @@
                 function (data) {
                     if (data.messages.startsWith("ERROR")) messages.prop('style', 'color:red');
                     else messages.prop('style', 'color:blue');
-                    messages.text(data.messages);
+                    // messages.text(data.messages);  // Add a monitor / debug page for this more raw output
+                    messages.txt("Online")
                 }
-            ).fail(function() {messages.prop('style', 'color:red'); messages.text("!! CONNECTION ERROR !!")});
+            ).fail(function() {messages.prop('style', 'color:red'); messages.text("Disconnected")});
             $.getJSON(
                 $SCRIPT_ROOT + "/get_course",
                 function (data) {

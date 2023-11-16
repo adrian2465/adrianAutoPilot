@@ -16,7 +16,7 @@ usb_baud_rate = 115200
 
 
 class RudderInterface:
-
+    _initialized = False
     def __init__(self):
         config = Config.getConfig()
         self._logger = logging.getLogger("RudderController")
@@ -24,8 +24,10 @@ class RudderInterface:
             self.is_unit_test = True
             self._logger.info(f"Running unit tests since {usb_device} is unavailable")
         else:
+            if RudderInterface._initialized == True:
+                raise RuntimeError("Rudder is being initialized again!")
+            RudderInterface._initialized = True
             self.is_unit_test = False
-            self._logger.info(f"Running system tests since {usb_device} is available")
             self._serial = serial.Serial(
                 port=usb_device,
                 timeout=1,
@@ -100,7 +102,7 @@ class RudderInterface:
         self.set_clutch(0)
 
     def _serial_monitor_daemon(self) -> None:
-        _log = self._logger
+        _log = logging.getLogger("RudderDaemon")
         self._serial.reset_input_buffer()
         self._serial.flushInput()
         if not self._serial.is_open:
@@ -189,6 +191,7 @@ class RudderInterface:
     def set_clutch(self, status: int) -> None:
         _log = self._logger
         self._write(f"c{status}")
+        while self.hw_clutch_status != status: time.sleep(0.1)
 
     def set_port_raw_rudder_limit(self, raw_limit: int = None) -> None:
         """Set the port raw limit. 0 <= limit <= 1023. This can be set by turning the rudder to its port limit (minus a bit)
@@ -220,7 +223,9 @@ class RudderInterface:
 
         new_raw_direction = 2 if normalized_motor_speed > 0 else 1 if normalized_motor_speed < 0 else 0
         self._write(f"d{new_raw_direction}")
-        self._write(f"s{motor_to_raw(normalized_motor_speed) :03}")
+        hw_desired_motor_speed = motor_to_raw(normalized_motor_speed)
+        self._write(f"s{hw_desired_motor_speed :03}")
+        while self.hw_raw_motor_speed != hw_desired_motor_speed: time.sleep(0.1)
 
     @property
     def motor_speed(self) -> float:

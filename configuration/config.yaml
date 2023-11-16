@@ -42,7 +42,7 @@ imu_magnetometer_moving_average_window_size: 100
 
 # Rudder interface settings
 rudder_echo_status: 1
-rudder_reporting_interval_ms: 100
+rudder_reporting_interval_ms: 250
 rudder_starboard_limit: 0973
 rudder_port_limit: 0050
 rudder_hard_over_time_ms: 4000 # From centered to stop - for simulations
