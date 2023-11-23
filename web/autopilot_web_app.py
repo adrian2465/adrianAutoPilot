@@ -17,7 +17,7 @@ try:
                 root_path='web/',
                 template_folder='templates/',
                 static_url_path="/static",
-                static_folder='static/')
+                static_folder='/mnt/mmcblk0p2/apps/adrianAutoPilot/web/static/')
     print(str(app.root_path))
 
     def setup(app):

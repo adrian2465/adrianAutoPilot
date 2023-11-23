@@ -74,7 +74,7 @@ function tackIncHandler() {
     $.getJSON(
         $SCRIPT_ROOT + "/get_course",
         function (data) {
-            if ($("#onOffInput").prop("checked") == true)
+            if ($("#onOffInput").prop("checked"))
                 courseIndicator.text(data.course);
             else
                 courseIndicator.text("---")
@@ -107,7 +107,6 @@ function tackIncHandler() {
             }
 
             if (data.clutch_status == "1") {
-                onOffInput.prop("checked", "true");
                 // onOffInput.prop("class", "mybox simple-switch-outter.checked");
                 bigDecButton.prop("value", "-" + bigDegrees);
                 bigIncButton.prop("value", "+" + bigDegrees);
@@ -122,7 +121,6 @@ function tackIncHandler() {
                 tackDecButton.removeAttr("disabled");
                 tackIncButton.removeAttr("disabled");
             } else {
-                onOffInput.prop("checked", "false");
                 // onOffInput.prop("class", "mybox simple-switch-outter.unchecked");
                 bigDecButton.prop("value", "---");
                 bigIncButton.prop("value", "---");

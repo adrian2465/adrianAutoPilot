@@ -191,6 +191,9 @@ class RudderInterface:
     def set_clutch(self, status: int) -> None:
         _log = self._logger
         self._write(f"c{status}")
+        if status == 0:
+            self._write(f"d0")
+            self._write(f"s000")
         while self.hw_clutch_status != status: time.sleep(0.1)
 
     def set_port_raw_rudder_limit(self, raw_limit: int = None) -> None:

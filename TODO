@@ -1,6 +1,7 @@
 TODOs:
 
 # 2023-11-12 @ 10:27:51 : TODO LEFT OFF HERE
+o !! Clutch status does not influence the ON OFF switch. Need to turn it off if clutch is off.
 o Add easy-to-find, interactive calibration program that finds rudder limits, allows setting of gains, etc. Persist (perhaps) in config.yaml, or overwrite with calibrations.yaml
 o Apply corrections (biases) for each of the IMU stats. Gyro turn rate is always -1.7 or -1.8
 o Adjust the course or turn rate tolerance so the motor doesn't cycle so much.

@@ -13,5 +13,12 @@ else
    target=$1
    echo "Will try to deploy existing remote $target"
 fi
-ssh tc@$ADDR "(cd /mnt/mmcblk0p2/apps/adrianAutoPilot && touch configuration modules testing web && sudo chmod -R ugo+w modules testing web && rm -fr configuration modules testing web Documents *.sh && tar -xf $target && rm -f $target && echo Deployment of $target to tc@$ADDR complete. )|| echo Deployment of $target to tc@$ADDR FAILED!"
+ssh tc@$ADDR "(cd /mnt/mmcblk0p2/apps/adrianAutoPilot \
+  && touch configuration modules testing web \
+  && sudo chmod -R ugo+w modules testing web \
+  && rm -fr configuration modules testing web Documents *.sh \
+  && tar -xf $target \
+  && rm -f $target \
+  && echo "Deployment of $target to tc@$ADDR complete." \
+  && echo "NOTE To persist run_webserver.sh, run filetool.sh -b" )|| echo Deployment of $target to tc@$ADDR FAILED!"
 

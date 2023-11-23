@@ -30,13 +30,6 @@ try:
         logger = logging.getLogger('web')
         print("Note: Web interface is on http://127.0.0.1:5000 (unless otherwise configured)")
 
-    @app.route("/favicon.ico")
-    def favicon():
-        global logger
-        logger.debug("favicon")
-        return send_from_directory(os.path.join(app.root_path, 'static'),
-                                   'favicon.ico', mimetype='image/vnd.microsoft.icon')
-
     @app.route("/")
     def index():
         global logger

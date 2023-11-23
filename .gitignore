@@ -10,3 +10,4 @@ removetag
 out
 output
 .idea
+**/*.log
