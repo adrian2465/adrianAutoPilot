@@ -1,18 +1,49 @@
 
-let courseIndicator = $("#course");
-let headingIndicator = $("#heading");
-let heelIndicator = $("#heel");
-let bigDecButton = $("#bigDec");
-let bigIncButton = $("#bigInc");
-let smallDecButton = $("#smallDec");
-let smallIncButton = $("#smallInc");
-let tackDecButton = $("#tackDec");
-let tackIncButton = $("#tackInc");
-let messages = $("#messages");
+const courseIndicator = $("#course");
+const headingIndicator = $("#heading");
+const heelIndicator = $("#heel");
+const bigDecButton = $("#bigDec");
+const bigIncButton = $("#bigInc");
+const smallDecButton = $("#smallDec");
+const smallIncButton = $("#smallInc");
+const tackDecButton = $("#tackDec");
+const tackIncButton = $("#tackInc");
+const messages = $("#messages");
+// var onOffInput = $("#onOffInput");
 const interfaceCheckbox = document.querySelector('#interfaceCheckbox');
-let interfaceMessageArea = $("#interfaceMessageArea");
+const interfaceMessageArea = $("#interfaceMessageArea");
+const rudderGaugeText = $("#rudder-gauge-text");
+const rudderGaugeOpts = {
+    angle: 0.15, // The span of the gauge arc
+    lineWidth: 0.44, // The line thickness
+    radiusScale: 1, // Relative radius
+    pointer: {
+        length: 0.65, // // Relative to gauge radius
+        strokeWidth: 0.042, // The thickness
+        color: '#000000' // Fill color
+    },
+    staticZones: [
+        {strokeStyle: "#DB7B7B", min: -100, max: -1},
+        {strokeStyle: "#75DB7B", min: 1, max: 100}
+    ],
+    divisions: 2,
+    limitMax: false,     // If false, max value increases automatically if value > maxValue
+    limitMin: false,     // If true, the min value of the gauge will be fixed
+    colorStart: '#038024',   // Colors
+    // colorStart: '#6FADCF',   // Colors
+    colorStop: '#DA113A',    // just experiment with them
+    // colorStop: '#8FC0DA',    // just experiment with them
+    strokeColor: '#E0E0E0',  // to see which ones work best for you
+    generateGradient: true,
+    highDpiSupport: true,     // High resolution support
+};
+const rudderGaugeElement = document.getElementById('rudder-gauge');
+const rudderGauge = new Gauge(rudderGaugeElement).setOptions(rudderGaugeOpts);
+rudderGauge.maxValue = 100;
+rudderGauge.setMinValue(-100);  // Prefer setter over gauge.minValue = 0
+rudderGauge.animationSpeed = 32;
+rudderGauge.set(0);
 
-var onOffInput = $("#onOffInput");
 // Click handler definition
 function onOffHandler() {
     if ($("#onOffInput").prop("checked") == true) {
@@ -135,7 +166,8 @@ function tackIncHandler() {
                 tackDecButton.prop("disabled", "true");
                 tackIncButton.prop("disabled", "true");
             }
-
+            rudderGaugeText.text(data.rudder_position)
+            rudderGauge.set(data.rudder_position)
         }
     );
     setTimeout(arguments.callee, timeout_ms); // Update every so often

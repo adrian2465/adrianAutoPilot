@@ -23,12 +23,13 @@ try:
     course = None
 
     def setup(app):
-        global cfg, rudder, imu, brain, logger
+        global cfg, rudder, imu, brain, logger, already_nagged
 
         Config.init()
         cfg = Config.getConfig()
         logger = logging.getLogger('web')
         print("Note: Web interface is on http://127.0.0.1:5000 (unless otherwise configured)")
+        already_nagged = False
 
     @app.route("/")
     def index():
@@ -85,14 +86,22 @@ try:
     def get_heel():
         return jsonify(heel="0")
 
-
     @app.route("/get_interface_params")
     def get_interface_params():
+        global already_nagged
+        try:
+            with open("/tmp/rudder_position.txt", "r") as f:
+                rudder_pos = float(f.readline())
+        except:
+            rudder_pos = 10
+            if not already_nagged:
+                print("Set rudder position here: /tmp/rudder_position.txt")
+                already_nagged = True
         return jsonify(clutch_status=course is not None,
                        port_limit=100,
                        starboard_limit=934,
                        motor=0,
-                       rudder_position=0,
+                       rudder_position=rudder_pos,
                        turn_rate=10)
 
 

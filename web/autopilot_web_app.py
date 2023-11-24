@@ -106,13 +106,13 @@ try:
                      f"clutch_status={brain.is_engaged}"
                      f"plim={rudder.hw_port_limit}, "
                      f"slim={rudder.hw_stbd_limit}, "
-                     f"rudder={rudder.rudder_position:6.4f}, "
+                     f"rudder={int(rudder.rudder_position*100)}, "
                      f"turn_rate={imu.turn_rate_dps:5.1f}")
         return jsonify(clutch_status=brain.is_engaged,
                        port_limit=rudder.hw_port_limit,
                        starboard_limit=rudder.hw_stbd_limit,
                        motor=rudder.motor_speed,
-                       rudder_position=rudder.rudder_position,
+                       rudder_position=int(rudder.rudder_position*100),
                        turn_rate=imu.turn_rate_dps)
 
 
