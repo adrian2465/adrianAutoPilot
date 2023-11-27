@@ -27,7 +27,7 @@ class BoatSimulator:
         self._metric_tolerance = cfg['metric_tolerance']
         self._log.info(f"Rudder max turn rate UPS = {self._rudder_turn_rate_ups}")
         self._log.info(f"Boat max turn rate DPS = {self._max_turn_rate_dps}")
-        self._csv_outfile = f"output_{datetime.today().strftime('%Y%m%d_%H%M%S')}_{cfg['pid_gains']['calm']}.csv"
+        self._csv_outfile = f"output_{datetime.today().strftime('%Y%m%d_%H%M%S')}_{cfg['pid_gains']['default']}.csv"
         self._start_time = time.time()
         with open(self._csv_outfile, "a") as outfile:
             outfile.write(f"timestamp, rudder, motor, turn_rate, heading\n")

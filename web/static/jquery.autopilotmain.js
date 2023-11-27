@@ -41,7 +41,7 @@ const rudderGaugeElement = document.getElementById('rudder-gauge');
 const rudderGauge = new Gauge(rudderGaugeElement).setOptions(rudderGaugeOpts);
 rudderGauge.maxValue = 100;
 rudderGauge.setMinValue(-100);  // Prefer setter over gauge.minValue = 0
-rudderGauge.animationSpeed = 32;
+rudderGauge.animationSpeed = 10;
 rudderGauge.set(0);
 
 // Click handler definition
@@ -105,10 +105,7 @@ function tackIncHandler() {
     $.getJSON(
         $SCRIPT_ROOT + "/get_course",
         function (data) {
-            if ($("#onOffInput").prop("checked"))
-                courseIndicator.text(data.course);
-            else
-                courseIndicator.text("---")
+            courseIndicator.text(data.course === "NAN" ? "---" : data.course);
         }
     );
     $.getJSON(
@@ -132,6 +129,7 @@ function tackIncHandler() {
                     " slim=" + data.starboard_limit +
                     " motor=" + data.motor +
                     " rudder=" + data.rudder_position +
+                    " control=" + data.control_output +
                     " turn_rate=" + data.turn_rate)
             } else {
                 interfaceMessageArea.text("")

@@ -2,6 +2,7 @@
 # October 2023
 import logging
 import traceback
+from pathlib import Path
 
 from modules.common.angle_math import normalize_angle, is_on_course as _is_on_course
 from modules.common.config import Config
@@ -36,7 +37,7 @@ class Brain:
         self._course = None
         self._heading = None
         self._controller = None
-        self.gains_selector = 'calm'
+        self.gains_selector = 'default'
 
     def start_daemon(self):
         self._log.debug("Starting Actuator Manager daemon...")
@@ -56,6 +57,10 @@ class Brain:
         self._log.info("Actuator Manager daemon terminated")
         self._course = None
         self._heading = None
+
+    @property
+    def control_output(self):
+        return self._controller.control_output if self._controller is not None else None
 
     @property
     def course(self):
@@ -123,11 +128,11 @@ class Brain:
                     metric = self._get_controlled_metric()
                     _log.debug(f"Control: {control:6.4f} Metric: {metric:6.4f}")
                     desired_motor = \
-                        0 if abs(control - metric) < self._metric_tolerance else \
+                        0 if abs(control - metric) <= self._metric_tolerance else \
                         1 if control > metric else \
                         -1
                     if self._rudder.motor_speed != desired_motor:
-                        _log.debug(f"Existing motor speed = {self._rudder.motor_speed} (raw = {self._rudder.hw_raw_motor_speed}), desired_motor={desired_motor}")
+                        _log.debug(f"Existing motor speed = {self._rudder.motor_speed}, desired_motor={desired_motor}")
                         self._rudder.set_motor_speed(desired_motor)
             self._is_initialized = True
             time.sleep(self._loop_interval_s)
@@ -139,6 +144,9 @@ if __name__ == "__main__":
     import sys
     Config.init()
     log = logging.getLogger("brain")
+    if not Path(Config.usb_device).exists():
+        log.error("This CLI cannot be run outside of the Pi")
+        exit(1)
     if len(sys.argv) != 2:
         log.error(f"Supply course")
         exit(1)

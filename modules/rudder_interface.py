@@ -11,33 +11,30 @@ from modules.common.config import Config
 from modules.common.hardware_math import motor_to_raw, normalize_rudder, normalize_motor
 from modules.common.test_methods import test_equals, test_true
 
-usb_device = "/dev/ttyUSB0"
-usb_baud_rate = 115200
-
 
 class RudderInterface:
     _initialized = False
     def __init__(self):
         config = Config.getConfig()
         self._logger = logging.getLogger("RudderController")
-        if not Path(usb_device).exists():
+        if not Path(Config.usb_device).exists():
             self.is_unit_test = True
-            self._logger.info(f"Running unit tests since {usb_device} is unavailable")
+            self._logger.info(f"Running unit tests since {Config.usb_device} is unavailable")
         else:
             if RudderInterface._initialized == True:
                 raise RuntimeError("Rudder is being initialized again!")
             RudderInterface._initialized = True
             self.is_unit_test = False
             self._serial = serial.Serial(
-                port=usb_device,
+                port=Config.usb_device,
                 timeout=1,
-                baudrate=usb_baud_rate)
+                baudrate=Config.usb_baud_rate)
             time.sleep(0.2)  # Wait for serial to open
             if not self._serial.is_open:
-                raise ConnectionError(f'Port is not open: {usb_device}')
+                raise ConnectionError(f'Port is not open: {Config.usb_device}')
             self._serial.reset_output_buffer()
             self._serial.flushOutput()
-            self._logger.info(f'Connected to {usb_device} for sending. Baud={str(self._serial.baudrate)}!')
+            self._logger.info(f'Connected to {Config.usb_device} for sending. Baud={str(self._serial.baudrate)}!')
             self._monitor_thread = threading.Thread(target=self._serial_monitor_daemon)
             self._monitor_thread.daemon = True
             self._is_ready = False
@@ -106,8 +103,8 @@ class RudderInterface:
         self._serial.reset_input_buffer()
         self._serial.flushInput()
         if not self._serial.is_open:
-            raise ConnectionError(f'Could not open port {usb_device}')
-        self._logger.info(f'Connected to {usb_device} for receiving. Baud={str(self._serial.baudrate)}!')
+            raise ConnectionError(f'Could not open port {Config.usb_device}')
+        self._logger.info(f'Connected to {Config.usb_device} for receiving. Baud={str(self._serial.baudrate)}!')
         self._is_ready = False
         _log.info("asynch serial_monitor started")
         while not self._is_killed:
@@ -130,7 +127,7 @@ class RudderInterface:
     def _write(self, msg: str) -> None:
         _log = self._logger
         if not self._serial.is_open:
-            _log.error('Port is not open: ' + usb_device)
+            _log.error('Port is not open: ' + Config.usb_device)
             return
         try:
             _log.debug(f'sending: "{msg}"')

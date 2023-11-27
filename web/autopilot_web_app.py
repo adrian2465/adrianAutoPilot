@@ -76,7 +76,7 @@ try:
     def get_course():
         global brain, logger
         course = brain.course
-        course_str = f"{course:03.0f}" if course is not None else f"{imu.compass_deg:03.0f}"
+        course_str = f"{course:03.0f}" if course is not None else "NAN"
         logger.debug(f"API get_course() => {course_str}")
         return jsonify(course=course_str)
 
@@ -112,7 +112,8 @@ try:
                        port_limit=rudder.hw_port_limit,
                        starboard_limit=rudder.hw_stbd_limit,
                        motor=rudder.motor_speed,
-                       rudder_position=int(rudder.rudder_position*100),
+                       rudder_position=-int(rudder.rudder_position*100),
+                       control_output=brain.control_output,
                        turn_rate=imu.turn_rate_dps)
 
 

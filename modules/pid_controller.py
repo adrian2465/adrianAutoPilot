@@ -39,27 +39,32 @@ class PID:
     I_idx = 1
     D_idx = 2
 
-    def __init__(self, gains='calm'):
+    def __init__(self, gains='default'):
         self._cfg = Config.getConfig()
         self._gains = self._cfg['pid_gains'][gains]
         self._prev_err = 0
         self._err_sum = 0
         self._prev_timestamp = time.time()
+        self._control_output = 0
 
-    def compute(self, course: float, heading: float):
-        """Calculate updated commanded rudder angle using SIMPLE PID controller."""
+    @property
+    def control_output(self):
+        return self._control_output
+
+    def compute(self, set_point: float, measured_value: float):
+        """Calculate control output required to bring measured_value closer to set_point using SIMPLE PID controller."""
         now = time.time()
         d_time = now - self._prev_timestamp
-        error = calculate_acute_angle(heading, course)
+        error = calculate_acute_angle(measured_value, set_point)
         self._err_sum += error * d_time
         d_err = (error - self._prev_err) / d_time if d_time > 0 else 0.0
-        output = self._gains[PID.P_idx] * error + \
+        self._control_output = self._gains[PID.P_idx] * error + \
                  self._gains[PID.I_idx] * self._err_sum + \
                  self._gains[PID.D_idx] * d_err
-        output = max(-1, output) if output < 0 else min(1, output)
+        self._control_output = max(-1, self._control_output) if self._control_output < 0 else min(1, self._control_output)
         self._prev_err = error
         self._prev_timestamp = now
-        return output
+        return self._control_output
 
 
 if __name__ == "__main__":
@@ -78,14 +83,14 @@ if __name__ == "__main__":
     course_tolerance_deg = cfg['course_tolerance_deg']
     pid = PID()
     interval_s = 0.25
-    previous_time = time()
+    previous_time = time.time()
     max_iterations = 1000
     elapsed_s = 0
     time_between_iterations = 0.5
     data = []
     while not is_on_course(course, heading, course_tolerance_deg) and max_iterations > 0:
         max_iterations -= 1
-        now = time()
+        now = time.time()
         delta_t = now - previous_time
         previous_time = now
         desired_rudder = pid.compute(course, heading)

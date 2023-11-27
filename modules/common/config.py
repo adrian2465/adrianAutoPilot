@@ -13,13 +13,15 @@ CONFIG_DIR_NAME='configuration'
 LOGGING_CONF_FILE_NAME= "logging.conf"
 DEFAULT_CONFIG_FILE = "config.yaml"
 
-
 class Config:
     _data_lock = threading.Lock()
     _config_dict = None
     _config_file = None
     _config_dir = None
     _logger = None
+
+    usb_device = "/dev/ttyUSB0"
+    usb_baud_rate = 115200
 
     @staticmethod
     def init(file_name=DEFAULT_CONFIG_FILE):

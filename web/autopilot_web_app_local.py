@@ -19,7 +19,7 @@ try:
                 template_folder='templates/',
                 static_url_path="/static",
                 static_folder='/Users/avrouwenve/Private/adrianAutoPilot/web/static/')
-    print(str(app.root_path))
+    print("Flask started me again!  App root path = " + str(app.root_path))
     course = None
 
     def setup(app):
@@ -71,9 +71,8 @@ try:
     @app.route("/get_course")
     def get_course():
         global course, logger
-        course_str = f"{course:03.0f}" if course is not None else f"{100:03.0f}"
+        course_str = f"{course:03.0f}" if course is not None else "NAN"
         logger.debug(f"/get_course => {course_str}")
-        # logger.debug(f"API get_course() => {course_str}")
         return jsonify(course=course_str)
 
 
@@ -102,6 +101,7 @@ try:
                        starboard_limit=934,
                        motor=0,
                        rudder_position=rudder_pos,
+                       control_output=1,
                        turn_rate=10)
 
 
