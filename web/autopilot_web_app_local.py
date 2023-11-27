@@ -67,26 +67,8 @@ try:
                 course = None
         return ""
 
-
-    @app.route("/get_course")
-    def get_course():
-        global course, logger
-        course_str = f"{course:03.0f}" if course is not None else "NAN"
-        logger.debug(f"/get_course => {course_str}")
-        return jsonify(course=course_str)
-
-
-    @app.route("/get_heading")
-    def get_heading():
-        return jsonify(heading="100")
-
-
-    @app.route("/get_heel")
-    def get_heel():
-        return jsonify(heel="0")
-
-    @app.route("/get_interface_params")
-    def get_interface_params():
+    @app.route("/poll")
+    def poll():
         global already_nagged
         try:
             with open("/tmp/rudder_position.txt", "r") as f:
@@ -102,6 +84,10 @@ try:
                        motor=0,
                        rudder_position=rudder_pos,
                        control_output=1,
+                       heel=0,
+                       messages="Ok",
+                       heading="100",
+                       course=f"{course:03.0f}" if course is not None else "NAN",
                        turn_rate=10)
 
 

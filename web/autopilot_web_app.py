@@ -72,35 +72,8 @@ try:
         return ""
 
 
-    @app.route("/get_course")
-    def get_course():
-        global brain, logger
-        course = brain.course
-        course_str = f"{course:03.0f}" if course is not None else "NAN"
-        logger.debug(f"API get_course() => {course_str}")
-        return jsonify(course=course_str)
-
-
-    @app.route("/get_heading")
-    def get_heading():
-        global imu, logger
-        heading_str = f"{imu.compass_deg:03.0f}"
-        logger.debug(f"API get_heading() => {heading_str}")
-        return jsonify(heading=heading_str)
-
-
-    @app.route("/get_heel")
-    def get_heel():
-        global imu, logger
-        heel = f'{imu.heel_deg:03.0f} STBD' if imu.heel_deg >= 1.5 else \
-               f'{-imu.heel_deg:03.0f} PORT' if imu.heel_deg <= -1.5 else \
-               "LEVEL"
-        logger.debug(f"API get_heel() => {heel}")
-        return jsonify(heel=heel)
-
-
-    @app.route("/get_interface_params")
-    def get_interface_params():
+    @app.route("/poll")
+    def poll():
         global brain, imu, rudder, logger
         logger.debug(f"API get_interface_params() => "
                      f"clutch_status={brain.is_engaged}"
@@ -114,8 +87,13 @@ try:
                        motor=rudder.motor_speed,
                        rudder_position=-int(rudder.rudder_position*100),
                        control_output=brain.control_output,
-                       turn_rate=imu.turn_rate_dps)
-
+                       turn_rate=imu.turn_rate_dps,
+                       heel=f'{imu.heel_deg:03.0f} STBD' if imu.heel_deg >= 1.5 else \
+                            f'{-imu.heel_deg:03.0f} PORT' if imu.heel_deg <= -1.5 else \
+                            "LEVEL",
+                       messages="",
+                       heading=f"{imu.compass_deg:03.0f}",
+                       course=f"{brain.course:03.0f}" if brain.course is not None else "NAN")
 
     @app.route("/get_messages")
     def get_messages():

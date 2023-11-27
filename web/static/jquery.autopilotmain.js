@@ -89,39 +89,7 @@ function tackIncHandler() {
 // Periodic status monitoring
 (function () {
     $.getJSON(
-        $SCRIPT_ROOT + "/get_messages",
-        function (data) {
-            if (data.messages.startsWith("ERROR"))
-                messages.prop('style', 'color:red');
-            else
-                messages.prop('style', 'color:blue');
-            // messages.text(data.messages);  // Add a monitor / debug page for this more raw output
-            messages.text("Online")
-        }
-    ).fail(function () {
-        messages.prop('style', 'color:red');
-        messages.text("Disconnected")
-    });
-    $.getJSON(
-        $SCRIPT_ROOT + "/get_course",
-        function (data) {
-            courseIndicator.text(data.course === "NAN" ? "---" : data.course);
-        }
-    );
-    $.getJSON(
-        $SCRIPT_ROOT + "/get_heading",
-        function (data) {
-            headingIndicator.text(data.heading);
-        }
-    );
-    $.getJSON(
-        $SCRIPT_ROOT + "/get_heel",
-        function (data) {
-            heelIndicator.text(data.heel);
-        }
-    );
-    $.getJSON(
-        $SCRIPT_ROOT + "/get_interface_params",
+        $SCRIPT_ROOT + "/poll",
         function (data) {
             if (interfaceCheckbox.checked) {
                 interfaceMessageArea.text(
@@ -134,8 +102,16 @@ function tackIncHandler() {
             } else {
                 interfaceMessageArea.text("")
             }
-
-            if (data.clutch_status == "1") {
+            heelIndicator.text(data.heel);
+            headingIndicator.text(data.heading);
+            courseIndicator.text(data.course === "NAN" ? "---" : data.course);
+            if (data.messages.startsWith("ERROR"))
+                messages.prop('style', 'color:red');
+            else
+                messages.prop('style', 'color:blue');
+            // messages.text(data.messages);  // Add a monitor / debug page for this more raw output
+            messages.text("Online")
+            if (data.course !== "NAN") {
                 // onOffInput.prop("class", "mybox simple-switch-outter.checked");
                 bigDecButton.prop("value", "-" + bigDegrees);
                 bigIncButton.prop("value", "+" + bigDegrees);
@@ -167,7 +143,10 @@ function tackIncHandler() {
             rudderGaugeText.text(data.rudder_position)
             rudderGauge.set(data.rudder_position)
         }
-    );
+    ).fail(function () {
+        messages.prop('style', 'color:red');
+        messages.text("Disconnected")
+    });
     setTimeout(arguments.callee, timeout_ms); // Update every so often
 })();
 $(".mybox").simpleSwitch();
