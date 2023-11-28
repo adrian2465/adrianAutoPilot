@@ -1,17 +1,16 @@
 TODOs:
 
-# 2023-11-12 @ 10:27:51 : TODO LEFT OFF HERE
-o !! Clutch status does not influence the ON OFF switch. Need to turn it off if clutch is off.
+o Convert PI to its own network after first investigating how to restore 'orion-based' network easily.
 o Add easy-to-find, interactive calibration program that finds rudder limits, allows setting of gains, etc. Persist (perhaps) in config.yaml, or overwrite with calibrations.yaml
-o Apply corrections (biases) for each of the IMU stats. Gyro turn rate is always -1.7 or -1.8
-o Adjust the course or turn rate tolerance so the motor doesn't cycle so much.
+  - Reset biases etc.
+
 o Flask Not catching control C keyboard interrupt
 o Uninstall: 
   * make
   * gcc 
   * compiletc
   * python3-dev?
-which were needed for pip-based installation of smbus (pip install smbus) but not anymore.
+  which were needed for pip-based installation of smbus (pip install smbus) but not anymore.
 
 DONEs
 DONE * Fix all hw getters and setters. All "hw" numbers from arduino should just be raw numbers, and don't need getters.
@@ -61,3 +60,11 @@ DONE  - Running run_webserver, can't find the templates.
 DONE  - Getting out of synch with reads from run_webserver, but seems fine with reads from run_brain_test. Is failure (not finding templates) causing this problem? Or because running as Flask?
 DONE  - Explain THAT -- where's the re-enablement (clutch-off) coming from?
 DONE o mainNav showing big square checkbox instead of "simple" slider button.
+DONE o Changing status from another browser does not influence the status or course on THIS browser.
+  This may be why it's also malfunctioning on phone (touch screen) browsers.  Works fine with
+  mouse.  Maybe need a toggle switch and two indicator lights.  Possibly brain is not running
+  single instance, and so it's got different "course" values for different clients.  See about
+  making brain a singleton somehow.
+DONE  o !! Clutch status does not influence the ON OFF switch. Need to turn it off if clutch is off.
+DONE o Apply corrections (biases) for each of the IMU stats. Gyro turn rate is always -1.7 or -1.8
+DONE o Adjust the course or turn rate tolerance so the motor doesn't cycle so much.

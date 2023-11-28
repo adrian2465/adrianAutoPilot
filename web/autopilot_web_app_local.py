@@ -46,25 +46,15 @@ try:
         return ""
 
 
-    @app.route("/set_status/<new_status>")
-    def set_status(new_status: str):
+    @app.route("/toggle_status")
+    def toggle_status():
         global course, logger
-        logger.info(f"API set_status({new_status})")
-        is_enabling = (new_status == 'enabled')
-        if course is None:
-            if is_enabling:
-                # Enabling a disabled brain.
-                course = 100
-            else:
-                # Disabling a disable brain.
-                logger.error("API Ignoring disabling an already-disabled brain.")
+        is_enabling = (course is None)
+        logger.info(f"API toggle_status. ({'OFF -> ON' if is_enabling else 'ON -> OFF'})")
+        if is_enabling:
+            course = 100
         else:
-            if is_enabling:
-                # Enabling an enabled brain
-                logger.error("API Ignoring enabling an already-enabled brain.")
-            else:
-                # Disabling an enabled brain
-                course = None
+            course = None
         return ""
 
     @app.route("/poll")

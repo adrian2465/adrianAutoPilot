@@ -49,28 +49,16 @@ try:
         brain.course = normalize_angle(brain.course + (int(course_adjustment))) if brain.course is not None else None
         return ""
 
-
-    @app.route("/set_status/<new_status>")
-    def set_status(new_status: str):
+    @app.route("/toggle_status")
+    def toggle_status():
         global brain, imu, logger
-        logger.info(f"API set_status({new_status})")
-        is_enabling = (new_status == 'enabled')
-        if brain.course is None:
-            if is_enabling:
-                # Enabling a disabled brain.
-                brain.course = imu.compass_deg
-            else:
-                # Disabling a disable brain.
-                logger.error("API Ignoring disabling an already-disabled brain.")
+        is_enabling = (brain.course is None)
+        logger.info(f"API toggle_status. ({'OFF -> ON' if is_enabling else 'ON -> OFF'})")
+        if is_enabling:
+            brain.course = imu.compass_deg
         else:
-            if is_enabling:
-                # Enabling an enabled brain
-                logger.error("API Ignoring enabling an already-enabled brain.")
-            else:
-                # Disabling an enabled brain
-                brain.course = None
+            brain.course = None
         return ""
-
 
     @app.route("/poll")
     def poll():

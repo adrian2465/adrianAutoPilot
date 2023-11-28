@@ -46,13 +46,8 @@ rudderGauge.set(0);
 
 // Click handler definition
 function onOffHandler() {
-    if ($("#onOffInput").prop("checked") == true) {
-        console.log("Enabling autopilot")
-        fetch($SCRIPT_ROOT + '/set_status/enabled');
-    } else {
-        console.log("Disabling autopilot")
-        fetch($SCRIPT_ROOT + '/set_status/disabled');
-    }
+    console.log("Toggle Status")
+    fetch($SCRIPT_ROOT + '/toggle_status');
 }
 
 function bigDecHandler() {
@@ -109,10 +104,10 @@ function tackIncHandler() {
                 messages.prop('style', 'color:red');
             else
                 messages.prop('style', 'color:blue');
-            // messages.text(data.messages);  // Add a monitor / debug page for this more raw output
+            // messages.text(data.messages);  // TODO Add a monitor / debug page for this more raw output
             messages.text("Online")
+            document.getElementById('onOffLed').style.backgroundColor = data.clutch_status ? "lightgreen" : "black";
             if (data.course !== "NAN") {
-                // onOffInput.prop("class", "mybox simple-switch-outter.checked");
                 bigDecButton.prop("value", "-" + bigDegrees);
                 bigIncButton.prop("value", "+" + bigDegrees);
                 smallDecButton.prop("value", "-" + smallDegrees);
@@ -126,7 +121,6 @@ function tackIncHandler() {
                 tackDecButton.removeAttr("disabled");
                 tackIncButton.removeAttr("disabled");
             } else {
-                // onOffInput.prop("class", "mybox simple-switch-outter.unchecked");
                 bigDecButton.prop("value", "---");
                 bigIncButton.prop("value", "---");
                 smallDecButton.prop("value", "---");
@@ -149,4 +143,3 @@ function tackIncHandler() {
     });
     setTimeout(arguments.callee, timeout_ms); // Update every so often
 })();
-$(".mybox").simpleSwitch();

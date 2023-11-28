@@ -1,0 +1,15 @@
+body {
+    font-family: sans-serif;
+}
+
+.bulb {
+    height: 70px;
+    width: 70px;
+    background-color: black;
+    border-radius: 50%;
+    border-style: solid;
+    border-width: 8px;
+    border-color: #c0c0c0;
+    margin: 25px auto;
+    transition: background 250ms;
+}

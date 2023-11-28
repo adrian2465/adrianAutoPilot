@@ -12,16 +12,21 @@
     var update_frequency_ms = 100;
 </script>
 
-<link href="/static/simple-switch.min.css" rel="stylesheet" />
 <link href="/static/autopilot.css" rel="stylesheet" />
+<link href="/static/indicator-light.css" rel="stylesheet" />
 
 <html>
 
 <title>Autopilot</title>
 <body>
 
-<div style="text-align: center;">
-    <p><input id='onOffInput' type="checkbox" class="mybox" onclick="onOffHandler()"></p>
+<div style="text-align: center; alignment: center;">
+    <div id="onOffControl" >
+        <input id='onOffLed'
+               type='button'
+               class='bulb' onclick='onOffHandler()'/>
+    </div>
+
     <p>
         <span id="course"
               style="font-family: monospace, sans-serif Bold; font-style: normal; font-variant: normal; font-size : {{courseFontSize}}px;">
@@ -71,10 +76,9 @@
         var timeout_ms = update_frequency_ms;
     </script>
     <script src="/static/jquery-3.6.4.min.js"></script>
-    <script src="/static/jquery.simpleswitch.min.js"></script>
     <script src="/static/gauge.js"></script>
     <script src="/static/jquery.autopilotmain.js"></script>
-
+    <script src="/static/indicator-light.js"></script>
 </div>
 
 </body>
