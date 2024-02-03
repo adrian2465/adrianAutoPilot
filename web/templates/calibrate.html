@@ -8,7 +8,7 @@
 {% set update_frequency_ms   = 100 %}
 
 <style>
-    .button {
+    .autopilot_control_button {
         border: none;
         color: black;
         padding: 10px;
@@ -49,20 +49,21 @@
         crossorigin="anonymous">
 </script>
 
-<title>Autopilot</title>
+<title>Calibration</title>
+LEFT OFF HERE -- Think about how to update PID more easily, via the web page
 <body>
 <div style="text-align: center;">
     <input id='onOffInput' type='button' class='' value=''/>
     <h2>Course: <span id="course">Supplied by jQuery</span>&nbsp;&nbsp;Heading: <span id="heading">Supplied by jQuery</span></h2>
     <p>
-        <input id='bigDec'    type='button' style="font-size : 20px; width: {{ courseButtonWidthPx }}px; height: 50px; border-radius: 6px" class='button' value='Supplied by jQuery'/>
-        <input id='smallDec'  type='button' style="font-size : 20px; width: {{ courseButtonWidthPx }}px; height: 50px; border-radius: 6px" class='button' value='Supplied by jQuery'/>
-        <input id='smallInc'  type='button' style="font-size : 20px; width: {{ courseButtonWidthPx }}px; height: 50px; border-radius: 6px" class='button' value='Supplied by jQuery'/>
-        <input id='bigInc'    type='button' style="font-size : 20px; width: {{ courseButtonWidthPx }}px; height: 50px; border-radius: 6px" class='button' value='Supplied by jQuery'/>
+        <input id='bigDec' type='button' style="font-size : 20px; width: {{ courseButtonWidthPx }}px; height: 50px; border-radius: 6px" class='autopilot_control_button' value='Supplied by jQuery'/>
+        <input id='smallDec' type='button' style="font-size : 20px; width: {{ courseButtonWidthPx }}px; height: 50px; border-radius: 6px" class='autopilot_control_button' value='Supplied by jQuery'/>
+        <input id='smallInc' type='button' style="font-size : 20px; width: {{ courseButtonWidthPx }}px; height: 50px; border-radius: 6px" class='autopilot_control_button' value='Supplied by jQuery'/>
+        <input id='bigInc' type='button' style="font-size : 20px; width: {{ courseButtonWidthPx }}px; height: 50px; border-radius: 6px" class='autopilot_control_button' value='Supplied by jQuery'/>
     </p>
     <p>
-        <input id='tackDec'   type='button' style="font-size : 20px; width: {{ tackButtonWidthPx }}px; height: 50px; border-radius: 6px" class='button' value='Supplied by jQuery'/>
-        <input id='tackInc'   type='button' style="font-size : 20px; width: {{ tackButtonWidthPx }}px; height: 50px; border-radius: 6px" class='button' value='Supplied by jQuery'/>
+        <input id='tackDec' type='button' style="font-size : 20px; width: {{ tackButtonWidthPx }}px; height: 50px; border-radius: 6px" class='autopilot_control_button' value='Supplied by jQuery'/>
+        <input id='tackInc' type='button' style="font-size : 20px; width: {{ tackButtonWidthPx }}px; height: 50px; border-radius: 6px" class='autopilot_control_button' value='Supplied by jQuery'/>
     </p>
     <p>&nbsp;<span id="messages" style='jquery'>Supplied by jQuery</span></p>
     <p>

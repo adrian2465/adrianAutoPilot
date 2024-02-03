@@ -1,7 +1,7 @@
 <!doctype html>
 
 {% set courseButtonWidthPx = '50' %}
-{% set courseFontSize = '50' %}
+{% set courseFontSize = '40' %}
 {% set buttonFontSize = '20' %}
 {% set buttonSize = '50' %}
 {% set tackButtonWidthPx = '150' %}
@@ -16,8 +16,15 @@
 <link href="/static/indicator-light.css" rel="stylesheet" />
 
 <html>
-
-<title>Autopilot</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autopilot</title>
+    <style>
+        html, body {
+            margin: 0;
+            height: 100%;
+        }
+    </style>
+</head>
 <body>
 
 <div style="text-align: center; alignment: center;">
@@ -29,7 +36,7 @@
 
     <p>
         <span id="course"
-              style="font-family: monospace, sans-serif Bold; font-style: normal; font-variant: normal; font-size : {{courseFontSize}}px;">
+              style="font-family: monospace, sans-serif Bold; font-style: normal; font-variant: normal; font-size: {{courseFontSize}}px;">
          Disconnected</span>
     </p>
     <p>
@@ -69,7 +76,7 @@
         <label for="interfaceCheckbox"><input id='interfaceCheckbox' type='checkbox' name='Debug'/>Show interface status</label>
         <br/><span id="interfaceMessageArea">Disconnected</span>
     </p>
-    <canvas width="760" height="300" id="rudder-gauge" style="width: 380px; height: 150px;"></canvas>
+    <canvas width="660" height="200" id="rudder-gauge" style="width: 280px; height: 50px;"></canvas>
     <div id="rudder-gauge-text" style="font-size: 30px;">0</div>
     <script>
         var $SCRIPT_ROOT = {{request.script_root | tojson | safe }};
@@ -78,7 +85,6 @@
     <script src="/static/jquery-3.6.4.min.js"></script>
     <script src="/static/gauge.js"></script>
     <script src="/static/jquery.autopilotmain.js"></script>
-    <script src="/static/indicator-light.js"></script>
 </div>
 
 </body>

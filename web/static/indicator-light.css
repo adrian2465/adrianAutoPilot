@@ -3,8 +3,8 @@ body {
 }
 
 .bulb {
-    height: 70px;
-    width: 70px;
+    height: 60px;
+    width: 60px;
     background-color: black;
     border-radius: 50%;
     border-style: solid;
