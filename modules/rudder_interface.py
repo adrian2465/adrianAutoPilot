@@ -15,7 +15,6 @@ from modules.common.test_methods import test_equals, test_true
 class RudderInterface:
     _initialized = False
     def __init__(self):
-        config = Config.getConfig()
         self._logger = logging.getLogger("RudderController")
         if not Path(Config.usb_device).exists():
             self.is_unit_test = True
@@ -39,8 +38,9 @@ class RudderInterface:
             self._monitor_thread.daemon = True
             self._is_ready = False
             self._is_killed = False
-            self._monitor_read_interval_s = config.get('monitor_read_interval_s', 0.2)
-            self._status_report_complete_duration_ms = config.get('status_report_complete_duration_ms', 500)
+            self._monitor_read_interval_s = Config.get_or_else('monitor_read_interval_s', 0.2)
+            self._status_report_complete_duration_ms = Config.get_or_else('status_report_complete_duration_ms', 500)
+        self._is_hw_trace_enabled = Config.get_or_else('hw_trace_enabled', False)
         self.hw_messages = None
         self.hw_raw_rudder_position = None
         self.hw_rudder_fault = None
@@ -90,11 +90,11 @@ class RudderInterface:
             _log.error(f"Received unsupported message from hardware: '{msg}'")
 
     def _initialize_hw(self):
-        config = Config.getConfig()
-        self.set_echo_status(config.get('rudder_echo_status', 0))
-        self.set_port_raw_rudder_limit(config.get('rudder_port_limit', 0))
-        self.set_starboard_raw_rudder_limit(config.get('rudder_starboard_limit', 1023))
-        self._set_hw_reporting_interval_ms(config.get('rudder_reporting_interval_ms', 1000))
+        _log = self._logger
+        self.set_echo_status(Config.get_or_else('rudder_echo_status', 0))
+        self.set_port_raw_rudder_limit(int(Config.get_or_else('rudder_port_limit', 0)))
+        self.set_starboard_raw_rudder_limit(int(Config.get_or_else('rudder_starboard_limit', 1023)))
+        self._set_hw_reporting_interval_ms(Config.get_or_else('rudder_reporting_interval_ms', 1000))
         self.set_motor_speed(0)
         self.set_clutch(0)
 
@@ -113,7 +113,7 @@ class RudderInterface:
                 while self._serial.in_waiting > 0:
                     message = self._serial.readline().decode('utf-8').strip()
                     if message != '':
-                        _log.debug(f"Processing msg from HW: '{message}'")
+                        if self._is_hw_trace_enabled: _log.debug(f"Processing msg from HW: '{message}'")
                         if message == 'm=REBOOTED':
                             self._is_ready = True
                         self._process_message_from_arduino(msg=message)
@@ -193,21 +193,23 @@ class RudderInterface:
             self._write(f"s000")
         while self.hw_clutch_status != status: time.sleep(0.1)
 
+    def _set_raw_rudder_limit(self, limit: str, raw_limit) -> None:
+        _log = self._logger
+        _log.info(f"_set_raw_rudder_limit({limit}) to {str(raw_limit)}")
+        if raw_limit is None: raw_limit = self.hw_raw_rudder_position
+        self._write(f"{limit}{raw_limit:04}")
+
     def set_port_raw_rudder_limit(self, raw_limit: int = None) -> None:
         """Set the port raw limit. 0 <= limit <= 1023. This can be set by turning the rudder to its port limit (minus a bit)
         and then calling this without parameters after waiting a short period to ensure that the hw_raw_rudder_position
         has been registered."""
-        _log = self._logger
-        if raw_limit is None: raw_limit = self.hw_raw_rudder_position
-        self._write(f"l{raw_limit:04}")
+        self._set_raw_rudder_limit("l", raw_limit)
 
     def set_starboard_raw_rudder_limit(self, raw_limit: int = None) -> None:
-        """Set the port raw limit. 0 <= limit <= 1023. This can be set by turning the rudder to its stbd limit (minus a bit)
+        """Set the starboard raw limit. 0 <= limit <= 1023. This can be set by turning the rudder to its stbd limit (minus a bit)
         and then calling this without parameters after waiting a short period to ensure that the hw_raw_rudder_position
         has been registered."""
-        _log = self._logger
-        if raw_limit is None: raw_limit = self.hw_raw_rudder_position
-        self._write(f"r{raw_limit:04}")
+        self._set_raw_rudder_limit("r", raw_limit)
 
     def set_echo_status(self, status) -> None:
         _log = self._logger
@@ -327,9 +329,9 @@ if __name__ == "__main__":
                         elif cmd.startswith('e'):
                             rudder.set_echo_status(int(cmd[1:]))
                         elif cmd.startswith('l'):
-                            rudder.set_port_raw_rudder_limit(float(cmd[1:]))
+                            rudder.set_port_raw_rudder_limit(int(cmd[1:]))
                         elif cmd.startswith('r'):
-                            rudder.set_starboard_raw_rudder_limit(float(cmd[1:]))
+                            rudder.set_starboard_raw_rudder_limit(int(cmd[1:]))
                         elif cmd.startswith('i'):
                             rudder._set_hw_reporting_interval_ms(int(cmd[1:]))
                         else:

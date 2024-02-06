@@ -92,6 +92,7 @@ function tackIncHandler() {
                     " slim=" + data.starboard_limit +
                     " motor=" + data.motor +
                     " rudder=" + data.rudder_position +
+                    " raw-rudder=" + data.raw_rudder_position +
                     " control=" + data.control_output +
                     " turn_rate=" + data.turn_rate)
             } else {

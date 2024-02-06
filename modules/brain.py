@@ -19,16 +19,15 @@ class Brain:
     _course_lock = threading.Lock()  # To prevent toggling None / val during brain loop
 
     def __init__(self, rudder, imu):
-        cfg = Config.getConfig()
         self._log = logging.getLogger('brain')
         self._rudder = rudder
         self._imu = imu
-        self._rudder_turn_rate_ups = 1000 / float(cfg['rudder_hard_over_time_ms'])
-        self._metric_tolerance = float(cfg['metric_tolerance'])
-        self._course_tolerance_deg = float(cfg['course_tolerance_deg'])
-        imu_sampling_interval_ms = float(cfg['imu_sampling_interval_ms'])
-        rudder_reporting_interval_ms = float(cfg['rudder_reporting_interval_ms'])
-        self._max_turn_rate_dps = cfg['boat_max_turn_rate_dps']
+        self._rudder_turn_rate_ups = 1000 / float(Config.get('rudder_hard_over_time_ms'))
+        self._metric_tolerance = float(Config.get('metric_tolerance'))
+        self._course_tolerance_deg = float(Config.get('course_tolerance_deg'))
+        imu_sampling_interval_ms = float(Config.get('imu_sampling_interval_ms'))
+        rudder_reporting_interval_ms = float(Config.get('rudder_reporting_interval_ms'))
+        self._max_turn_rate_dps = Config.get('boat_max_turn_rate_dps')
         self._loop_interval_s = min(rudder_reporting_interval_ms, imu_sampling_interval_ms)/1000.0
         self._actuator_manager_thread = threading.Thread(target=self._actuator_manager_daemon)
         self._actuator_manager_thread.daemon = True
@@ -37,7 +36,6 @@ class Brain:
         self._course = None
         self._heading = None
         self._controller = None
-        self.gains_selector = 'default'
 
     def start_daemon(self):
         self._log.debug("Starting Actuator Manager daemon...")
@@ -74,7 +72,7 @@ class Brain:
         with Brain._course_lock:
             if new_course is not None and self._course is None:  # Switched disabled to enabled
                 msg = f"Autopilot enabled with course = {new_course}"
-                self._controller = PID(gains=self.gains_selector)
+                self._controller = PID()
                 self._course = new_course
                 self._rudder.set_clutch(1)
             elif new_course is not None and self._course is not None:  # Switched enabled to enabled (new course?)
@@ -109,7 +107,7 @@ class Brain:
                 return None
 
     def _get_controlled_metric(self):
-        """This is the item we're attempting to control in our attempts to steer a course."""
+        """This is the item we're attempting to control in our attempts to steer a course. Positive to stbd."""
         # Rudder Position is one such potential value, but suffers from the fact that if the course error is 0, the
         # rudder position (without an offset correction) will also be made to converge on zero; however, in a real
         # environment there will always be weather helm offset and so there will practically always be non-zero rudder

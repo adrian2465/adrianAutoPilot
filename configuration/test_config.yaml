@@ -6,3 +6,10 @@ test_array: [10, 20]
 nested_config:
     config1: 'A'
     config2: 'B'
+overridden_value: 'DEFAULT_VALUE'
+rudder_echo_status: 1
+rudder_reporting_interval_ms: 250
+rudder_port_limit: 228
+rudder_starboard_limit: 701
+rudder_hard_over_time_ms: 4000 # From centered to stop - for simulations
+rudder_position_tolerance: .01 # Normalized

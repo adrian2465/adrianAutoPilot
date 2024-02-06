@@ -63,17 +63,18 @@ try:
     @app.route("/poll")
     def poll():
         global brain, imu, rudder, logger
-        logger.debug(f"API get_interface_params() => "
-                     f"clutch_status={brain.is_engaged}"
+        logger.debug(f"API get_interface_params(): "
+                     f"clutch_status={brain.is_engaged}, "
                      f"plim={rudder.hw_port_limit}, "
                      f"slim={rudder.hw_stbd_limit}, "
-                     f"rudder={int(rudder.rudder_position*100)}, "
+                     f"raw={rudder.hw_raw_rudder_position}, "
                      f"turn_rate={imu.turn_rate_dps:5.1f}")
         return jsonify(clutch_status=brain.is_engaged,
                        port_limit=rudder.hw_port_limit,
                        starboard_limit=rudder.hw_stbd_limit,
                        motor=rudder.motor_speed,
                        rudder_position=-int(rudder.rudder_position*100),
+                       raw_rudder_position=rudder.hw_raw_rudder_position,
                        control_output=brain.control_output,
                        turn_rate=imu.turn_rate_dps,
                        heel=f'{imu.heel_deg:03.0f} STBD' if imu.heel_deg >= 1.5 else \

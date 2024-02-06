@@ -39,9 +39,8 @@ class PID:
     I_idx = 1
     D_idx = 2
 
-    def __init__(self, gains='default'):
-        self._cfg = Config.getConfig()
-        self._gains = self._cfg['pid_gains'][gains]
+    def __init__(self):
+        self._gains = Config.get('pid_gains')
         self._prev_err = 0
         self._err_sum = 0
         self._prev_timestamp = time.time()
@@ -71,16 +70,15 @@ if __name__ == "__main__":
     import sys
 
     Config.init()
-    cfg = Config.getConfig()
     if len(sys.argv) != 4:
         print(f"Supply initial heading, course, rudder as arguments")
         exit(1)
     heading, course, rudder = [float(sys.argv[i]) for i in range(1, len(sys.argv))]
-    hard_over_time_ms = cfg['rudder_hard_over_time_ms']
+    hard_over_time_ms = Config.get('rudder_hard_over_time_ms')
     rudder_turn_rate_ups = 1000 / hard_over_time_ms  # ups = unit per second. 1 unit is centered-to-hardover.
-    boat_turn_rate_dps = cfg['boat_max_turn_rate_dps']
-    rudder_position_tolerance = cfg['rudder_position_tolerance']
-    course_tolerance_deg = cfg['course_tolerance_deg']
+    boat_turn_rate_dps = Config.get('boat_max_turn_rate_dps')
+    rudder_position_tolerance = Config.get('rudder_position_tolerance')
+    course_tolerance_deg = Config.get('course_tolerance_deg')
     pid = PID()
     interval_s = 0.25
     previous_time = time.time()
@@ -95,7 +93,7 @@ if __name__ == "__main__":
         previous_time = now
         desired_rudder = pid.compute(course, heading)
         if (desired_rudder - rudder) > rudder_position_tolerance:
-            rudder = min(1.0, rudder + rudder_turn_rate_ups * delta_t)
+            rudder = min(1.0, rudder + rudder_turn_rate_ups * delta_t) ## TODO Shouldn't this be setting desired_rudder?
         elif (rudder - desired_rudder) > rudder_position_tolerance:
             rudder = max(-1.0, rudder - rudder_turn_rate_ups * delta_t)
         heading = normalize_angle(heading + boat_turn_rate_dps * rudder * delta_t)

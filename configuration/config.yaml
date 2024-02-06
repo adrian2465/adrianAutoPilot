@@ -6,6 +6,7 @@ metric_tolerance: 1.0
 course_tolerance_deg: 0.5
 
 # PID Tuning Rule of Thumb (Ziegler-Nichols)
+# THESE SHOULD BE SET BY PROGRAM IN config_overrides.yaml
 # 1. Set all gains to zero.
 # 2. Increase the P gain until the response to a disturbance is steady oscillation.
 # 3. Increase the D gain until the the oscillations go away (i.e. it's critically damped).
@@ -13,18 +14,17 @@ course_tolerance_deg: 0.5
 # 5. Set P and D to the last stable values.
 # 6. Increase the I gain until it brings you to the setpoint with the number of oscillations desired (normally zero but
 #    a quicker response can be had if you don't mind a couple oscillations of overshoot)
-pid_gains:
+
 #   calm: [0.0500, 0.0001, 0.0000]  # Pretty good.
 #   calm: [0.2, 0.0105, 0.0000]  # Overshoots
 #    calm: [0.2, 0.0, 0.100]  # Overshoots but corrects quickly
-   default: [0.200, 0.1, 0.200]  # Overshoots a little but corrects very quickly
 
 # Inertial Measurement Unit (IMU)
 imu_sampling_interval_ms: 100
 
 # IMU Gyro
-imu_gyro_bias: [ -2.194, 0.670, -1.47] # Gyro units = degrees per second
-imu_gyro_moving_average_window_size: 15
+imu_gyro_bias: [ -2.194, 0.670, -1.33] # Gyro units = degrees per second
+imu_gyro_moving_average_window_size: 30
 
 # IMU Accelerometer
 imu_accel_bias: [-0.007, 0.008, .033]
@@ -40,10 +40,18 @@ imu_magnetometer_bias: [ 33.30, 0.13, 10.6 ]
 imu_magnetometer_scale: [ 0.731, 0.722, 4.000 ]
 imu_magnetometer_moving_average_window_size: 100
 
+# IMU Mounting Orientation. The sensor box should be mounted with the skinny dimension along the fore/aft line, and
+# with the wires down.  If it's mounted on a left wall (so it can be viewed while looking to port) then it's 'left'
+# oriented.  The other option is 'right' oriented.  (NOTE: If it's wrong, a heel to starboard will appear as a heel
+# to port on the display, and the compass will be 180 degrees off).
+imu_mount_orientation: 'left'
+
 # Rudder interface settings
 rudder_echo_status: 1
 rudder_reporting_interval_ms: 250
-rudder_starboard_limit: 0973
-rudder_port_limit: 0050
+rudder_port_limit: 228
+rudder_starboard_limit: 701
 rudder_hard_over_time_ms: 4000 # From centered to stop - for simulations
 rudder_position_tolerance: .01 # Normalized
+
+hw_trace_enabled: False

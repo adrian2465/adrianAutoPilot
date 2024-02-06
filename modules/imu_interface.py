@@ -122,7 +122,6 @@ class Imu:
         """
         Initialize the IMU (MPU 9250)
         """
-        cfg = Config.getConfig()
         self._log = logging.getLogger("IMU")
         self._smbus = None  # In case we fail in init_smbus and need to call __del__
         self._smbus = self._init_smbus(bus)
@@ -130,16 +129,17 @@ class Imu:
         self._gyro = None
         self._accel = None
         self._temp = None
-        self._gyro_bias = cfg['imu_gyro_bias']
-        self._accel_bias = cfg['imu_accel_bias']
-        self._temp_bias = cfg['imu_temperature_bias']
-        self._mag_bias = cfg['imu_magnetometer_bias']
-        self._mag_scale = cfg['imu_magnetometer_scale']
-        self._mag_calib = cfg['imu_magnetometer_calib']
-        self._moving_average_window_size_gyro = cfg['imu_gyro_moving_average_window_size']
-        self._moving_average_window_size_accel = cfg['imu_accel_moving_average_window_size']
-        self._moving_average_window_size_temp = cfg['imu_temperature_moving_average_window_size']
-        self._moving_average_window_size_mag = cfg['imu_magnetometer_moving_average_window_size']
+        self._gyro_bias = Config.get('imu_gyro_bias')
+        self._accel_bias = Config.get('imu_accel_bias')
+        self._temp_bias = Config.get('imu_temperature_bias')
+        self._mag_bias = Config.get('imu_magnetometer_bias')
+        self._mag_scale = Config.get('imu_magnetometer_scale')
+        self._mag_calib = Config.get('imu_magnetometer_calib')
+        self._imu_mount_orientation = Config.get('imu_mount_orientation') # Should be left or right
+        self._moving_average_window_size_gyro = Config.get('imu_gyro_moving_average_window_size')
+        self._moving_average_window_size_accel = Config.get('imu_accel_moving_average_window_size')
+        self._moving_average_window_size_temp = Config.get('imu_temperature_moving_average_window_size')
+        self._moving_average_window_size_mag = Config.get('imu_magnetometer_moving_average_window_size')
         self._monitor_thread = threading.Thread(target=self._monitor_daemon)
         self._monitor_thread.daemon = True
         self._is_initialized = False
@@ -245,17 +245,21 @@ class Imu:
     def compass_deg(self):
         """Return heading: 0-359.9999"""
         mag = self.mag
-        return (atan2(mag[0], mag[1]) * (180 / pi) + 90 + 360) % 360
+        c = (atan2(mag[0], mag[1]) * (180 / pi) + 90 + 360) % 360
+        c = c + (0 if self._imu_mount_orientation == 'right' else 180)
+        return c - 360 if c > 360 else c
 
     @property
     def heel_deg(self):
         """Return heel angle. Positive to starboard, negative to port."""
         accel = self.accel
-        return 180 - (atan2(accel[2], accel[0]) * (180 / pi) + 90 + 360) % 360
+        sign = -1 if self._imu_mount_orientation == 'left' else 'right'
+        return sign * (180 - (atan2(accel[2], accel[0]) * (180 / pi) + 90 + 360) % 360)
 
     @property
     def turn_rate_dps(self):
-        return self.gyro[2]
+        """Turn rate in degrees per second, from gyro.  Positive is clockwise."""
+        return -self.gyro[2]
 
     def start_daemon(self):
         self._log.debug("Starting MPU9250 daemon...")
