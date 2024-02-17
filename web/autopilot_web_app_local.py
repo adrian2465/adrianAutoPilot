@@ -1,11 +1,14 @@
 ## Adrian Vrouwenvelder
 ## December 1, 2022
 ## March 2023
+import json
 import logging
 import os
 from time import sleep
+from urllib.parse import unquote
 
-from flask import Flask, jsonify, render_template, send_from_directory
+from flask import Flask, jsonify, render_template, request, url_for
+
 from modules.brain import Brain
 from modules.common.angle_math import normalize_angle
 from modules.common.config import Config
@@ -19,17 +22,20 @@ try:
                 template_folder='templates/',
                 static_url_path="/static",
                 static_folder='/Users/avrouwenve/Private/adrianAutoPilot/web/static/')
-    print("Flask started me again!  App root path = " + str(app.root_path))
+    print("Flask started me.  App root path = " + str(app.root_path))
     course = None
 
     def setup(app):
-        global cfg, rudder, imu, brain, logger, already_nagged
+        global rudder, imu, brain, already_nagged, logger, pid_p, pid_i, pid_d
 
         Config.init()
-        cfg = Config.getConfig()
         logger = logging.getLogger('web')
+        logger.setLevel("DEBUG")
         print("Note: Web interface is on http://127.0.0.1:5000 (unless otherwise configured)")
         already_nagged = False
+        pid_p=1.1 # TODO get from brain
+        pid_i=1.2
+        pid_d=1.3
 
     @app.route("/")
     def index():
@@ -37,10 +43,67 @@ try:
         logger.debug("API index()")
         return render_template('mainNav.html')
 
+    @app.route("/configure")
+    def configure():
+        global logger
+        return render_template('configure.html')
+
+    @app.route("/set_pid", methods=['POST'])
+    def set_pid():
+        global brain, logger, pid_p, pid_i, pid_d
+        json = request.json
+        pid_p = json.get('pid_p')
+        pid_i = json.get('pid_i')
+        pid_d = json.get('pid_d')
+        # TODO set in brain
+        print(f"API set_pid(p={pid_p}, i={pid_i}, d={pid_d})")
+        return ""
+
+    @app.route("/get_pid", methods = ['GET'])
+    def get_pid():
+        global brain, logger, pid_p, pid_i, pid_d
+        print(f"API get_pid(p={pid_p}, i={pid_i}, d={pid_d})")
+        # TODO get from brain
+        return jsonify(pid_p=pid_p, pid_i=pid_i, pid_d=pid_d)
+
+    @app.route("/reset_biases", methods = ['GET'])
+    def reset_biases():
+        global brain, logger
+        print(f"API reset_biases")
+        # TODO set in brain
+        return ""
+
+    @app.route("/get_biases", methods = ['GET'])
+    def get_biases():
+        global brain, logger
+        print(f"API get_biases(0.1, 0.2, 0.3, 0.4, 0.5, 0.6")
+        # TODO get from brain
+        return jsonify(gyro_x=0.1, gyro_y=0.2, gyro_z=0.3, accel_x=0.4, accel_y=0.5, accel_z=0.5)
+
+    @app.route("/get_rudder_limits", methods = ['GET'])
+    def get_rudder_limits():
+        global brain, logger
+        print(f"API get_rudder_limits")
+        # TODO set in brain
+        return jsonify(port_limit=230, stbd_limit=700)
+
+    @app.route("/set_port_limit", methods = ['GET'])
+    def set_port_limit():
+        global brain, logger
+        print(f"API set_port_limit")
+        # TODO set in brain
+        return ""
+
+    @app.route("/set_stbd_limit", methods = ['GET'])
+    def set_stbd_limit():
+        global brain, logger
+        print(f"API set_stbd_limit")
+        # TODO set in brain
+        return ""
 
     @app.route("/adjust_course/<course_adjustment>")
     def adjust_course(course_adjustment: str):
-        global logger, course
+        global course, logger
         logger.info(f"API adjust_course({course_adjustment})")
         course = normalize_angle(course + (int(course_adjustment))) if course is not None else None
         return ""
@@ -73,13 +136,13 @@ try:
                        starboard_limit=934,
                        motor=0,
                        rudder_position=rudder_pos,
+                       raw_rudder_position=500,
                        control_output=1,
+                       turn_rate=3,
                        heel=0,
                        messages="Ok",
                        heading="100",
-                       course=f"{course:03.0f}" if course is not None else "NAN",
-                       turn_rate=10)
-
+                       course=f"{course:03.0f}" if course is not None else "NAN")
 
     @app.route("/get_messages")
     def get_messages():

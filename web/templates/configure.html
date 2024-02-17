@@ -1,183 +1,177 @@
 <!doctype html>
-
-{% set smallDegrees = '2' %}
-{% set bigDegrees   = '10' %}
-{% set tackDegrees  = '100' %}
-{% set courseButtonWidthPx = '50' %}
-{% set tackButtonWidthPx = '150' %}
-{% set update_frequency_ms   = 100 %}
-
-<style>
-    .autopilot_control_button {
-        border: none;
-        color: black;
-        padding: 10px;
-        text-align: center;
-        text-decoration: none;
-        display: inline-block;
-        font-size: 16px;
-        margin: 4px 2px;
-        cursor: pointer;
-        width: 100px;
-        height: 100px;
-        box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
-        text-align: center;
-    }
-
-    .enabledButton {
-        font-size: 20px;
-        width: 125px;
-        height: 125px;
-        background-color: green;
-        border-radius: 50%;
-    }
-
-    .disabledButton {
-        font-size: 20px;
-        width: 125px;
-        height: 125px;
-        background-color: red;
-        border-radius: 50%;
-    }
-
-</style>
+{% set gainFieldWidth = '6' %}
+{% set accelFieldWidth = '5' %}
+{% set rudderLimitButtonWidth = '106px' %}
+{% set rudderLimitFieldWidth = '5' %}
 
 <html>
+<link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+<style>
+    .alnright { text-align: right; }
+    table.center { margin-left:auto; margin-right:auto; }
+</style>
 
-<script src="https://code.jquery.com/jquery-3.6.4.min.js"
-        integrity="sha256-oP6HI9z1XaZNBrJURtCoUT5SUnxFr8s3BzRl+cbzUq8="
-        crossorigin="anonymous">
+<head>
+<link href="/static/configure.css" rel="stylesheet" />
+<title>Autopilot Configuration</title>
+
+</head>
+<body>
+<script>
+    var $SCRIPT_ROOT = {{request.script_root | tojson | safe }};
 </script>
 
-<title>Calibration</title>
-LEFT OFF HERE -- Think about how to update PID more easily, via the web page
-<body>
-<div style="text-align: center;">
-    <input id='onOffInput' type='button' class='' value=''/>
-    <h2>Course: <span id="course">Supplied by jQuery</span>&nbsp;&nbsp;Heading: <span id="heading">Supplied by jQuery</span></h2>
-    <p>
-        <input id='bigDec' type='button' style="font-size : 20px; width: {{ courseButtonWidthPx }}px; height: 50px; border-radius: 6px" class='autopilot_control_button' value='Supplied by jQuery'/>
-        <input id='smallDec' type='button' style="font-size : 20px; width: {{ courseButtonWidthPx }}px; height: 50px; border-radius: 6px" class='autopilot_control_button' value='Supplied by jQuery'/>
-        <input id='smallInc' type='button' style="font-size : 20px; width: {{ courseButtonWidthPx }}px; height: 50px; border-radius: 6px" class='autopilot_control_button' value='Supplied by jQuery'/>
-        <input id='bigInc' type='button' style="font-size : 20px; width: {{ courseButtonWidthPx }}px; height: 50px; border-radius: 6px" class='autopilot_control_button' value='Supplied by jQuery'/>
-    </p>
-    <p>
-        <input id='tackDec' type='button' style="font-size : 20px; width: {{ tackButtonWidthPx }}px; height: 50px; border-radius: 6px" class='autopilot_control_button' value='Supplied by jQuery'/>
-        <input id='tackInc' type='button' style="font-size : 20px; width: {{ tackButtonWidthPx }}px; height: 50px; border-radius: 6px" class='autopilot_control_button' value='Supplied by jQuery'/>
-    </p>
-    <p>&nbsp;<span id="messages" style='jquery'>Supplied by jQuery</span></p>
-    <p>
-        <label for="interfaceCheckbox"><input id='interfaceCheckbox' type='checkbox' name='Debug'/>Show interface status</label>
-        <br/><span id="interfaceMessageArea">Supplied by jQuery</span>
-    </p>
-    <script>
-        $SCRIPT_ROOT = {{ request.script_root | tojson | safe }};
-        let onOffInput = $("#onOffInput");
-        let courseIndicator = $("#course");
-        let headingIndicator = $("#heading");
-        let bigDecButton = $("#bigDec");
-        let bigIncButton = $("#bigInc");
-        let smallDecButton = $("#smallDec");
-        let smallIncButton = $("#smallInc");
-        let tackDecButton = $("#tackDec");
-        let tackIncButton = $("#tackInc");
-        let messages = $("#messages");
-        const interfaceCheckbox = document.querySelector('#interfaceCheckbox');
-        let interfaceMessageArea = $("#interfaceMessageArea");
-        // Click handler definition
-        function onOffHandler() {
-            if (onOffInput.prop("value") == "Enabled") fetch($SCRIPT_ROOT + '/set_status/disable');
-            else fetch($SCRIPT_ROOT + '/set_status/enable');
-        }
-        function bigDecHandler() { if (onOffInput.prop("value") == "Enabled") fetch($SCRIPT_ROOT + '/adjust_course/-{{ bigDegrees }}'); }
-        function bigIncHandler() { if (onOffInput.prop("value") == "Enabled") fetch($SCRIPT_ROOT + '/adjust_course/+{{ bigDegrees }}'); }
-        function smallDecHandler() { if (onOffInput.prop("value") == "Enabled") fetch($SCRIPT_ROOT + '/adjust_course/-{{ smallDegrees }}'); }
-        function smallIncHandler() { if (onOffInput.prop("value") == "Enabled") fetch($SCRIPT_ROOT + '/adjust_course/+{{ smallDegrees }}'); }
-        function tackDecHandler() { if (onOffInput.prop("value") == "Enabled") fetch($SCRIPT_ROOT + '/adjust_course/-{{ tackDegrees }}'); }
-        function tackIncHandler() { if (onOffInput.prop("value") == "Enabled") fetch($SCRIPT_ROOT + '/adjust_course/+{{ tackDegrees }}'); }
-        // Click handler registration
-        onOffInput.on("click", function(){onOffHandler();});
-        bigDecButton.on("click", function(){bigDecHandler();});
-        bigIncButton.on("click", function(){bigIncHandler();});
-        smallDecButton.on("click", function(){smallDecHandler();});
-        smallIncButton.on("click", function(){smallIncHandler();});
-        tackDecButton.on("click", function(){tackDecHandler();});
-        tackIncButton.on("click", function(){tackIncHandler();});
-        // Periodic status monitoring
-        (function () {
-            $.getJSON(
-                $SCRIPT_ROOT + "/get_messages",
-                function (data) {
-                    if (data.messages.startsWith("ERROR")) messages.prop('style', 'color:red');
-                    else messages.prop('style', 'color:blue');
-                    messages.text(data.messages);
-                }
-            ).fail(function() {alert("CONNECTION ERROR")});
-            $.getJSON(
-                $SCRIPT_ROOT + "/get_course",
-                function (data) {
-                    if (onOffInput.prop('value') == 'Enabled') courseIndicator.text(data.course);
-                    else courseIndicator.text("---")
-                }
-            );
-            $.getJSON(
-                $SCRIPT_ROOT + "/get_heading",
-                function (data) {
-                    if (onOffInput.prop('value') == 'Enabled') headingIndicator.text(data.heading);
-                    else headingIndicator.text("---")
-                }
-            );
-            $.getJSON(
-                $SCRIPT_ROOT + "/get_interface_params",
-                function (data) {
-                    if (interfaceCheckbox.checked) {
-                        interfaceMessageArea.text(
-                            "r=" + data.starboard_limit +
-                            " l=" + data.port_limit +
-                            " s=" + data.motor_speed +
-                            " d=" + data.motor_direction +
-                            " p=" + data.rudder_position +
-                            " x=" + data.rudder_direction)
-                    } else {
-                        interfaceMessageArea.text("")
-                    }
-                    if (data.clutch_status == "1") {
-                        onOffInput.prop("value", "Enabled");
-                        onOffInput.prop("class", "button enabledButton");
-                        bigDecButton.prop("value", "-{{ bigDegrees }}");
-                        bigIncButton.prop("value", "+{{ bigDegrees }}");
-                        smallDecButton.prop("value", "-{{ smallDegrees }}");
-                        smallIncButton.prop("value", "+{{ smallDegrees }}");
-                        tackDecButton.prop("value", "TACK PORT");
-                        tackIncButton.prop("value", "TACK STBD");
-                        bigDecButton.removeAttr("disabled");
-                        bigIncButton.removeAttr("disabled");
-                        smallDecButton.removeAttr("disabled");
-                        smallIncButton.removeAttr("disabled");
-                        tackDecButton.removeAttr("disabled");
-                        tackIncButton.removeAttr("disabled");
-                    } else {
-                        onOffInput.prop("value", "Disabled");
-                        onOffInput.prop("class", "button disabledButton");
-                        bigDecButton.prop("value", "---");
-                        bigIncButton.prop("value", "---");
-                        smallDecButton.prop("value", "---");
-                        smallIncButton.prop("value", "---");
-                        tackDecButton.prop("value", "---- ----");
-                        tackIncButton.prop("value", "---- ----");
-                        bigDecButton.prop("disabled", "true");
-                        bigIncButton.prop("disabled", "true");
-                        smallDecButton.prop("disabled", "true");
-                        smallIncButton.prop("disabled", "true");
-                        tackDecButton.prop("disabled", "true");
-                        tackIncButton.prop("disabled", "true");
-                    }
-                }
-            );
-            setTimeout(arguments.callee, {{ update_frequency_ms }}); // Update every so often
-        })();
-    </script>
-</div>
-</body>
-</html>
+<h1>Configuration</h1>
 
+<div name="pid">
+    <h2>PID Gains:</h2>
+    The autopilot uses Proportional, Integral, and Derivative errors to determine what sort of correction (rudder angle)
+    to use to bring the boat back on course.  These gains define the autopilot's sensitivity to each type of error.  The values
+    should be adjusted gradually, as a small adjustment can make a large difference. Make a note of each setting and how well it steers,
+    along with the conditions (wind speed, wind angle, sea state).
+    Hover over each text field to learn more about it.<br/>
+    <table class="center"><tr>
+        <td>
+            <table>
+                <tr><th>P-Gain</th><td><input id="pid_p" name="pid_p" placeholder="P-gain" size="{{ gainFieldWidth }}" step="0.01" type="number" value="N/A" title="Proportional Gain: adjusts the amount of rudder response to Proportional Error. Proportional Error grows in direct proportion to the difference between heading and course."></td></tr>
+                <tr><th>I-Gain</th><td><input id="pid_i" name="pid_i" placeholder="I-gain" size="{{ gainFieldWidth }}" step="0.01" type="number" value="N/A" title="Integral Gain: adjusts the amount of rudder response to Integral Error. Integral Error increases with the length of time that the boat is off course."></td></tr>
+                <tr><th>D-Gain</th><td><input id="pid_d" name="pid_d" placeholder="D-gain" size="{{ gainFieldWidth }}" step="0.01" type="number" value="N/A" title="Derivative Gain: adjusts the amount of rudder response due to Derivative Error. Derivative Error increases with rate of error change (how fast the error increases or decreases)."></td></tr>
+            </table>
+        </td>
+        <td><button title="Press to persist the gains. You will have to dis-engage and re-engage the autopilot so it re-reads them." id="submit_pid_button">Save</button></td>
+    </tr></table>
+</div>
+<div name="accelerometers">
+    <h2>Biases:</h2>
+    <p>The accelerometer and gyroscope must be calibrated for variations caused by manufacturing and installation. When the boat is at rest (level and not moving), save the values these sensors
+    observe by pressing the "Reset Biases" button.  After that, the autopilot will use these values to zero-out the variations.</p>
+    <table class="center">
+        <tr>
+            <td>
+                <table>
+                    <tr><th></th><th>X</th><th>Y</th><th>Z</th></tr>
+                    <tr><th class='alnright'>Gyroscope:</th>
+                        <td><input id="gyro_x" name="gyro_x" type="text" value="N/A" size="{{ accelFieldWidth }}" disabled="true" title="Compensation for error in gyroscope X axis when at rest"></td>
+                        <td><input id="gyro_y" name="gyro_y" type="text" value="N/A" size="{{ accelFieldWidth }}" disabled="true" title="Compensation for error in gyroscope Y axis when at rest"></td>
+                        <td><input id="gyro_z" name="gyro_z" type="text" value="N/A" size="{{ accelFieldWidth }}" disabled="true" title="Compensation for error in gyroscope Z axis when at rest"></td>
+                    </tr>
+                    <tr><th class='alnright'>Accelerometer:</th>
+                        <td><input id="accel_x" name="accel_x" type="text" value="N/A" size="{{ accelFieldWidth }}" disabled="true" title="Compensation for error in accelerometer X axis when at rest"></td>
+                        <td><input id="accel_y" name="accel_y" type="text" value="N/A" size="{{ accelFieldWidth }}" disabled="true" title="Compensation for error in accelerometer Y axis when at rest"></td>
+                        <td><input id="accel_z" name="accel_z" type="text" value="N/A" size="{{ accelFieldWidth }}" disabled="true" title="Compensation for error in accelerometer Z axis when at rest"></td>
+                    </tr>
+                </table>
+            </td>
+            <td>
+                <br/><button title="Press when boat is level and stationary to set the bias compensation values." id="reset_bias_button">Reset Biases</button>
+            </td>
+        </tr>
+    </table>
+</div>
+<div name="rudder_limits">
+    <h2>Rudder Limits:</h2>
+    <p>Rudder limits define how far the autopilot will attempt to turn rudder. This should be set to just within the rudder stops, which is imperative to prevent damage to the steering.</p>
+    <p>Setting the rudder limits needs to be done only once unless the hardware is adjusted or reset. Once set, the values are persisted.</p>
+    <p>To set properly:
+        <ol>
+            <li>Turn the rudder all the way to port, then back a quarter turn. Press the "Set PORT Limit" button.</li>
+            <li>Turn the rudder all the way to starboard, then back a quarter turn. Press the "Set STBD Limit" button.</li>
+        </ol>
+    </p>
+    <table class="center">
+        <tr><th class='alnright'>Port Limit:</th>
+            <td><input type="text" title="Limit for full port rudder" id="port_limit" name="port_limit" value="N/A" placeholder="Port Limit" size="{{ rudderLimitFieldWidth }}" disabled="true"></td>
+            <td><button style="width:{{ rudderLimitButtonWidth }}" id="set_port_limit_button" title="Press when rudder steering ALMOST hard over to port.">Set PORT Limit</button></td></tr>
+        <tr><th class='alnright'>Starboard Limit:</th>
+            <td><input type="text" title="Limit for full starboard rudder" id="stbd_limit" name="stbd_limit" value="N/A" placeholder="Starboard Limit" size="{{ rudderLimitFieldWidth }}" disabled="true"></td>
+            <td><button style="width:{{ rudderLimitButtonWidth }}" id="set_stbd_limit_button" title="Press when rudder steering ALMOST hard over to starboard.">Set STBD Limit</button></td></tr>
+    </table>
+</div>
+<hr/>
+<p style="text-align:center;"><button title="Autopilot Control" onclick="location.href='/';"><img src="/static/autopilot.png" alt="Go to Autopilot Control" height="100px"></button>
+
+<ul>
+    <li>Implement gain writes, etc.</li>
+    <li>Implement zero sets.</li>
+    <li>ALSO: IMPORTANT!!! Figure out mode of failure that allows servo to overrun rudder angle. </li>
+</ul>
+</body>
+<script src="/static/jquery-3.6.4.min.js"></script>
+<script>
+    const pid_p_input = $("#pid_p")
+    const pid_i_input = $("#pid_i")
+    const pid_d_input = $("#pid_d")
+    const gyro_x_input = $("#gyro_x")
+    const gyro_y_input = $("#gyro_y")
+    const gyro_z_input = $("#gyro_z")
+    const accel_x_input = $("#accel_x")
+    const accel_y_input = $("#accel_y")
+    const accel_z_input = $("#accel_z")
+    const port_limit_input = $("#port_limit")
+    const stbd_limit_input = $("#stbd_limit")
+    const submit_pid_button = $("#submit_pid_button")
+    const reset_bias_button = $("#reset_bias_button")
+    const set_port_limit_button = $("#set_port_limit_button")
+    const set_stbd_limit_button = $("#set_stbd_limit_button")
+
+
+    fetch(
+        $SCRIPT_ROOT + '/get_pid'
+    )
+        .then(data => data.json())
+        .then((json) => {
+            pid_p_input.val(json.pid_p)
+            pid_i_input.val(json.pid_i)
+            pid_d_input.val(json.pid_d)
+        });
+    submit_pid_button.on('click', function () {
+        fetch(
+            $SCRIPT_ROOT + '/set_pid',
+            {
+                headers: {"Content-Type": "application/json; charset=UTF-8"},
+                method: "POST",
+                body: JSON.stringify({pid_p: pid_p_input.val(), pid_i: pid_i_input.val(), pid_d: pid_d_input.val()})
+            }
+        );
+    });
+
+
+    fetch(
+        $SCRIPT_ROOT + '/get_biases'
+    )
+        .then(data => data.json())
+        .then((json) => {
+            gyro_x_input.val(json.gyro_x)
+            gyro_y_input.val(json.gyro_y)
+            gyro_z_input.val(json.gyro_z)
+            accel_x_input.val(json.accel_x)
+            accel_y_input.val(json.accel_y)
+            accel_z_input.val(json.accel_z)
+        });
+    reset_bias_button.on('click', function () {
+        fetch(
+            $SCRIPT_ROOT + '/reset_biases'
+        );
+    });
+
+
+    fetch(
+        $SCRIPT_ROOT + '/get_rudder_limits'
+    )
+        .then(data => data.json())
+        .then((json) => {
+            port_limit_input.val(json.port_limit)
+            stbd_limit_input.val(json.stbd_limit)
+        });
+    set_port_limit_button.on('click', function () {
+        fetch(
+            $SCRIPT_ROOT + '/set_port_limit'
+        );
+    });
+    set_stbd_limit_button.on('click', function () {
+        fetch(
+            $SCRIPT_ROOT + '/set_stbd_limit'
+        );
+    });
+</script>
+</html>
