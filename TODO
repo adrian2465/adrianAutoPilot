@@ -1,10 +1,10 @@
 TODOs:
+2024-03-01 @ 09:37:17: * Add tilt-compensation to compass
+2024-03-01 @ 09:37:17: * Actual in-the-water tests to better couple boat heading with rudder action.
+2024-03-01 @ 09:37:17: * Add compass debug / calibration page 
+2024-03-01 @ 09:29:47: * In calibration page, include IMU calibration code, or document instructions.
+  - At least, update the code to output the calibrations in the format used by config.yaml
 
-o Convert PI to its own network after first investigating how to restore 'orion-based' network easily.
-o Add easy-to-find, interactive calibration program that finds rudder limits, allows setting of gains, etc. Persist (perhaps) in config.yaml, or overwrite with calibrations.yaml
-  - Reset biases etc.
-
-o Flask Not catching control C keyboard interrupt
 o Uninstall: 
   * make
   * gcc 
@@ -12,7 +12,13 @@ o Uninstall:
   * python3-dev?
   which were needed for pip-based installation of smbus (pip install smbus) but not anymore.
 
-DONEs
+****************************************************************************************************
+****************************************************************************************************
+****************************************************************************************************
+      DONEs DONEs DONEs DONEs DONEs DONEs DONEs DONEs DONEs DONEs DONEs DONEs DONEs DONEs 
+****************************************************************************************************
+****************************************************************************************************
+****************************************************************************************************
 DONE * Fix all hw getters and setters. All "hw" numbers from arduino should just be raw numbers, and don't need getters.
 DONE * Fix motor normalization and write unit tests.
 DONE o 2023-08-28 - Add rudder sense device to board, and test and calibrate
@@ -68,3 +74,15 @@ DONE o Changing status from another browser does not influence the status or cou
 DONE  o !! Clutch status does not influence the ON OFF switch. Need to turn it off if clutch is off.
 DONE o Apply corrections (biases) for each of the IMU stats. Gyro turn rate is always -1.7 or -1.8
 DONE o Adjust the course or turn rate tolerance so the motor doesn't cycle so much.
+DONE o Convert PI to its own network after first investigating how to restore 'orion-based' network easily.
+DONE o Add easy-to-find, interactive calibration program that finds rudder limits, allows setting of gains, etc. Persist (perhaps) in config.yaml, or overwrite with calibrations.yaml
+  DONE - Reset biases etc.
+
+DONE o Flask Not catching control C keyboard interrupt
+DONE * See run_test_081_000_150.log (`egrep "TEST|Arduino"`): Why did we get instruction  to go starboard (d2@255) 
+  when we just set the course to 081 and that was presumably the right course? 
+  ANSWER: Test code was flawed. Sent /adjust_course/81 which told AP to ADD 81deg to current course.
+DONE ! See run_test_081_000_150.log (`egrep "TEST|Arduino"`) and note that when tacking to port, direction got 
+  set to 2, which is to starboard.  Should Arduino be easier to understand? dR and dS?
+  ANSWER: Test code was flawed. Sent /adjust_course/XX which told AP to ADD XXdeg to current course. (so, if traveling 070, 
+  then adjust_course/60 (10 deg to port) was causing course to update to 130.

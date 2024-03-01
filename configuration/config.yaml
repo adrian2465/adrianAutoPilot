@@ -2,7 +2,7 @@
 # October 2023
 
 boat_max_turn_rate_dps: 10.0
-metric_tolerance: 1.0
+metric_tolerance: .1
 course_tolerance_deg: 0.5
 
 # PID Tuning Rule of Thumb (Ziegler-Nichols)
@@ -24,15 +24,15 @@ imu_sampling_interval_ms: 100
 
 # IMU Gyro
 imu_gyro_bias: [ -2.194, 0.670, -1.33] # Gyro units = degrees per second
-imu_gyro_moving_average_window_size: 30
+imu_gyro_moving_average_window_size: 100
 
 # IMU Accelerometer
 imu_accel_bias: [-0.007, 0.008, .033]
-imu_accel_moving_average_window_size: 5
+imu_accel_moving_average_window_size: 100
 
 # IMU Temperature
 imu_temperature_bias: 0 # Celsius
-imu_temperature_moving_average_window_size: 5
+imu_temperature_moving_average_window_size: 100
 
 # IMU Magnetometer (units = microTeslas)
 imu_magnetometer_calib: [ 1.19921875, 1.19921875, 1.15234375 ] # Factory calibration = [1.19921875, 1.19921875, 1.15234375]

@@ -19,3 +19,4 @@ echo "$(date) whoami = $(whoami)" >> $LOG 2>&1
 sudo modprobe i2c-dev >> $LOG 2>&1
 . /mnt/mmcblk0p2/venv/bin/activate >> $LOG 2>&1
 sudo python -m flask --app web/autopilot_web_app run -h 0.0.0.0 -p 80 >> $LOG 2>&1
+# sudo python -m flask --app web/autopilot_web_app run -h 0.0.0.0 -p 80 

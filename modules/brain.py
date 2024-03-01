@@ -19,7 +19,7 @@ class Brain:
     _course_lock = threading.Lock()  # To prevent toggling None / val during brain loop
 
     def __init__(self, rudder, imu):
-        self._log = logging.getLogger('brain')
+        self._log = logging.getLogger('Brain General')
         self._rudder = rudder
         self._imu = imu
         self._rudder_turn_rate_ups = 1000 / float(Config.get('rudder_hard_over_time_ms'))
@@ -34,8 +34,10 @@ class Brain:
         self._is_killed = False
         self._is_initialized = False
         self._course = None
-        self._heading = None
-        self._controller = None
+        self._controller = PID()
+
+    def log_lock(self, log, location, expected):
+        log.debug(f"course_lock. Location={location}, Expected={'Locked' if expected else 'Unlocked'}. Current state={Brain._course_lock}")
 
     def start_daemon(self):
         self._log.debug("Starting Actuator Manager daemon...")
@@ -54,11 +56,10 @@ class Brain:
             time.sleep(0.1)  # wait for daemon to die.
         self._log.info("Actuator Manager daemon terminated")
         self._course = None
-        self._heading = None
 
     @property
     def control_output(self):
-        return self._controller.control_output if self._controller is not None else None
+        return self._controller.control_output
 
     @property
     def course(self):
@@ -69,10 +70,11 @@ class Brain:
     def course(self, new_course):
         """Desired course for autopilot to steer. None if pilot is disengaged"""
         new_course = normalize_angle(new_course) if new_course is not None else None
+        self.log_lock(self._log, "course() waiting", False)
         with Brain._course_lock:
+            self.log_lock(self._log, "course() gotten", True)
             if new_course is not None and self._course is None:  # Switched disabled to enabled
                 msg = f"Autopilot enabled with course = {new_course}"
-                self._controller = PID()
                 self._course = new_course
                 self._rudder.set_clutch(1)
             elif new_course is not None and self._course is not None:  # Switched enabled to enabled (new course?)
@@ -86,25 +88,37 @@ class Brain:
                 self._rudder.set_clutch(0)
                 self._rudder.set_motor_speed(0)
                 self._course = None
-                self._controller = None
+        self.log_lock(self._log, "course() released", False)
         self._log.info(msg)
 
     @property
     def is_on_course(self):
-        return self.course is None or _is_on_course(self._course, self._heading, self._course_tolerance_deg)
+        return self.course is None or _is_on_course(self._course, self._imu.compass_deg, self._course_tolerance_deg)
 
     @property
     def is_engaged(self):
+        # MUCH TOO CHATTY!  self._log.debug(f"is_engaged() => {self._rudder.hw_clutch_status}")
         return self._rudder.hw_clutch_status == 1
 
-    def _get_control(self):
+    def _get_control(self, log):
+        self.log_lock(log,"_get_control() waiting", False)
         with Brain._course_lock:
+            self.log_lock(log, "_get_control() gotten", True)
             if self.is_engaged:
-                self._log.debug(f"Querying controller. Inputs = {self._course}, "
-                                f"{normalize_angle(self._imu.compass_deg)}")
-                return self._controller.compute(self._course, normalize_angle(self._imu.compass_deg))
+                log.debug(f"_get_control: engaged 1")
+                log.debug(f"_get_control: Course = {self._course}")
+                log.debug(f"_get_control: compass = {normalize_angle(self._imu.compass_deg)}")
+                controller = self._controller
+                log.debug(f"_get_control: controller = {controller}")
+                _rc = controller.compute(self._course, normalize_angle(self._imu.compass_deg))
+                log.debug(f"_get_control: engaged 2")
             else:
-                return None
+                log.debug(f"_get_control: NOT engaged")
+                _rc = None
+            log.debug("_get_control: About to release lock")
+        self.log_lock(log, "_get_control() released", False)
+        log.debug(f"_get_control({self._course}, {normalize_angle(self._imu.compass_deg)}) ==> {_rc}")
+        return _rc
 
     def _get_controlled_metric(self):
         """This is the item we're attempting to control in our attempts to steer a course. Positive to stbd."""
@@ -113,15 +127,16 @@ class Brain:
         # environment there will always be weather helm offset and so there will practically always be non-zero rudder
         # when on course. Perhaps a more direct controllable value is turn rate, which be zero when the error is zero,
         # regardless of rudder position.
-        return self._imu.turn_rate_dps / self._max_turn_rate_dps
+        _rc = self._imu.turn_rate_dps / self._max_turn_rate_dps
+        self._log.debug(f"_get_controlled_metric({self._imu.turn_rate_dps}, {self._max_turn_rate_dps})) ==> {_rc}")
+        return _rc
 
     def _actuator_manager_daemon(self):
         _log = logging.getLogger("Brain Daemon")
-        _log.info("started")
+        _log.info(f"Looping (interval = {self._loop_interval_s}...")
         while not self._is_killed:
             if self.is_engaged:
-                control = self._get_control()
-                _log.debug(f"looping with control = {control}")
+                control = self._get_control(_log)
                 if control is not None:
                     metric = self._get_controlled_metric()
                     _log.debug(f"Control: {control:6.4f} Metric: {metric:6.4f}")
@@ -136,6 +151,21 @@ class Brain:
             time.sleep(self._loop_interval_s)
         _log.info("exited")
         self._is_initialized = False
+
+    @property
+    def is_running(self):
+        return self._is_initialized
+    @property
+    def controller(self):
+        return self._controller
+
+    @property
+    def imu(self):
+        return self._imu
+
+    @property
+    def rudder(self):
+        return self._rudder
 
 
 if __name__ == "__main__":

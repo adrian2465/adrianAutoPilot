@@ -283,6 +283,21 @@ class Imu:
     def is_running(self):
         return self._is_initialized
 
+    def reset_biases(self):
+        _GRAVITY = [0, 0, 1]
+        self._gyro_bias = self._gyro.value
+        self._accel_bias = apply_operation(lambda a, b: a - b, self._accel.value, _GRAVITY)
+        Config.save('imu_gyro_bias', self._gyro_bias)
+        Config.save('imu_accel_bias', self._accel_bias)
+
+    @property
+    def gyro_biases(self):
+        return self._gyro_bias
+
+    @property
+    def accel_biases(self):
+        return self._accel_bias
+
 
 if __name__ == "__main__":
     import sys

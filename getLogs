@@ -1,0 +1,19 @@
+#!/bin/bash
+
+## Determine to which network to attach
+X="$(ifconfig)"
+if echo $X | grep -q "192.168.86"
+then
+   echo "Cantopilot is on home network"
+   ADDR="192.168.86.31" # 31 FOR 3.1[41592] (PI)
+elif echo $X | grep -q "192.160.10"
+then
+   echo "Cantopilot is its own access point"
+   ADDR="192.160.10.1" 
+else
+   echo "Can't find cantopilot"
+   exit 1
+fi
+
+scp tc@$ADDR:/mnt/mmcblk0p2/apps/adrianAutoPilot/logs/autopilot.log /Users/avrouwenve/Private/adrianAutoPilot/logs/autopilot.log
+scp tc@$ADDR:/mnt/mmcblk0p2/apps/adrianAutoPilot/run_test_*.log /Users/avrouwenve/Private/adrianAutoPilot/logs

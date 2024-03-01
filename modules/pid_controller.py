@@ -29,6 +29,7 @@
 # - Kc is the critical gain value
 # - i_gain = 0.5*Pc
 # - d_gain = Pc/8
+import logging
 import time
 from modules.common.angle_math import calculate_acute_angle, normalize_angle, is_on_course
 from modules.common.config import Config
@@ -41,6 +42,7 @@ class PID:
 
     def __init__(self):
         self._gains = Config.get('pid_gains')
+        self._log = logging.getLogger('PID')
         self._prev_err = 0
         self._err_sum = 0
         self._prev_timestamp = time.time()
@@ -52,19 +54,31 @@ class PID:
 
     def compute(self, set_point: float, measured_value: float):
         """Calculate control output required to bring measured_value closer to set_point using SIMPLE PID controller."""
-        now = time.time()
-        d_time = now - self._prev_timestamp
-        error = calculate_acute_angle(measured_value, set_point)
-        self._err_sum += error * d_time
-        d_err = (error - self._prev_err) / d_time if d_time > 0 else 0.0
-        self._control_output = self._gains[PID.P_idx] * error + \
-                 self._gains[PID.I_idx] * self._err_sum + \
-                 self._gains[PID.D_idx] * d_err
-        self._control_output = max(-1, self._control_output) if self._control_output < 0 else min(1, self._control_output)
-        self._prev_err = error
-        self._prev_timestamp = now
+        try:
+            now = time.time()
+            d_time = now - self._prev_timestamp
+            error = calculate_acute_angle(measured_value, set_point)
+            self._err_sum += error * d_time
+            d_err = (error - self._prev_err) / d_time if d_time > 0 else 0.0
+            self._control_output = self._gains[PID.P_idx] * error + \
+                     self._gains[PID.I_idx] * self._err_sum + \
+                     self._gains[PID.D_idx] * d_err
+            self._control_output = max(-1, self._control_output) if self._control_output < 0 else min(1, self._control_output)
+            self._prev_err = error
+            self._prev_timestamp = now
+        except Exception as e:
+            self._log.error(f"Caught exception {e}")
+
         return self._control_output
 
+    def set_pid_values(self, p, i, d):
+        """Set and persist PID values"""
+        self._gains[PID.P_idx], self._gains[PID.I_idx], self._gains[PID.D_idx] = p, i, d
+        Config.save('pid_gains', p, i, d)
+
+    def get_pid_values(self):
+        """Get active PID values"""
+        return self._gains[PID.P_idx], self._gains[PID.I_idx], self._gains[PID.D_idx]
 
 if __name__ == "__main__":
     import sys

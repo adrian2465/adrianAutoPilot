@@ -1,19 +1,13 @@
 ## Adrian Vrouwenvelder
 ## December 1, 2022
 ## March 2023
-import json
 import logging
-import os
 from time import sleep
-from urllib.parse import unquote
 
-from flask import Flask, jsonify, render_template, request, url_for
+from flask import Flask, jsonify, render_template, request
 
-from modules.brain import Brain
 from modules.common.angle_math import normalize_angle
 from modules.common.config import Config
-from modules.imu_interface import Imu
-from modules.rudder_interface import RudderInterface
 
 
 try:
@@ -80,13 +74,6 @@ try:
         # TODO get from brain
         return jsonify(gyro_x=0.1, gyro_y=0.2, gyro_z=0.3, accel_x=0.4, accel_y=0.5, accel_z=0.5)
 
-    @app.route("/get_rudder_limits", methods = ['GET'])
-    def get_rudder_limits():
-        global brain, logger
-        print(f"API get_rudder_limits")
-        # TODO set in brain
-        return jsonify(port_limit=230, stbd_limit=700)
-
     @app.route("/set_port_limit", methods = ['GET'])
     def set_port_limit():
         global brain, logger
@@ -134,9 +121,8 @@ try:
         return jsonify(clutch_status=course is not None,
                        port_limit=100,
                        starboard_limit=934,
+                       rudder_position=500,
                        motor=0,
-                       rudder_position=rudder_pos,
-                       raw_rudder_position=500,
                        control_output=1,
                        turn_rate=3,
                        heel=0,
@@ -158,6 +144,11 @@ try:
         except KeyboardInterrupt:
             brain.stop()
             print('INFO: autoPilotWebApp exited.')
+
+except:
+    logger.exception(f"Caught exception in autopilot.")
+
 finally:
         sleep(5)
         logger.info('INFO: autoPilotWebApp exited.')
+        print("'INFO: autoPilotWebApp exited.'")

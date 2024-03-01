@@ -7,7 +7,7 @@ from modules.common.test_methods import test_equals
 
 
 class WeightedAverageVector:
-
+    NEG_ONE = [-1, -1, -1]
     def __init__(self, weight):
         self._average_vector = None
         self._weight = weight

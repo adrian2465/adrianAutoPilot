@@ -90,9 +90,8 @@ function tackIncHandler() {
                 interfaceMessageArea.text(
                     "plim=" + data.port_limit +
                     " slim=" + data.starboard_limit +
-                    " motor=" + data.motor +
                     " rudder=" + data.rudder_position +
-                    " raw-rudder=" + data.raw_rudder_position +
+                    " motor=" + data.motor +
                     " control=" + data.control_output +
                     " turn_rate=" + data.turn_rate)
             } else {
@@ -135,8 +134,12 @@ function tackIncHandler() {
                 tackDecButton.prop("disabled", "true");
                 tackIncButton.prop("disabled", "true");
             }
-            rudderGaugeText.text(data.rudder_position)
-            rudderGauge.set(data.rudder_position)
+            const ctr = (data.starboard_limit + data.port_limit) / 2;
+            const normalized_pos = 100 * (data.rudder_position - ctr) / (data.starboard_limit - ctr);
+            if (normalized_pos < 0) text = "" + (-Math.floor(normalized_pos)) + "% port rudder"
+            else text = "" + Math.floor(normalized_pos) + "% starboard rudder"
+            rudderGaugeText.text(text);
+            rudderGauge.set(normalized_pos);
         }
     ).fail(function () {
         messages.prop('style', 'color:red');
